@@ -1,6 +1,8 @@
 # Plugify
 
-> 개인 스킬 자산 모음 + Claude Code 마켓플레이스. 정본 1곳, 플러그인 단위로 묶어서 어디서든 install.
+> 개인 스킬 자산 모음 + Claude Code 마켓플레이스. 기타 도구(스코어링·토큰효율·슬라이드·셀프리뷰 등) 정본 1곳, 플러그인 단위로 묶어서 어디서든 install.
+
+> **참고**: scenario-first 5 스킬은 2026-05-19 부로 이 마켓플레이스를 떠나 자기완결 시드 [scenario-first-development](https://github.com/chanshin0/scenario-first-development) (GitHub template repo) 로 이동했다. 사유 + 자세한 절차는 그 레포의 `.harness/EVOLUTION/001-self-contained-migration.md` 참조. Plugify 는 그 외 5 스킬의 마켓플레이스로 정체성을 좁힌다.
 
 ## 개념 — 한 레포 두 역할
 
@@ -22,61 +24,19 @@
 ```
 .
 ├── .claude-plugin/
-│   └── marketplace.json              # 마켓플레이스 카탈로그
+│   └── marketplace.json              # 마켓플레이스 카탈로그 (현재 plugins 비어있음 — 정본 직접 사용)
 ├── skills/                            # 정본 스킬 (평면)
 │   ├── ai-readiness-cartography/
 │   ├── improve-token-efficiency/
 │   ├── presentation_slides/
 │   ├── push-experience/
-│   ├── scenario-first-throw/
-│   ├── scenario-first-expand/
-│   ├── scenario-first-spec/
-│   ├── scenario-first-goal/
-│   ├── scenario-first-review/
 │   └── self-review/
-└── plugins/
-    └── scenario-first/
-        ├── .claude-plugin/plugin.json
-        └── skills/
-            ├── scenario-first-throw   → ../../../skills/scenario-first-throw
-            ├── scenario-first-expand  → ../../../skills/scenario-first-expand
-            ├── scenario-first-spec    → ../../../skills/scenario-first-spec
-            ├── scenario-first-goal    → ../../../skills/scenario-first-goal
-            └── scenario-first-review  → ../../../skills/scenario-first-review
+└── plugins/                           # 번들 단위 마켓플레이스 노출 (현재 비어있음 — 필요 시 추가)
 ```
 
-## 사용 — 한 줄 install (권장)
+## 사용 — 개인 정본 직접 사용 (기본)
 
-진영별 도구. 동일한 동작, 같은 `.claude/settings.json` 형식.
-
-```bash
-# Python · uv 진영 (PyPI, publish 완료)
-uvx cc-plugify install scenario-first
-
-# JS · npm 진영 (publish 보류 — npm 정책 이슈, bootstrap/cli.mjs 로 직접 실행 가능)
-npx cc-plugify install scenario-first    # publish 후 동작
-```
-
-옵션:
-- `--global` (또는 `-g`): user scope (`~/.claude/settings.json`). 기본은 project scope.
-- `--uninstall`: 마켓플레이스 등록 해제
-
-이후 Claude Code 재시작 시 trust dialog 한 번 → 마켓플레이스 등록 + 플러그인 install 자동 제안. 사용자 명령 0줄.
-
-CLI 상세: [bootstrap-py/README.md](bootstrap-py/README.md) (Python) · [bootstrap/README.md](bootstrap/README.md) (Node)
-
-## 사용 — 수동 (전통적)
-
-```bash
-claude plugin marketplace add chanshin0/Plugify
-claude plugin install scenario-first@plugify
-```
-
-설치 후 `/scenario-first:scenario-first-throw` 등 namespace 된 스킬 사용 가능.
-
-## 사용 — 개인 정본 직접 사용 (legacy)
-
-마켓플레이스를 쓰지 않고 정본을 그대로 `~/.claude/skills/` 로 symlink 거는 방법도 그대로 지원된다 (이 레포의 원래 사용 패턴):
+정본을 그대로 `~/.claude/skills/` 로 symlink:
 
 ```bash
 for d in skills/*/; do
@@ -85,7 +45,20 @@ for d in skills/*/; do
 done
 ```
 
-정본 위치가 안 바뀌었으므로 두 방식 공존.
+## 사용 — 마켓플레이스 install (현재 비어있음)
+
+`plugins/` 가 비어있어 현재 install 대상 번들이 없다. 추후 새 번들이 추가되면 다음 방식 가능:
+
+```bash
+# Python · uv 진영
+uvx cc-plugify install <bundle-name>
+
+# 수동
+claude plugin marketplace add chanshin0/Plugify
+claude plugin install <bundle-name>@plugify
+```
+
+CLI 상세: [bootstrap-py/README.md](bootstrap-py/README.md) (Python) · [bootstrap/README.md](bootstrap/README.md) (Node)
 
 ## 플러그인 추가
 
@@ -121,19 +94,12 @@ plugins/<bundle-name>/
 | `presentation_slides` | YouTube 영상용 다크 테마 HTML 슬라이드 자동 생성 |
 | `push-experience` | (확인 필요 — TODO) |
 | `self-review` | 직전 답변 3라운드 비판적 재검토 (R1/R2/R3) |
-| `scenario-first-throw` | 시나리오-First 개발 1단계 — Job Story 캡처 |
-| `scenario-first-expand` | 시나리오-First 개발 1.5단계 — USM + Example Mapping → GWT |
-| `scenario-first-spec` | 시나리오-First 개발 2단계 — PRD/ARCH/NONFUNC/OPS 4슬롯 도출 |
-| `scenario-first-goal` | 시나리오-First 개발 3단계 — GWT E2E 자동 변환 + goal-directed loop |
-| `scenario-first-review` | 시나리오-First 개발 4단계 — 본인 사용 체크리스트 + 5 Whys 라우팅 |
 
-각 스킬 상세는 `skills/<name>/SKILL.md`.
+각 스킬 상세는 `skills/<name>/SKILL.md`. scenario-first 5 스킬은 [scenario-first-development](https://github.com/chanshin0/scenario-first-development) 로 이동.
 
 ## 플러그인 카탈로그
 
-| 이름 | 묶인 스킬 | 설명 |
-|---|---|---|
-| `scenario-first` | scenario-first-{throw,expand,spec,goal,review} | 시나리오-First 개발 단방향 5단계 파이프라인 |
+현재 비어있음. `marketplace.json` 의 `plugins` 배열에 새 번들 entry 를 추가하면 활성화.
 
 ## 설계 원칙
 
