@@ -1,0 +1,9 @@
+{
+  "name": "scenario-first",
+  "description": "Scenario-First Development — Job Story 부터 GWT 자동 게이트까지 단방향 5단계 파이프라인 (throw / expand / spec / goal / review)",
+  "author": {
+    "name": "chanshin0"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/chanshin0/scenario-first-development"
+}
