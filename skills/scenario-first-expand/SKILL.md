@@ -20,27 +20,43 @@ description: 시나리오-First 개발 1.5단계. Job Story를 (a) User Story Ma
 
 | 인자 | 동작 |
 |---|---|
-| `/scenario-first-expand <NNN>` | `.scenarios/throws/NNN-*.md` 확장 |
-| `/scenario-first-expand --rerun <NNN>` | 이미 확장된 것 재실행 (백업 후 덮어쓰기) |
+| `/scenario-first-expand <NNN>` | `scenarios/throws/NNN-*.md` 확장 |
+| `/scenario-first-expand --rerun <NNN>` | 이미 확장된 것 백업 후 재실행 |
 
 자동 트리거 금지.
 
 ## 사전 점검
 
 ```bash
-test -f .scenarios/throws/NNN-*.md   # 입력 존재 확인
-mkdir -p .scenarios/expanded
-```
+# 1. 하네스 깔렸나
+test -d .harness && test -d scenarios || {
+  echo "ERROR: /scenario-first-init 먼저"
+  exit 1
+}
 
-throws에 해당 ID 없으면 에러.
+# 2. 입력 존재
+test -f scenarios/throws/NNN-*.md || {
+  echo "ERROR: scenarios/throws/NNN-*.md 없음"
+  exit 1
+}
+```
 
 ## Workflow
 
-### 1. Job Story 로드
+### 1. (--rerun 모드만) 백업
 
-`.scenarios/throws/NNN-*.md`에서 Job Story와 원본 메모 추출.
+```bash
+TS=$(date -Iseconds)
+mkdir -p ".harness/.backups/<NNN>/$TS"
+cp "scenarios/expanded/NNN-"*.md ".harness/.backups/<NNN>/$TS/" 2>/dev/null
+echo "- $TS <NNN> scenarios/expanded/NNN-*.md → .harness/.backups/<NNN>/$TS/" >> .harness/STATUS.md
+```
 
-### 2. User Story Mapping (Jeff Patton 2014)
+### 2. Job Story 로드
+
+`scenarios/throws/NNN-*.md`에서 Job Story와 원본 메모 추출.
+
+### 3. User Story Mapping (Jeff Patton 2014)
 
 **Backbone 도출**: Job Story의 `so I can <결과>`에 도달하기 위한 사용자 행동의 큰 단계를 시간순(좌→우)으로 배치.
 
@@ -56,7 +72,7 @@ throws에 해당 ID 없으면 에러.
 - walking skeleton 항목은 명사형이 아닌 **동사 + 명사** ("이메일 입력", "검색 결과 보기")
 - 한 단계에 N개 동작이 있어도 walking skeleton에는 가장 핵심 1개만
 
-### 3. Example Mapping (Matt Wynne 2015)
+### 4. Example Mapping (Matt Wynne 2015)
 
 각 walking skeleton 항목에 대해 4색 카드 생성:
 
@@ -67,7 +83,7 @@ throws에 해당 ID 없으면 에러.
 
 Claude가 1차 초안을 생성하되, Question은 반드시 1개 이상 남긴다(완벽주의 회피).
 
-### 4. 메타 인터뷰 (Questions 해소)
+### 5. 메타 인터뷰 (Questions 해소)
 
 Question 카드를 사용자에게 한 번에 1개씩 제시:
 
@@ -82,9 +98,7 @@ Walking skeleton: "검색 결과 보기"
 - 추가 분기 → Example로 추가
 - "지금 결정 못 함" → Story로 이동(다음 사이클)
 
-cf. `scenario-first-throw`와 짝을 이루는 메타 패턴 — 첫독자 리뷰 아이디어(`01KRX3XFK`)의 본 단계 적용.
-
-### 5. Given-When-Then 변환
+### 6. Given-When-Then 변환
 
 남은 Example 카드 → GWT 시나리오로 1:1 변환:
 
@@ -103,16 +117,16 @@ Scenario: <Example 한 줄 요약>
 
 복수 시나리오면 Scenario Outline + Examples 테이블 권장.
 
-### 6. 사용자 확인
+### 7. 사용자 확인
 
 생성된 GWT 시나리오 전체를 보여주고:
-- accept → 7번
+- accept → 8번
 - 수정 → diff로 수정 받기
-- reject → Question 추가 후 4번 재시작
+- reject → Question 추가 후 5번 재시작
 
-### 7. 저장
+### 8. 저장
 
-`.scenarios/expanded/NNN-<slug>.md`:
+`scenarios/expanded/NNN-<slug>.md`:
 
 ```markdown
 ---
@@ -121,6 +135,7 @@ throw_id: <NNN>
 created_at: <ISO8601>
 status: expanded
 spec_id: null
+review_status: null
 ---
 
 # 확장: <Job Story 한 줄>
@@ -155,22 +170,40 @@ Scenario: ...
 
 throws의 frontmatter도 갱신:
 ```
-expanded_to: .scenarios/expanded/NNN-<slug>.md
+expanded_to: scenarios/expanded/NNN-<slug>.md
 ```
 
-### 8. 응답
+### 9. Story 카드 → backlog.md (룰 3.6)
+
+Example Mapping의 🟨 **Story 카드**를 `.harness/backlog.md`에 append:
+
+```markdown
+- [🟨 Story] <ISO8601> NNN-<원본> — <Story 카드 한 줄>
+  - 맥락: <walking skeleton 항목·이월 사유>
+  - 후보 throw: "When ..., I want to ..., so I can ..."
+```
+
+### 10. STATUS.md 갱신 (룰 3.3)
+
+```bash
+echo "- $(date -Iseconds) NNN-<slug> [expand] backbone N, walking skeleton M, GWT K" >> .harness/STATUS.md
+```
+
+### 11. 응답
 
 ```
 ✓ expanded/NNN  Backbone N단계, walking skeleton M개, GWT 시나리오 K개
-Open questions: <남은 Story 카드 개수>
+Story 카드 → backlog.md: <개수>
 Next: /scenario-first-spec NNN
 ```
 
 ## 산출
 
-- `.scenarios/expanded/NNN-<slug>.md`
-- 갱신된 `.scenarios/throws/NNN-*.md` frontmatter
-- 응답 요약
+- `scenarios/expanded/NNN-<slug>.md`
+- 갱신된 `scenarios/throws/NNN-*.md` frontmatter
+- `.harness/backlog.md` Story 카드 append
+- 갱신된 `.harness/STATUS.md`
+- (--rerun 시) `.harness/.backups/<NNN>/<TS>/` 백업
 
 ## 다음 단계
 
@@ -183,3 +216,6 @@ Next: /scenario-first-spec NNN
 - GWT 시나리오를 manual 테스트로 만들기 (자동 게이트 단위여야 함)
 - 페르소나 등장
 - backbone 10개 초과 (너무 큰 슬라이스)
+- Story 카드를 backlog.md 동기 없이 expanded 안에만 두기 (잊혀짐)
+- 하네스 미설치 상태에서 강행
+- STATUS.md 갱신 건너뛰기
