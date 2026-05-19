@@ -45,10 +45,24 @@
             └── scenario-first-review  → ../../../skills/scenario-first-review
 ```
 
-## 사용 — 마켓플레이스 install
+## 사용 — npx 한 줄 (권장)
 
 ```bash
-claude plugin marketplace add chanshin0/cc-skills-repo
+# 프로젝트 scope (./.claude/settings.json)
+npx plugify install scenario-first
+
+# 모든 프로젝트 (~/.claude/settings.json)
+npx plugify install scenario-first --global
+```
+
+이후 Claude Code 재시작 시 trust dialog 한 번 → 마켓플레이스 등록 + 플러그인 install 자동 제안. 사용자 명령 0줄.
+
+CLI 상세: [bootstrap/README.md](bootstrap/README.md)
+
+## 사용 — 수동 (전통적)
+
+```bash
+claude plugin marketplace add chanshin0/Plugify
 claude plugin install scenario-first@plugify
 ```
 

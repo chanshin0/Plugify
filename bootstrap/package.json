@@ -1,0 +1,35 @@
+{
+  "name": "plugify",
+  "version": "0.1.0",
+  "description": "One-shot bootstrapper for the chanshin0/Plugify Claude Code marketplace.",
+  "type": "module",
+  "bin": {
+    "plugify": "cli.mjs"
+  },
+  "files": [
+    "cli.mjs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chanshin0/Plugify.git",
+    "directory": "bootstrap"
+  },
+  "homepage": "https://github.com/chanshin0/Plugify#readme",
+  "bugs": {
+    "url": "https://github.com/chanshin0/Plugify/issues"
+  },
+  "keywords": [
+    "claude-code",
+    "claude",
+    "marketplace",
+    "plugin",
+    "bootstrap",
+    "scenario-first"
+  ],
+  "license": "MIT",
+  "author": "chanshin0"
+}
