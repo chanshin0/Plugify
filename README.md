@@ -1,50 +1,98 @@
-# cc-skills-repo
+# Plugify
 
-chanshin0 의 Claude Code 개인 스킬 모음 (public bucket).
+> 개인 스킬 자산 모음 + Claude Code 마켓플레이스. 정본 1곳, 플러그인 단위로 묶어서 어디서든 install.
 
-## 개요
+## 개념 — 한 레포 두 역할
 
-이 repo 는 **스킬 버킷** 이다. 개별 스킬을 자유롭게 추가하고, 어떤 스킬을 어디에 노출할지는 별도의 marketplace repo 에서 큐레이션한다.
+이 레포는 동시에 두 가지다:
+
+1. **스킬 정본 버킷** — `skills/` 평면. 새 스킬 추가, 수정의 단일 출처.
+2. **플러그인 마켓플레이스** — `.claude-plugin/marketplace.json` + `plugins/<bundle>/`. 정본 스킬들을 묶음 단위로 노출.
+
+플러그인은 자기 `skills/` 안에 정본 스킬을 **symlink** 로 가리킨다. Claude Code 가 install 할 때 marketplace root 안 sibling symlink 를 자동으로 dereference 해서 실파일로 cache 에 박는다. 그래서:
+
+- 정본 수정 → 새 커밋 → `/plugin marketplace update` → 사용자 cache 갱신 (빌드 step 없음)
+- 다른 플러그인이 같은 스킬을 공유해도 OK (각자 자기 `skills/` 안에 symlink)
+- 스킬 1개를 여러 플러그인에 박을 때 사본 동기화 부담 0
+
+> 공식 문서 근거: [Plugin caching and file resolution](https://code.claude.com/docs/en/plugins-reference#plugin-caching-and-file-resolution) — "Elsewhere within the same marketplace: the symlink is dereferenced."
 
 ## 구조
 
 ```
 .
-├── .claude-plugin/plugin.json
+├── .claude-plugin/
+│   └── marketplace.json              # 마켓플레이스 카탈로그
+├── skills/                            # 정본 스킬 (평면)
+│   ├── ai-readiness-cartography/
+│   ├── improve-token-efficiency/
+│   ├── presentation_slides/
+│   ├── push-experience/
+│   ├── scenario-first-throw/
+│   ├── scenario-first-expand/
+│   ├── scenario-first-spec/
+│   ├── scenario-first-goal/
+│   ├── scenario-first-review/
+│   └── self-review/
+└── plugins/
+    └── scenario-first/
+        ├── .claude-plugin/plugin.json
+        └── skills/
+            ├── scenario-first-throw   → ../../../skills/scenario-first-throw
+            ├── scenario-first-expand  → ../../../skills/scenario-first-expand
+            ├── scenario-first-spec    → ../../../skills/scenario-first-spec
+            ├── scenario-first-goal    → ../../../skills/scenario-first-goal
+            └── scenario-first-review  → ../../../skills/scenario-first-review
+```
+
+## 사용 — 마켓플레이스 install
+
+```bash
+claude plugin marketplace add chanshin0/cc-skills-repo
+claude plugin install scenario-first@plugify
+```
+
+설치 후 `/scenario-first:scenario-first-throw` 등 namespace 된 스킬 사용 가능.
+
+## 사용 — 개인 정본 직접 사용 (legacy)
+
+마켓플레이스를 쓰지 않고 정본을 그대로 `~/.claude/skills/` 로 symlink 거는 방법도 그대로 지원된다 (이 레포의 원래 사용 패턴):
+
+```bash
+for d in skills/*/; do
+  name=$(basename "$d")
+  ln -s "$PWD/$d" "$HOME/.claude/skills/$name"
+done
+```
+
+정본 위치가 안 바뀌었으므로 두 방식 공존.
+
+## 플러그인 추가
+
+새 묶음을 만들려면:
+
+```
+plugins/<bundle-name>/
+├── .claude-plugin/
+│   └── plugin.json              # name, description, author, license
 └── skills/
-    ├── ai-readiness-cartography/
-    ├── improve-token-efficiency/
-    ├── presentation_slides/
-    ├── push-experience/
-    ├── scenario-first-throw/
-    ├── scenario-first-expand/
-    ├── scenario-first-spec/
-    ├── scenario-first-goal/
-    ├── scenario-first-review/
-    └── self-review/
+    └── <skill-name>             → ../../../skills/<skill-name>   (symlink)
 ```
 
-## 설치 (개인 사용)
-
-```
-/plugin marketplace add chanshin0/cc-skills-repo
-/plugin install cc-skills-repo@cc-skills-repo
-```
-
-## 큐레이션 사용 (마켓플레이스에서 골라쓰기)
-
-별도 marketplace.json 에서 `strict: false` 로 노출할 스킬만 골라낼 수 있다:
+그 후 `.claude-plugin/marketplace.json` 의 `plugins` 배열에 entry 추가:
 
 ```json
 {
-  "name": "my-curated-skills",
-  "source": { "source": "github", "repo": "chanshin0/cc-skills-repo" },
-  "skills": ["./skills/self-review", "./skills/presentation_slides"],
-  "strict": false
+  "name": "<bundle-name>",
+  "source": "./plugins/<bundle-name>",
+  "category": "productivity",
+  "description": "..."
 }
 ```
 
-## 스킬
+`claude plugin validate .` 로 검증 후 commit + push.
+
+## 스킬 카탈로그
 
 | 이름 | 설명 |
 |---|---|
@@ -59,25 +107,17 @@ chanshin0 의 Claude Code 개인 스킬 모음 (public bucket).
 | `scenario-first-goal` | 시나리오-First 개발 3단계 — GWT E2E 자동 변환 + goal-directed loop |
 | `scenario-first-review` | 시나리오-First 개발 4단계 — 본인 사용 체크리스트 + 5 Whys 라우팅 |
 
-각 스킬 상세는 `skills/<name>/SKILL.md` 참조.
+각 스킬 상세는 `skills/<name>/SKILL.md`.
 
-## 시나리오-First 개발 파이프라인
+## 플러그인 카탈로그
 
-`scenario-first-*` 5개 스킬은 한 시스템이다. 사용 순서:
+| 이름 | 묶인 스킬 | 설명 |
+|---|---|---|
+| `scenario-first` | scenario-first-{throw,expand,spec,goal,review} | 시나리오-First 개발 단방향 5단계 파이프라인 |
 
-```
-1. /scenario-first-throw   "<쓰는 모습>"     → Job Story 캡처
-2. /scenario-first-expand  NNN                → USM + Example Mapping → GWT
-3. /scenario-first-spec    NNN                → PRD/ARCH/NONFUNC/OPS
-4. /scenario-first-goal    NNN                → E2E 변환 + 구현 + 게이트 통과
-5. /scenario-first-review  NNN                → 본인 사용 + 5 Whys 라우팅
-   ├─ 통과 → 1로 (다음 backbone 슬라이스)
-   └─ 실패 → 라우팅(1/2/3 단계로)
-```
+## 설계 원칙
 
-철학:
-- SoT는 코드도 spec도 아니고 **유저가 결과를 어떻게 쓰는지의 narrative**
-- Job Story(사용자 입력) + Given-When-Then(자동 게이트) 이중 표현
-- 누적 시나리오 = 누적 spec (regression이 게이트에 흡수)
-- 실패 라우팅은 5 Whys로 3분류 (시나리오/spec/구현)
-- 본인 직접 사용(4단계)을 매 cycle 돌리는 게 시스템 생사
+1. **정본 1곳** — 모든 스킬은 `skills/<name>/SKILL.md` 평면. 사본 금지.
+2. **플러그인은 큐레이션** — 정본을 묶음 단위로 노출. symlink 로 참조.
+3. **빌드 step 없음** — marketplace root 안의 symlink dereference 에 의존. 사람이 동기화하지 않음.
+4. **마켓플레이스 = 같은 레포** — cross-repo 참조는 git-subdir 이 sparse-clone 하면서 symlink 가 깨진다. 한 레포 안에 다 둔다.
