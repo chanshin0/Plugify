@@ -61,7 +61,7 @@ function parseArgs(argv) {
     else if (a === "install") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
-        fail(`'install' requires a plugin name. Example: npx plugify install scenario-first`);
+        fail(`'install' requires a plugin name. Example: npx cc-plugify install scenario-first`);
       }
       args.install = next;
       i++;
@@ -71,14 +71,14 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  log(`${c.bold}plugify${c.reset} — Claude Code marketplace bootstrapper`);
+  log(`${c.bold}cc-plugify${c.reset} — Claude Code marketplace bootstrapper`);
   log("");
   log(`${c.bold}Usage${c.reset}`);
-  log(`  npx plugify                          ${c.dim}# register marketplace only (project scope)${c.reset}`);
-  log(`  npx plugify install <plugin>         ${c.dim}# register + enable a plugin${c.reset}`);
-  log(`  npx plugify install <plugin> -g      ${c.dim}# user-global scope${c.reset}`);
-  log(`  npx plugify --uninstall              ${c.dim}# remove marketplace entry${c.reset}`);
-  log(`  npx plugify --help`);
+  log(`  npx cc-plugify                          ${c.dim}# register marketplace only (project scope)${c.reset}`);
+  log(`  npx cc-plugify install <plugin>         ${c.dim}# register + enable a plugin${c.reset}`);
+  log(`  npx cc-plugify install <plugin> -g      ${c.dim}# user-global scope${c.reset}`);
+  log(`  npx cc-plugify --uninstall              ${c.dim}# remove marketplace entry${c.reset}`);
+  log(`  npx cc-plugify --help`);
   log("");
   log(`${c.bold}Project mode${c.reset} ${c.dim}(default)${c.reset}`);
   log(`  Writes to <cwd>/.claude/settings.json — commit it to share.`);
@@ -87,8 +87,8 @@ function printHelp() {
   log(`  Writes to ~/.claude/settings.json — applies to all projects on this machine.`);
   log("");
   log(`${c.bold}Examples${c.reset}`);
-  log(`  ${c.cyan}npx plugify install scenario-first${c.reset}        ${c.dim}# project: register + enable scenario-first${c.reset}`);
-  log(`  ${c.cyan}npx plugify install scenario-first -g${c.reset}     ${c.dim}# global: same, for all projects${c.reset}`);
+  log(`  ${c.cyan}npx cc-plugify install scenario-first${c.reset}        ${c.dim}# project: register + enable scenario-first${c.reset}`);
+  log(`  ${c.cyan}npx cc-plugify install scenario-first -g${c.reset}     ${c.dim}# global: same, for all projects${c.reset}`);
   log("");
   log(`${c.bold}Available plugins${c.reset} ${c.dim}(see https://github.com/${MARKETPLACE_REPO})${c.reset}`);
   log(`  ${c.cyan}scenario-first${c.reset}  ${c.dim}— Job Story → GWT 자동 게이트 5단계 파이프라인${c.reset}`);
@@ -228,7 +228,7 @@ function main() {
     ? `install ${args.install}`
     : "register marketplace";
 
-  log(`${c.bold}plugify ${modeLabel}${c.reset} ${c.dim}(${scopeLabel} scope)${c.reset}`);
+  log(`${c.bold}cc-plugify ${modeLabel}${c.reset} ${c.dim}(${scopeLabel} scope)${c.reset}`);
   log(`${c.dim}Target: ${settingsPath}${c.reset}\n`);
 
   const current = readSettings(settingsPath);
@@ -286,7 +286,7 @@ function main() {
     log(`  ${c.cyan}3.${c.reset} ${args.install}@${MARKETPLACE_KEY} is ready to use`);
   } else {
     log(`  Use ${c.cyan}claude plugin install <plugin>@${MARKETPLACE_KEY}${c.reset} inside Claude Code,`);
-    log(`  or re-run ${c.cyan}npx plugify install <plugin>${c.reset} to enable one declaratively.`);
+    log(`  or re-run ${c.cyan}npx cc-plugify install <plugin>${c.reset} to enable one declaratively.`);
   }
 }
 

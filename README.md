@@ -45,19 +45,25 @@
             └── scenario-first-review  → ../../../skills/scenario-first-review
 ```
 
-## 사용 — npx 한 줄 (권장)
+## 사용 — 한 줄 install (권장)
+
+진영별 도구. 동일한 동작, 같은 `.claude/settings.json` 형식.
 
 ```bash
-# 프로젝트 scope (./.claude/settings.json)
-npx plugify install scenario-first
+# Python · uv 진영 (PyPI, publish 완료)
+uvx cc-plugify install scenario-first
 
-# 모든 프로젝트 (~/.claude/settings.json)
-npx plugify install scenario-first --global
+# JS · npm 진영 (publish 보류 — npm 정책 이슈, bootstrap/cli.mjs 로 직접 실행 가능)
+npx cc-plugify install scenario-first    # publish 후 동작
 ```
+
+옵션:
+- `--global` (또는 `-g`): user scope (`~/.claude/settings.json`). 기본은 project scope.
+- `--uninstall`: 마켓플레이스 등록 해제
 
 이후 Claude Code 재시작 시 trust dialog 한 번 → 마켓플레이스 등록 + 플러그인 install 자동 제안. 사용자 명령 0줄.
 
-CLI 상세: [bootstrap/README.md](bootstrap/README.md)
+CLI 상세: [bootstrap-py/README.md](bootstrap-py/README.md) (Python) · [bootstrap/README.md](bootstrap/README.md) (Node)
 
 ## 사용 — 수동 (전통적)
 

@@ -1,21 +1,29 @@
-# cc-plugify
+# cc-plugify (Python · uv 진영)
 
-> Claude Code 마켓플레이스 [chanshin0/Plugify](https://github.com/chanshin0/Plugify) 한 줄 설치 도구. npm 이름 충돌 회피로 `cc-` (Claude Code) prefix.
+> Claude Code 마켓플레이스 [chanshin0/Plugify](https://github.com/chanshin0/Plugify) 한 줄 설치 도구. `uvx` 로 즉시 실행.
+
+Node 진영 같은 도구는 npm 패키지 [`cc-plugify`](https://www.npmjs.com/package/cc-plugify) (npx) — 동일한 동작·동일한 settings.json 형식.
 
 ## 사용
 
 ```bash
 # 1. 마켓플레이스만 등록 (project scope = ./.claude/settings.json)
-npx cc-plugify
+uvx cc-plugify
 
 # 2. 마켓플레이스 등록 + 플러그인 활성화 (가장 일반적)
-npx cc-plugify install scenario-first
+uvx cc-plugify install scenario-first
 
 # 3. user-global scope (모든 프로젝트에 적용)
-npx cc-plugify install scenario-first --global
+uvx cc-plugify install scenario-first --global
 
 # 4. 등록 해제
-npx cc-plugify --uninstall
+uvx cc-plugify --uninstall
+```
+
+`uv` 가 없으면:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 ## 동작
@@ -62,7 +70,7 @@ claude plugin marketplace add chanshin0/Plugify
 claude plugin install scenario-first@plugify
 ```
 
-`npx cc-plugify install scenario-first` 한 줄로 동일.
+`uvx cc-plugify install scenario-first` 한 줄로 동일.
 
 ## License
 

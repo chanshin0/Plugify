@@ -1,10 +1,10 @@
 {
-  "name": "plugify",
+  "name": "cc-plugify",
   "version": "0.1.0",
   "description": "One-shot bootstrapper for the chanshin0/Plugify Claude Code marketplace.",
   "type": "module",
   "bin": {
-    "plugify": "cli.mjs"
+    "cc-plugify": "cli.mjs"
   },
   "files": [
     "cli.mjs",
