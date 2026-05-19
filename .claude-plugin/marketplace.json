@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "plugify",
+  "description": "개인 스킬 자산 마켓플레이스 — 정본 skills/ 평면 + plugins/ 번들. symlink dereference 로 정본 1곳 유지.",
+  "owner": {
+    "name": "chanshin0"
+  },
+  "plugins": [
+    {
+      "name": "scenario-first",
+      "source": "./plugins/scenario-first",
+      "category": "productivity",
+      "description": "Scenario-First Development — Job Story 부터 GWT 자동 게이트까지 단방향 5단계 (throw / expand / spec / goal / review)"
+    }
+  ]
+}
