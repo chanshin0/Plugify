@@ -11,10 +11,10 @@ Node 진영 같은 도구는 npm 패키지 [`cc-plugify`](https://www.npmjs.com/
 uvx cc-plugify
 
 # 2. 마켓플레이스 등록 + 플러그인 활성화 (가장 일반적)
-uvx cc-plugify install scenario-first
+uvx cc-plugify install <plugin>
 
 # 3. user-global scope (모든 프로젝트에 적용)
-uvx cc-plugify install scenario-first --global
+uvx cc-plugify install <plugin> --global
 
 # 4. 등록 해제
 uvx cc-plugify --uninstall
@@ -38,7 +38,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
     }
   },
   "enabledPlugins": {
-    "scenario-first@plugify": true
+    "<plugin>@plugify": true
   }
 }
 ```
@@ -57,20 +57,17 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ## 사용 가능한 플러그인
 
-| 이름 | 설명 |
-|---|---|
-| `scenario-first` | Job Story → GWT 자동 게이트 5단계 파이프라인 (throw / expand / spec / goal / review) |
-
-전체 카탈로그는 [Plugify 레포 README](https://github.com/chanshin0/Plugify) 참조.
+현재 등록된 번들 없음 (scenario-first 는 [scenario-first-development-template](https://github.com/chanshin0/scenario-first-development-template) 로 이전).
+전체 카탈로그는 [Plugify 레포 README](https://github.com/chanshin0/Plugify) · `marketplace.json` 의 `plugins` 배열 참조.
 
 ## 옛 방식 (수동)
 
 ```bash
 claude plugin marketplace add chanshin0/Plugify
-claude plugin install scenario-first@plugify
+claude plugin install <plugin>@plugify
 ```
 
-`uvx cc-plugify install scenario-first` 한 줄로 동일.
+`uvx cc-plugify install <plugin>` 한 줄로 동일.
 
 ## License
 

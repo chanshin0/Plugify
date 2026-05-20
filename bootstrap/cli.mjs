@@ -61,7 +61,7 @@ function parseArgs(argv) {
     else if (a === "install") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
-        fail(`'install' requires a plugin name. Example: npx cc-plugify install scenario-first`);
+        fail(`'install' requires a plugin name. Example: npx cc-plugify install <plugin>`);
       }
       args.install = next;
       i++;
@@ -87,11 +87,11 @@ function printHelp() {
   log(`  Writes to ~/.claude/settings.json — applies to all projects on this machine.`);
   log("");
   log(`${c.bold}Examples${c.reset}`);
-  log(`  ${c.cyan}npx cc-plugify install scenario-first${c.reset}        ${c.dim}# project: register + enable scenario-first${c.reset}`);
-  log(`  ${c.cyan}npx cc-plugify install scenario-first -g${c.reset}     ${c.dim}# global: same, for all projects${c.reset}`);
+  log(`  ${c.cyan}npx cc-plugify install <plugin>${c.reset}        ${c.dim}# project: register + enable <plugin>${c.reset}`);
+  log(`  ${c.cyan}npx cc-plugify install <plugin> -g${c.reset}     ${c.dim}# global: same, for all projects${c.reset}`);
   log("");
   log(`${c.bold}Available plugins${c.reset} ${c.dim}(see https://github.com/${MARKETPLACE_REPO})${c.reset}`);
-  log(`  ${c.cyan}scenario-first${c.reset}  ${c.dim}— Job Story → GWT 자동 게이트 5단계 파이프라인${c.reset}`);
+  log(`  ${c.dim}(현재 번들 없음 — marketplace.json plugins 배열 참고)${c.reset}`);
 }
 
 function readSettings(path) {

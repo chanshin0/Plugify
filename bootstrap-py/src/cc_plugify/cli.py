@@ -57,7 +57,7 @@ def parse_args(argv: list[str]) -> dict:
         elif a == "install":
             nxt = rest[i + 1] if i + 1 < len(rest) else None
             if not nxt or nxt.startswith("-"):
-                fail("'install' requires a plugin name. Example: uvx cc-plugify install scenario-first")
+                fail("'install' requires a plugin name. Example: uvx cc-plugify install <plugin>")
             args["install"] = nxt
             i += 1
         else:
@@ -83,11 +83,11 @@ def print_help() -> None:
     log("  Writes to ~/.claude/settings.json — applies to all projects on this machine.")
     log("")
     log(f"{BOLD}Examples{RESET}")
-    log(f"  {CYAN}uvx cc-plugify install scenario-first{RESET}        {DIM}# project: register + enable scenario-first{RESET}")
-    log(f"  {CYAN}uvx cc-plugify install scenario-first -g{RESET}     {DIM}# global: same, for all projects{RESET}")
+    log(f"  {CYAN}uvx cc-plugify install <plugin>{RESET}        {DIM}# project: register + enable <plugin>{RESET}")
+    log(f"  {CYAN}uvx cc-plugify install <plugin> -g{RESET}     {DIM}# global: same, for all projects{RESET}")
     log("")
     log(f"{BOLD}Available plugins{RESET} {DIM}(see https://github.com/{MARKETPLACE_REPO}){RESET}")
-    log(f"  {CYAN}scenario-first{RESET}  {DIM}— Job Story → GWT 자동 게이트 5단계 파이프라인{RESET}")
+    log(f"  {DIM}(현재 번들 없음 — marketplace.json plugins 배열 참고){RESET}")
 
 
 def read_settings(path: Path) -> dict:
