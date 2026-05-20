@@ -2,7 +2,7 @@
 
 > 개인 스킬 자산 모음 + Claude Code 마켓플레이스. 기타 도구(스코어링·토큰효율·슬라이드·셀프리뷰 등) 정본 1곳, 플러그인 단위로 묶어서 어디서든 install.
 
-> **참고**: scenario-first 5 스킬은 2026-05-19 부로 이 마켓플레이스를 떠나 자기완결 시드 [scenario-first-development](https://github.com/chanshin0/scenario-first-development) (GitHub template repo) 로 이동했다. 사유 + 자세한 절차는 그 레포의 `.harness/EVOLUTION/001-self-contained-migration.md` 참조. Plugify 는 그 외 5 스킬의 마켓플레이스로 정체성을 좁힌다.
+> **참고**: scenario-first 5 스킬은 2026-05-19 부로 이 마켓플레이스를 떠나 자기완결 시드 [scenario-first-development-template](https://github.com/chanshin0/scenario-first-development-template) (GitHub template repo) 로 이동했다. 사유 + 자세한 절차는 그 레포의 `.harness/EVOLUTION/001-self-contained-migration.md` 참조. Plugify 는 그 외 5 스킬의 마켓플레이스로 정체성을 좁힌다.
 
 ## 개념 — 한 레포 두 역할
 
@@ -95,7 +95,7 @@ plugins/<bundle-name>/
 | `push-experience` | (확인 필요 — TODO) |
 | `self-review` | 직전 답변 3라운드 비판적 재검토 (R1/R2/R3) |
 
-각 스킬 상세는 `skills/<name>/SKILL.md`. scenario-first 5 스킬은 [scenario-first-development](https://github.com/chanshin0/scenario-first-development) 로 이동.
+각 스킬 상세는 `skills/<name>/SKILL.md`. scenario-first 5 스킬은 [scenario-first-development-template](https://github.com/chanshin0/scenario-first-development-template) 로 이동.
 
 ## 플러그인 카탈로그
 
