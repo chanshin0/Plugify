@@ -1,6 +1,6 @@
 ---
 name: presentation_slides
-description: YouTube 영상용 프레젠테이션 HTML 슬라이드 세트(다크 테마, 개별 HTML + index.html 허브 페이지) 자동 생성. '프레젠테이션 슬라이드', '슬라이드 생성', 'presentation slides', 'HTML 슬라이드', '프레젠테이션 생성', '영상 슬라이드', '발표 슬라이드 HTML' 등의 요청에 반드시 트리거할 것. 대본(script.md)을 기반으로 섹션별 슬라이드를 자동 도출하거나, 직접 슬라이드 목록을 지정하여 생성할 수 있다. hero-cards, roadmap, comparison, step-flow, diagram, grid 등 8가지 레이아웃 타입을 지원하며, 키보드 네비게이션과 페이지 전환 애니메이션이 포함된 완성형 HTML을 출력한다.
+description: YouTube 영상용·발표·문서 임베드용 프레젠테이션 HTML 슬라이드 세트(다크 테마, 개별 HTML + index.html 허브 페이지) 자동 생성. '프레젠테이션 슬라이드', '슬라이드 생성', 'presentation slides', 'HTML 슬라이드', '프레젠테이션 생성', '영상 슬라이드', '발표 슬라이드 HTML', '슬라이드 단일파일로 묶어', '하나의 HTML로', '슬라이드 캡처', '슬라이드 PNG' 등의 요청에 반드시 트리거할 것. 대본(script.md)을 기반으로 섹션별 슬라이드를 자동 도출하거나, 직접 슬라이드 목록을 지정하여 생성할 수 있다. hero-cards, roadmap, comparison, step-flow, diagram, grid 등 8가지 레이아웃 타입을 지원하며, 키보드 네비게이션과 페이지 전환 애니메이션이 포함된 완성형 HTML을 출력한다. 옵션 모드: §L 단일 HTML 번들(iframe srcdoc 기반, 공유 1파일), §M Chrome headless PNG 캡처(Confluence/Notion 첨부용).
 ---
 
 너는 YouTube 영상용 프레젠테이션 HTML 슬라이드 생성 전문가야. 한국어로 진행하며, 다크 테마의 개별 HTML 슬라이드 세트 + index.html 허브 페이지를 생성한다.
@@ -276,6 +276,8 @@ index.html 상세 템플릿은 `references/index-template.md`를 참조할 것.
 4. **슬라이드 파일 순서대로 생성** — 각 슬라이드에 적절한 레이아웃(E 섹션) 선택
 5. **품질 체크리스트 검증** — I 섹션의 모든 항목 확인
 6. **결과 요약 보고** — 생성된 파일 목록, 레이아웃 배분, 주의사항
+7. **(선택) 단일 HTML 번들** — 사용자가 1파일 공유를 원하면 §L 진행
+8. **(선택) PNG 캡처** — 사용자가 Confluence/Notion/문서 임베드를 원하면 §M 진행
 
 ---
 
@@ -324,3 +326,84 @@ index.html 상세 템플릿은 `references/index-template.md`를 참조할 것.
 5. **카드/박스 내 항목 최대 6개** — 오버플로우 절대 방지
 6. **애니메이션**: cardAppear/stepIn 등 등장 애니메이션에 순차 delay (0.1~0.4s 간격)
 7. **마지막 슬라이드(summary)**: glow orb 배경 + 레인보우 gradient 사용 권장
+
+---
+
+## L. 단일 HTML 번들 모드 (옵션)
+
+### 언제 쓰나
+사용자가 다음 중 하나를 요청할 때 진행:
+- "하나의 파일로 묶어줘 / 단일 HTML로"
+- "공유하기 좋게 한 파일로"
+- "압축 풀지 않고 더블클릭으로 열 수 있게"
+
+### 원리
+- 각 슬라이드 HTML을 `iframe.srcdoc` 으로 embed
+- 부모 wrapper가 `prev/next/keyboard/dot` 네비게이션 제어
+- 슬라이드 전환 시 `srcdoc` 재할당 → iframe 재로드 → **CSS 애니메이션 자동 replay**
+- CSS 충돌 0 (각 iframe document 독립)
+
+### 핵심 함정 (반드시 지킬 것)
+
+**1. JSON 내 `</script>` escape**
+- 슬라이드 HTML에는 `<script>...</script>` 가 포함됨
+- 이걸 JSON 직렬화해서 부모의 `<script>` 블록 안에 임베드하면, HTML 파서가 첫 `</script>` 에서 부모 script 를 조기 종료시킴
+- **반드시** `json.dumps(...).replace("</", "<\\/")` 로 escape — JSON spec상 `\/` 는 `/` 와 동일하므로 의미 보존, HTML 파서는 더 이상 `</script>` 패턴을 못 봄
+
+**2. iframe 내부 키보드 이벤트**
+- iframe 에 포커스가 가면 부모 `document.addEventListener('keydown', ...)` 가 이벤트를 못 받음
+- `srcdoc` 은 same-origin 이므로 `iframe.contentDocument` 접근 가능
+- iframe `load` 이벤트 시점에 동일 `handleKey` 리스너를 iframe document 에도 부착
+- try/catch 로 감싸 cross-origin/detached 케이스 무시
+
+**3. nav 바 strip**
+- 부모가 네비게이션을 제공하므로 각 슬라이드의 `<nav class="slide-nav">` 와 그 슬라이드의 자체 `keydown` 리스너는 제거해야 중복 동작/시각 충돌 없음
+- 정규식 strip 가능 — 자세한 패턴은 `references/bundle-script.md` 참조
+
+**4. 파일 사이즈**
+- 7장 기준 ~50KB. 슬라이드 수가 많거나 콘텐츠가 무거우면 100KB 넘을 수 있음
+- 메일/슬랙 첨부 한도 (보통 20MB) 와는 무관 — 부담 없음
+
+### 실행 방법
+스크립트 본체는 `references/bundle-script.md` 에 있다. 슬라이드 디렉터리와 출력 경로를 인자로 받아 단일 HTML 생성. 사용자가 번들 모드를 요청하면 그 스크립트를 슬라이드 디렉터리에 맞게 작성해서 실행한다.
+
+### 부모 wrapper 핵심 기능
+- 키보드: `←/→`, `Space`, `PageUp/Down`, `Home/End`, `1~9` 점프
+- 클릭: prev/next 버튼, 하단 dot 네비게이션
+- 표시: 현재 슬라이드 번호 + 제목 + 진행 dot
+- 첫/마지막 슬라이드에서 prev/next 자동 비활성
+
+---
+
+## M. PNG 캡처 모드 (옵션)
+
+### 언제 쓰나
+- "Confluence/Notion 에 임베드하고 싶어"
+- "캡처로 줘 / PNG 로 줘"
+- "이미지로 빼줘"
+
+호스팅 셋업이 부담스럽거나 정적 이미지가 충분한 경우.
+
+### 원리
+Chrome headless 로 각 슬라이드를 viewport 1280×720 (or 720) 에 렌더 후 PNG 저장. `--virtual-time-budget` 으로 애니메이션 종료 상태를 캡처.
+
+### 핵심 옵션
+- `--headless=new` (구 `--headless` 가 아닌 신 모드 권장)
+- `--window-size=1280,720` — 슬라이드 viewport 기본값
+- `--force-device-scale-factor=2` — retina 2x (2560×1440 출력)
+- `--virtual-time-budget=3000` — 3초 가상시간 진행 (애니메이션 delay 1.0s + fadeIn 0.4s 여유)
+- `--hide-scrollbars`
+- macOS Chrome 경로: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
+
+### Nav 바 처리
+기본 캡처에는 하단 50px nav 바가 포함된다. 깔끔한 이미지가 필요하면:
+- 옵션 A: 캡처 후 ImageMagick / `sips` 로 하단 100px (retina 2x) crop
+- 옵션 B: 캡처 직전 임시 CSS 주입 (`--javascript-flags` 로 nav 숨기기) — 복잡하므로 보통 A
+
+### 실행 방법
+스크립트 본체는 `references/capture-script.md` 에 있다. 슬라이드 폴더 → PNG 폴더로 일괄 처리.
+
+### 사용자 안내 포인트
+- 한글 폰트는 Google Fonts CDN 로딩 후 캡처되므로 네트워크 필요
+- 첫 캡처 후 결과를 1장 사용자에게 보여주고 confirm 받는 것 권장 (폰트 누락/잘림 검수)
+- Confluence/Notion 첨부 시 retina 2x 원본 그대로 업로드 → 플랫폼이 자동 다운스케일
