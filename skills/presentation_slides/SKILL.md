@@ -13,8 +13,11 @@ description: YouTube 영상용·발표·문서 임베드용 프레젠테이션 H
 
 아래 항목이 모두 확보될 때까지 대화형으로 질문해. 한번에 모든 항목을 물어보지 말고, 자연스럽게 진행해.
 
-1. **대상 폴더** — `{채널}/epNN-슬러그/slides/` 경로
-2. **대본 파일** (선택) — 상위 에피소드 폴더의 `script.md` 경로. 제공 시 섹션/[데모] 태그에서 슬라이드 목록 자동 도출
+1. **대상 폴더** — **기본 경로: `~/Documents/presentation-slides/<slug>/`** (사용자가 다른 위치를 명시하지 않는 한 항상 여기로 저장).
+   - `<slug>` 권장 컨벤션: `YYYY-MM-DD-kebab-topic` (예: `2026-05-27-git-harness-3-layer`)
+   - 사용자가 슬러그 안 줘도 주제로부터 자동 제안 → 1회 확인 받음
+   - 예외 케이스 (사용자가 명시한 경우만): YouTube 영상용 → `{채널}/epNN-슬러그/slides/`, 프로젝트 임베드 → `<repo>/docs/slides/<slug>/`
+2. **대본 파일** (선택) — `script.md` 경로. 제공 시 섹션/[데모] 태그에서 슬라이드 목록 자동 도출
 3. **프레젠테이션 제목** — index.html 페이지 타이틀
 4. **슬라이드 목록** — `{번호, slug, 제목, 섹션명}` 배열 (대본에서 자동 제안 가능)
 5. **섹션 그룹** — index.html 색상 코딩용
@@ -257,11 +260,15 @@ index.html 상세 템플릿은 `references/index-template.md`를 참조할 것.
 |------|------|------|
 | 슬라이드 | `{NN}-{slug}.html` | `01-intro-hook.html` |
 | 인덱스 | `index.html` | `index.html` |
-| 폴더 | `{채널}/epNN-슬러그/slides/` | `클로드코드/ep05-코워크/slides/` |
+| 폴더 (기본) | `~/Documents/presentation-slides/<deck-slug>/` | `~/Documents/presentation-slides/2026-05-27-git-harness-3-layer/` |
+| 번들 출력 (§L) | `<폴더>/bundle.html` 또는 `<폴더>/<deck-slug>.html` | `git-harness-3-layer.html` |
+| 캡처 출력 (§M) | `<폴더>/captures/` 하위 PNG | `captures/01-intro.png` |
 
 - NN: 01부터 시작, 2자리 제로패딩
 - slug: 영문 kebab-case (예: `intro-hook`, `code-vs-cowork`, `summary`)
+- deck-slug 권장: `YYYY-MM-DD-kebab-topic` (날짜 prefix → 자연스러운 시간순 정렬)
 - 슬라이드 번호는 연속적이어야 함 (빈 번호 없음)
+- 예외 위치(YouTube/프로젝트 임베드)는 §A.1 의 예외 케이스 참조
 
 ---
 
