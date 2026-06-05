@@ -1,0 +1,36 @@
+---
+name: spec-building
+description: 확정된 구현 task 를 격리 에이전트로 구현·자기검증·적대리뷰(+Codex 교차검증)·커밋까지 자동으로 민다. "구현해", "이 task 구현", "다음 task 진행", "STATE 다음 거 만들어", "스펙대로 구현", "implement" 등에 트리거. 기획(service-planning)·결정(tech-deciding) 다음 단계. lean-agent-design — 메인은 task 분해·게이트·에스컬레이션만, 구현 잡음은 격리 서브에이전트에 가둔다.
+---
+
+# spec-building — task → 격리 구현 → 검증 → 커밋
+
+기획·결정이 끝난 프로젝트에서 **확정된 구현 task** 를 격리 워크플로우로 끝까지 민다. 메인 컨텍스트 신선도 1순위 — 빌드 로그·구현 디테일은 서브에이전트에 가두고 메인은 조율·게이트·에스컬레이션만 들고 가볍게 유지한다.
+
+## 선행 조건
+- 프로젝트에 `.planning/` 이 있어야 한다 (`STATE.md` · `decisions/`(ADR) · `planning/`). 없으면 §부트스트랩 먼저, 또는 service-planning(기획)→tech-deciding(결정) 을 선행.
+- **task·수용 기준은 `.planning/STATE.md` 의 "## 다음 task" 에 인라인**으로 적는다 — 이게 워크플로우로 task 를 넘기는 안정 인터페이스다(워크플로우 args.task 가 전달 안 되는 환경에서도 동작).
+
+## 실행
+메인은 Workflow 도구로 **이 스킬 디렉토리의 `workflow.mjs`** 를 절대경로로 실행한다:
+```
+Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs", args: { projectRoot: "<레포 절대경로>" } })
+```
+- `task`/`acceptance` 를 args 로 줄 수도 있으나, **생략 시 워크플로우가 STATE "다음 task" 를 읽는다**(권장 — args 전달 불안정성 회피).
+- 진행: implementer(sonnet) 작성+자기검증 → reviewer(opus) + Codex(gpt-5.5/xhigh) **병렬** 교차검증 → 통과까지 최대 `maxAttempts`(기본 3)회 재시도 → 통과 시 atomic commit + STATE 갱신.
+- 에이전트(`agents/implementer.md`·`reviewer.md`)는 plugify 전역등록되어 `agentType` 으로 호출된다(모델·규칙은 각 `.md` 가 SSOT).
+
+## 에스컬레이션 (메인이 처리 — 무한루프 방지)
+워크플로우 반환의 **`escalation !== null`** 이면 3회 미통과로 멈춘 것이다(커밋 안 됨). 메인이 `escalation.blockers`·`nextOptions` 를 보고 **전략을 바꿔 재투입**한다:
+- 수용 기준이 과하거나 모순 → STATE 수용 기준 조정 후 재실행
+- task 가 너무 큼 → 더 작게 분해해 각각 재실행
+- 모델이 약함 → `maxAttempts` 늘리고 implementer 를 opus 로(필요 시 워크플로우 일시 수정) 재실행
+- 구조적으로 막힘(외부 의존·환경) → 사용자에게 에스컬레이션
+- **무한 자동 재시도 금지**(통과 불가 task 에 토큰 폭발). 상한 도달 시 반드시 메인 판단.
+
+## 부트스트랩 (.planning 없을 때)
+메인이 `.planning/` 뼈대를 만든다 — `decisions/`(빈)·`planning/`(service-planning 산출물 있으면 복사)·`STATE.md`(아래 뼈대). git clone 으로 다른 환경에서 이어갈 수 있게 in-repo SSOT 로 둔다.
+`STATE.md` 최소 뼈대 섹션: `## 현재 위치`(단계·다음) / `## 완료`(상세는 git log 위임) / `## 다음 task`(제목 + 수용 기준 인라인) / `## 열린 결정` / `## 다음 명령`.
+
+## 금지
+- 메인이 구현 디테일을 직접 떠안기(컨텍스트 오염) · 에이전트 함대화(task 1개당 implementer 1개) · 미통과를 통과로 위장 · `--no-verify`·`--force`.
