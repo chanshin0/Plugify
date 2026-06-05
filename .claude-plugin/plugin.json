@@ -1,6 +1,6 @@
 {
-  "name": "cc-skills-repo",
-  "description": "chanshin0 의 Claude Code 개인 스킬 모음",
+  "name": "plugify",
+  "description": "chanshin0 의 Claude Code 개인 스킬·파이프라인 모음(plugify)",
   "version": "0.1.0",
   "author": {
     "name": "chanshin0"
