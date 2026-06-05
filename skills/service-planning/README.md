@@ -60,9 +60,12 @@
 | Example Mapping Questions (Wynne) | P3~P4 | §9 Open questions |
 | ISO 25010 NFR | **P3** | §8 비기능 |
 | Shape Up appetite (Singer) | **P5** 스코프 | §7 v1 스코프 |
-| Completeness 검증 | **P5** self-check / critic | §10 Completeness 체크 |
+| Completeness 검증 | **P5b** self-check(napkin) / `completeness-critic`(standard+) | §10 Completeness 체크 |
+| 기획서 합성 (결정·스코프·10섹션) | **P4~P5** `plan-writer` 단일 에이전트 | `기획서.md`·`gaps.md` |
+| lo-fi 와이어프레임 (선택) | **P6** `wireframe-builder` 단일 에이전트 | `wireframes.html` |
+| v1 데이터 모델 (선택) | **P7** `data-model-builder` 단일 에이전트 | `data-model.md` |
 
-파이프라인 P0~P5 전체와 게이트는 `SKILL.md` §C 참고.
+파이프라인 P0~P7 전체와 게이트는 `SKILL.md` §C 참고.
 
 ---
 
@@ -90,8 +93,9 @@ P3에서 씨앗에 돌리는 체크리스트 (상세: `references/completeness-r
 - **티어** (자동 추정, override 가능):
   - `napkin` (~10분): 빈칸 목록만 빠르게 1쪽.
   - `standard` (기본): 5단계 풀 + 기획서 10섹션.
-  - `deep`: 화면별 상태 상세 + 에이전트 + 선택 `/self-review`.
-- **산출물**: `~/Documents/service-planning/{날짜}-{slug}/기획서.md` (+ `gaps.md`).
+  - `deep`: 화면별 상태 상세 + 에이전트 + P6 와이어프레임 + P7 데이터모델 + 선택 `/self-review`.
+- **와이어프레임(P6)·데이터모델(P7)**: deep 기본 / standard에선 "와이어프레임 그려줘" · "데이터 모델 짜줘" 요청 시. 각각 단일 `wireframe-builder`·`data-model-builder` 에이전트가 `wireframes.html`·`data-model.md` 생성(함대 금지, 산출물 1개당 1에이전트).
+- **산출물**: `~/Documents/service-planning/{날짜}-{slug}/기획서.md` (+ `gaps.md`, + `wireframes.html`, + `data-model.md`).
 - **내가 결정하는 곳 (게이트 2개, 위임모드)**:
   - **게이트 1 (P3)**: 빈칸 맵 보고 — "이 빈칸 맞아 / 이건 v1 불필요 / 이게 빠졌어".
   - **게이트 2 (P5)**: 채운 결정 + v1 스코프 확인.

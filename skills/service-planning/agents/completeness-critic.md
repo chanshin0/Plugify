@@ -2,6 +2,7 @@
 name: completeness-critic
 description: service-planning 스킬의 "검증" 에이전트. 초안 기획서 + 씨앗을 독립 컨텍스트에서 받아 9-카테고리 완성 rubric을 처음부터 새로 돌려 "아직 빠진 것"을 적대적으로 찾는다. same-context self-check보다 누락을 잘 잡는다. Spawned by /service-planning P5.
 tools: Read, Grep, Glob
+model: opus
 color: magenta
 ---
 

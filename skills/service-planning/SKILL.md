@@ -9,6 +9,8 @@ description: 떠오른 아이디어 씨앗(핵심 기능 1개·핵심 시나리�
 
 작동 철학(사용자 CLAUDE.md 위임모드): 한 턴에 초안+트레이드오프, 확인 구하지 말고 진행, 흔한 처리는 Claude가 정하고(에러=토스트, 빈상태=placeholder+CTA, 로딩=skeleton), 결과 바뀌는 가정만 `[추정:]` 표시. 게이트는 질문지가 아니라 완성된 초안 위에서 사용자가 방향 트는 지점.
 
+**실행 구조 — 메인 컨텍스트 신선도가 1순위 (가장 중요):** 메인 세션은 *오케스트레이터*다 — 진행·조율·게이트·검증 요약만 들고 컨텍스트를 가볍게 유지한다. **무거운 단발 생성·리서치**(긴 `기획서.md`/`gaps.md` 합성, 패턴 리서치, completeness 검증, 와이어프레임, 데이터모델)는 *격리된 단일 서브에이전트*에 위임하고 **결과 요약만** 받는다 — 긴 텍스트를 메인 컨텍스트에 직접 쌓지 않는다. 단 **사용자와의 대화·트레이드오프·게이트(P3/P5 redirect)는 메인이 직접** 한다(서브에이전트는 사용자와 대화 못 함). 위임은 *산출물 1개당 단일 에이전트*(함대 금지는 이 신선도 원칙의 부산물). 위임 결과는 메인이 grep 등으로 가볍게 검증하고 보고-실제 차이를 정직하게 surface.
+
 ---
 
 ## A. 시작 전 로드
@@ -29,7 +31,9 @@ description: 떠오른 아이디어 씨앗(핵심 기능 1개·핵심 시나리�
 |---|---|---|
 | **napkin** | "빠르게 / 뭐 빠졌나만 / 대충" | P0~P3만, Job Map + 빈칸 목록 1쪽. 게이트 1회 |
 | **standard** (기본) | 진짜 기획 | P0~P5 풀, 9 rubric, v1 스코프, 기획서 10섹션 |
-| **deep** | "제대로 / 여러 화면 / 투자/출시" | standard + 화면별 상태 상세 + (Stage2)에이전트 + 선택 `/self-review` |
+| **deep** | "제대로 / 여러 화면 / 투자/출시" | standard + 화면별 상태 상세 + (Stage2)에이전트 + P6 와이어프레임 + P7 데이터모델 + 선택 `/self-review` |
+
+P6(와이어프레임)·P7(데이터모델)은 deep 기본, standard에선 사용자가 "와이어프레임 그려줘" / "데이터 모델·스키마 짜줘" 요청 시 on-demand. 둘은 서로 독립(하나만 해도 됨).
 
 자동 추정 후 한 줄로 명시("standard로 진행"), 사용자가 바꾸면 수용.
 
@@ -58,22 +62,39 @@ description: 떠오른 아이디어 씨앗(핵심 기능 1개·핵심 시나리�
 ### P3 — 빈칸 발견 ★ (게이트 1)
 - `completeness-rubric.md` 9 카테고리를 (scope pruning 후) 씨앗에 실행.
 - **빈칸을 역산으로 찾는다**: "happy 상태가 성립하려면 무엇이 전제되나 → 없을 땐? 가져오는 중엔? 실패하면?"
-- (선택, standard/deep에서 근거 필요시) 비슷한 실제 제품이 이 플로우/상태를 어떻게 처리하는지 **인라인 WebSearch** 1~2회 (Stage 2부터는 `pattern-researcher` 에이전트).
+- **패턴 근거 (티어 기준 — "Stage 2부터" 대체)**: napkin=생략 / standard=빈칸 5개↑면 `pattern-researcher` 위임, 아니면 인라인 WebSearch 1~2회 / deep=항상 `pattern-researcher` 위임. (비슷한 실제 제품이 이 플로우/상태/엣지를 어떻게 처리하는지 cited 패턴 — 메인 컨텍스트 안 더럽히게 위임.)
 - **빈칸 맵** 초안 출력 (카테고리별, 우선순위·v1여부) →
-  **게이트 1**: "이 빈칸들 맞아? 이건 v1에 불필요? 이게 빠졌어?" 사용자 redirect 수용.
+  **게이트 1 (메인 직접)**: "이 빈칸들 맞아? 이건 v1에 불필요? 이게 빠졌어?" 사용자 redirect 수용.
+- 게이트1 통과 후, 메인이 *승인된* 빈칸맵을 `approved-gaps.md`로 내린다(redirect 반영 — 잘린 건 제외, 추가된 건 포함) → P4~P5 `plan-writer` 입력으로 경로 전달.
 
-### P4 — 빈칸 채우기 (게이트 2 일부)
-- 각 빈칸에 **구체적 결정** 초안.
-  - 흔한 처리는 바로 정함: UI 상태=Hurff 5(empty엔 CTA, loading엔 skeleton, error엔 메시지+재시도), 에러=토스트.
-  - 결과 바뀌는 결정만 `[추정:]`.
-- **대안/예외 플로우** 도출 (Cockburn): primary 외 alternate + exception.
+### P4~P5 — 채우기 + 스코프 + 기획서 합성 (plan-writer 위임 ★)
+파이프라인에서 **가장 무거운 단일 쓰기** — 메인에서 직접 쓰지 않고 위임해 컨텍스트를 신선하게 유지한다.
+- 게이트1 통과 후 **`plan-writer` 전용 에이전트를 스폰** (Agent `subagent_type: plan-writer`, 정의 `agents/plan-writer.md`). 한 번에 합성: ① 승인 빈칸별 **결정 초안**(흔한 처리=Hurff 5/토스트 등 결정성, load-bearing만 `[추정]`)·대안/예외(Cockburn) ② **v1 스코프 초안**(Shape Up appetite, IN walking skeleton / OUT+이유) ③ `gisaekseo-template.md` 10섹션 `기획서.md`·`gaps.md`. **프롬프트엔 입력만**: 씨앗·백본맵·`approved-gaps.md` 경로·패턴 근거·티어·산출 경로. 메인엔 *요약만* 회신.
+- **단일 에이전트 — 함대 금지.** fallback: `plan-writer` subagent_type 미등록 시 general-purpose로 스폰하되 `agents/plan-writer.md`를 읽혀 따르게.
+- **게이트 2 (메인 직접)**: plan-writer가 돌려준 §5 결정 + §7 v1 스코프 요약을 메인이 사용자에게 제시 — "이 결정/스코프 맞아?" redirect 수용. 틀면 메인이 수정 지시(plan-writer 재spawn 또는 직접 패치). *게이트는 서브에 위임하지 않는다.*
+- napkin·짧은 세션은 인-스레드 합성 허용(위임 생략 가능).
 
-### P5 — 스코프 + 기획서 + 검증
-- **v1 스코프**: Shape Up appetite로 IN(walking skeleton) / OUT(deferred + 이유). "완성 = 전부 아님."
-  → **게이트 2**: 채운 결정 + v1 스코프 사용자 확인.
-- `gisaekseo-template.md` 10섹션으로 `기획서.md` 합성.
-- **Completeness self-check** (§D) 돌려 §10 채움. (Stage 2부터는 `completeness-critic` 에이전트 spawn)
+### P5b — 검증 + 저장
+- **Completeness 검증 (티어 기준 — "Stage 2부터" 대체)**: napkin=메인 self-check(§D 4항목) / standard·deep=`completeness-critic` 에이전트 spawn(독립 적대 검증). 결과로 §10 갱신.
+- **(옵션) 외부 모델 교차 누락검토**: deep 티어이거나 누락 비용이 큰 기획이면, `completeness-critic`(Claude) 검증 후 다른 모델 family(Codex/Gemini)에게도 누락 검토를 받아 교차한다(같은 family 맹점 보완 — `/self-review` R3 철학). 외부 호출은 비용·시간이 있으니 **반드시 사용자에게 "외부 모델로 교차 누락검토도 할까요?" 확인 후 진행**(기본 off). 예: `codex exec -c model='gpt-5.5' -c model_reasoning_effort='xhigh' "기획서.md 의 9-카테고리(여정·역할·화면·UI상태·대안예외·스캐폴딩·엣지·NFR·Open) 누락을 적대적으로 지적"`. 발견을 critic 결과와 종합해 §10 갱신.
+- 메인이 grep 등으로 산출물 가볍게 확인 — 보고-실제 차이 정직하게 surface.
 - 저장 (§E).
+
+### P6 — 와이어프레임 (선택 산출물)
+- **트리거**: deep 티어 기본 / 사용자가 "와이어프레임·화면 그려줘" 요청 시(standard에서도 on-demand). 기획서(P5)가 완성된 뒤에만.
+- **전용 에이전트를 스폰한다** — Agent 도구 `subagent_type: wireframe-builder` (정의: `agents/wireframe-builder.md`). 에이전트가 명세(lo-fi 규칙·구조·self-contained·anti-pattern)를 이미 들고 있으므로 **프롬프트엔 입력만 전달**: ① `기획서.md` 절대경로 ② 그릴 화면 목록(없으면 "§6에서 도출하라") ③ `wireframes.html` 산출 절대경로. → general-purpose에 긴 명세를 다시 박지 말 것.
+- **단일 에이전트 1개 — 함대 금지**. 화면이 여러 개여도 *한 에이전트*가 만든다(lo-fi 스타일·화면 간 네비·이벤트 핀의 일관성이 한 컨텍스트에서 나와야 함).
+- **fallback**: 실행 환경에 `wireframe-builder` subagent_type이 아직 없으면(에이전트 등록 전), general-purpose로 스폰하되 `agents/wireframe-builder.md`를 읽혀 그 명세를 따르게 한다.
+- **검증(정직성)**: 생성 후 오케스트레이터가 직접 grep으로 외부 의존성 0·화면 수·상태·핀을 확인. 에이전트 보고와 실제가 다르면 정직하게 사용자에게 차이 보고(추정으로 통과시키지 않음).
+
+### P7 — 데이터 모델 (선택 산출물)
+- **트리거**: deep 티어 기본 / 사용자가 "데이터 모델·스키마·DB 짜줘" 요청 시. 기획서(P5)가 완성된 뒤에만. P6와 독립.
+- **전용 에이전트를 스폰한다** — Agent 도구 `subagent_type: data-model-builder` (정의: `agents/data-model-builder.md`). 명세를 에이전트가 들고 있으므로 **프롬프트엔 입력만 전달**: ① `기획서.md` 절대경로 ② 엔티티 힌트(없으면 "§6·부록에서 도출하라") ③ `data-model.md` 산출 절대경로. → general-purpose에 긴 명세를 다시 박지 말 것.
+- **단일 에이전트 1개 — 함대 금지**. 엔티티가 많아도 한 에이전트(관계·정규화·인덱스·집계의 일관성이 한 컨텍스트에서 나와야 함).
+- **fallback**: 환경에 `data-model-builder` subagent_type이 아직 없으면 general-purpose로 스폰하되 `agents/data-model-builder.md`를 읽혀 그 명세를 따르게 한다.
+- **검증(정직성)**: 생성 후 오케스트레이터가 grep으로 엔티티 수·ERD·DDL·집계·상태전이·v1 OUT을 확인. 특히 **§7 OUT 항목이 스키마로 새어들지 않았나**(YAGNI 위반)·기획서에 없는 엔티티 발명 안 했나를 점검. 보고와 실제가 다르면 정직하게 차이 보고.
+
+> **P6·P7 병렬 실행**: 둘 다 진행할 때(deep 티어 등)는 `wireframe-builder` 와 `data-model-builder` 를 **병렬로 spawn**한다 — 둘 다 `기획서.md` 만 읽고 서로 의존이 0인 **독립 산출물**이라 "함대 금지"(산출물 1개당 1에이전트)에 위배되지 않는다. 순차로 기다리지 말 것(wall-clock 절감).
 
 ---
 
@@ -93,7 +114,7 @@ description: 떠오른 아이디어 씨앗(핵심 기능 1개·핵심 시나리�
 - 디렉토리: `~/Documents/service-planning/{YYYY-MM-DD}-{slug}/`
   - slug는 씨앗에서 1회 제안 후 확정 (kebab-case).
   - 날짜는 `date +%F`로 구한다.
-- 파일: `기획서.md` (필수) + `gaps.md` (빈칸 맵 raw + 근거, standard/deep).
+- 파일: `기획서.md` (필수) + `gaps.md` (빈칸 맵 raw + 근거, standard/deep) + `wireframes.html` (P6 실행 시) + `data-model.md` (P7 실행 시).
 - 저장 후 경로 + §4 빈칸 맵 요약 + §7 v1 스코프를 응답에 한 줄씩.
 
 ---
@@ -106,3 +127,4 @@ description: 떠오른 아이디어 씨앗(핵심 기능 1개·핵심 시나리�
 - 모르는 걸 채워 넣기 — Open questions로 (Example Mapping Questions 규칙)
 - ideas 레포 `sources/*.md` 직접 쓰기 / `idea synth` 자동 호출
 - wiki에 기획서 저장 (운영 산출물 — `~/Documents/`에만)
+- **에이전트 함대화** — P6 와이어프레임을 화면당, P7 데이터모델을 엔티티당 에이전트로 쪼개거나, 목적에 불필요한 에이전트를 다수 스폰. 산출물 1개당 단일 에이전트만(lean).
