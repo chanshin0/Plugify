@@ -36,14 +36,16 @@
 
 ## 사용 — 개인 정본 직접 사용 (기본)
 
-정본을 그대로 `~/.claude/skills/` 로 symlink:
+정본을 `~/.claude/{skills,agents}` 로 symlink. **`scripts/install.sh` 를 쓴다**(멱등·no-clobber):
 
 ```bash
-for d in skills/*/; do
-  name=$(basename "$d")
-  ln -s "$PWD/$d" "$HOME/.claude/skills/$name"
-done
+bash scripts/install.sh            # 적용
+bash scripts/install.sh --dry-run  # 무엇을 할지 미리보기
 ```
+
+- 스킬뿐 아니라 **`skills/*/agents/*.md`(name: frontmatter 보유)도 `~/.claude/agents/` 로 등록**한다 — agentType 호출 스킬(tech-deciding·spec-building·service-planning)에 필수. 수동 `ln -s` 로 스킬만 걸면 agentType 이 미등록돼 워크플로우가 죽는다.
+- 실디렉토리/딴 곳 링크가 점유한 이름은 건드리지 않고 WARN.
+- **세션 재시작 후 실효**(특히 agentType 레지스트리는 세션 시작에 고정).
 
 ## 사용 — 마켓플레이스 install (현재 비어있음)
 
