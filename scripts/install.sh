@@ -43,6 +43,16 @@ resolve_link() {
   esac
 }
 
+# $1=target(절대)  $2=base 디렉토리(절대) → target 을 base 기준 상대경로로.
+# 상대 링크여야 ~/.claude 통째 이동에도 안 깨진다. BSD ln 은 --relative 가 없어 직접 계산.
+relpath() {
+  local target="$1" common="$2" up=""
+  while [ "${target#"$common"/}" = "$target" ] && [ "$common" != "/" ]; do
+    common="$(dirname "$common")"; up="../$up"
+  done
+  [ "$common" = "/" ] && printf '%s\n' "${up}${target#/}" || printf '%s\n' "${up}${target#"$common"/}"
+}
+
 # $1=target(절대 실파일/디렉토리)  $2=link(생성할 경로)  $3=label
 link_one() {
   local target="$1" link="$2" label="$3"
@@ -55,11 +65,12 @@ link_one() {
   if [ -e "$link" ]; then
     echo "  WARN  $label — 실파일/디렉토리 점유 중(정본 아닐 수 있음, 보존): $link"; warned=$((warned+1)); return
   fi
+  local rel; rel="$(relpath "$target" "$(dirname "$link")")"
   if [ "$DRY_RUN" = 1 ]; then
-    echo "  +DRY  $label → $target"; linked=$((linked+1)); return
+    echo "  +DRY  $label → $rel"; linked=$((linked+1)); return
   fi
-  ln -s "$target" "$link"
-  echo "  +     $label → $target"; linked=$((linked+1))
+  ln -s "$rel" "$link"
+  echo "  +     $label → $rel"; linked=$((linked+1))
 }
 
 echo "plugify install${DRY_RUN:+}$([ "$DRY_RUN" = 1 ] && echo ' (--dry-run)')"
