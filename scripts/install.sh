@@ -12,6 +12,7 @@
 # 동작:
 #   - skills/<dir>/SKILL.md 마다  ~/.claude/skills/<dir>      symlink
 #   - skills/*/agents/<x>.md (name: frontmatter 보유) 마다  ~/.claude/agents/<x>.md  symlink
+#   - agents/<x>.md       (스킬 비종속 독립 에이전트, name: 보유) 마다  ~/.claude/agents/<x>.md  symlink
 #   - 이미 올바른 symlink → skip. 실디렉토리/딴 곳 링크가 점유 중이면 건드리지 않고 WARN.
 #
 # 사용:
@@ -89,6 +90,14 @@ echo "[agents]"
 for f in "$REPO"/skills/*/agents/*.md; do
   [ -e "$f" ] || continue
   # 진짜 에이전트 정의만(frontmatter 에 name:) — 헬퍼 .md 오등록 방지
+  head -10 "$f" | grep -qE '^name:[[:space:]]*\S' || continue
+  name="$(basename "$f")"
+  link_one "$f" "$AGENTS_DST/$name" "agents/$name"
+done
+
+# 스킬 비종속 독립 에이전트 (최상위 agents/) — debugger 등
+for f in "$REPO"/agents/*.md; do
+  [ -e "$f" ] || continue
   head -10 "$f" | grep -qE '^name:[[:space:]]*\S' || continue
   name="$(basename "$f")"
   link_one "$f" "$AGENTS_DST/$name" "agents/$name"
