@@ -1,65 +1,49 @@
-# cc-plugify
+# plugify
 
-> Claude Code 마켓플레이스 [chanshin0/Plugify](https://github.com/chanshin0/Plugify) 한 줄 설치 도구. npm 이름 충돌 회피로 `cc-` (Claude Code) prefix.
+> [chanshin0/Plugify](https://github.com/chanshin0/Plugify) 의 스킬·에이전트를 **Claude Code 와 Codex 양쪽에** 단일 소스(SSOT)로 설치하는 한 줄 도구.
 
 ## 사용
 
 ```bash
-# 1. 마켓플레이스만 등록 (project scope = ./.claude/settings.json)
-npx cc-plugify
+# 정본 레포를 clone/locate 한 뒤 install.sh 실행 (claude + codex 셋업)
+npx plugify
 
-# 2. 마켓플레이스 등록 + 플러그인 활성화 (가장 일반적)
-npx cc-plugify install <plugin>
+# (추가) Claude 마켓플레이스도 등록 — project scope
+npx plugify --register
 
-# 3. user-global scope (모든 프로젝트에 적용)
-npx cc-plugify install <plugin> --global
+# (추가) Claude 마켓플레이스 등록 — user-global
+npx plugify --register -g
 
-# 4. 등록 해제
-npx cc-plugify --uninstall
+npx plugify --help
 ```
 
 ## 동작
 
-`.claude/settings.json` 의 두 키를 멱등하게 갱신:
+`npx plugify` 는:
 
-```json
-{
-  "extraKnownMarketplaces": {
-    "plugify": {
-      "source": { "source": "github", "repo": "chanshin0/Plugify" }
-    }
-  },
-  "enabledPlugins": {
-    "<plugin>@plugify": true
-  }
-}
-```
+1. **정본 레포를 안정 경로에 둔다.** 기존 클론(예: Claude 마켓플레이스 카피)을 자동 탐지해 재사용하고, 없으면 `~/.plugify` 로 clone 한다. (npx 자체는 임시 캐시에서 도는데, 거기서 install.sh 를 돌리면 심링크가 캐시 삭제 시 dangling 되므로 안정 경로가 필수.)
+2. `git pull` (로컬 변경 있으면 건너뜀).
+3. `<repo>/scripts/install.sh` 실행 →
+   - 스킬을 `~/.claude/skills` + `~/.codex/skills` 양쪽에 심링크
+   - 에이전트를 `~/.claude/agents/*.md` + `~/.codex/agents/*.toml` 로 생성 (dual-block SSOT 에서)
 
-이후 Claude Code 재시작 시:
-1. 신뢰 다이얼로그 (한 번)
-2. 마켓플레이스 자동 등록
-3. `enabledPlugins` 의 플러그인 자동 install 제안
+설치 후 **Claude/Codex 세션 재시작** 시 반영된다 (SessionStart 훅이 `sync-agents.py --ensure` 로 매 세션 self-heal).
 
-## Project vs Global
+## 왜 한 파일이 아니라 "생성"인가
 
-| Scope | 위치 | 용도 |
-|---|---|---|
-| project (기본) | `./.claude/settings.json` | 이 프로젝트만. commit 하면 팀 공유 |
-| `--global` | `~/.claude/settings.json` | 이 머신의 모든 프로젝트 |
+Claude 에이전트는 `.md`(frontmatter+본문), Codex 에이전트는 `.toml`(`developer_instructions` 필드)로 **포맷이 다르고**, Codex 는 심링크된 에이전트 toml 을 무시한다([openai/codex#15345](https://github.com/openai/codex/issues/15345)). 그래서 한 파일을 공유할 수 없고, **단일 SSOT(`*/agents/*.md`, dual-block frontmatter) → 각 툴 네이티브로 생성**한다. 스킬(`SKILL.md`)은 양쪽 포맷이 같아 심링크로 공유된다.
 
-## 사용 가능한 플러그인
+## Env
 
-현재 등록된 번들 없음 (scenario-first 는 [scenario-first-development-template](https://github.com/chanshin0/scenario-first-development-template) 로 이전).
-전체 카탈로그는 [Plugify 레포 README](https://github.com/chanshin0/Plugify) · `marketplace.json` 의 `plugins` 배열 참조.
+| 변수 | 용도 |
+|---|---|
+| `PLUGIFY_HOME` | 정본 레포 경로 강제 (기본: 기존 클론 자동탐지 → 없으면 `~/.plugify`) |
+| `CLAUDE_CONFIG_DIR` | Claude 설정 디렉터리 (기본 `~/.claude`) |
+| `CODEX_HOME` | Codex 설정 디렉터리 (기본 `~/.codex`) |
 
-## 옛 방식 (수동)
+## 요구사항
 
-```bash
-claude plugin marketplace add chanshin0/Plugify
-claude plugin install <plugin>@plugify
-```
-
-`npx cc-plugify install <plugin>` 한 줄로 동일.
+`git`, `bash`, `python3`, Node.js 18+. (install.sh·sync-agents.py 가 bash/python3 사용 — macOS/Linux.)
 
 ## License
 

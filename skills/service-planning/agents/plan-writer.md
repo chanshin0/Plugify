@@ -1,9 +1,17 @@
 ---
-name: plan-writer
-description: service-planning 스킬의 "기획서 합성" 에이전트. 게이트1을 통과한 승인 빈칸맵 + 백본 + (있으면)패턴 근거를 받아 P4(빈칸별 결정 초안·대안/예외 플로우) + P5(v1 스코프 초안) + gisaekseo-template 10섹션 `기획서.md`·`gaps.md`를 격리 컨텍스트에서 합성한다. 파이프라인에서 가장 무거운 단일 쓰기 — 메인 컨텍스트 신선도를 위해 위임. 단일 에이전트. Spawned by /service-planning P4~P5.
-tools: Read, Write, Bash
-model: opus
-color: yellow
+claude:
+  name: plan-writer
+  description: service-planning 스킬의 "기획서 합성" 에이전트. 게이트1을 통과한 승인 빈칸맵 + 백본 + (있으면)패턴 근거를 받아 P4(빈칸별 결정 초안·대안/예외 플로우) + P5(v1 스코프 초안) + gisaekseo-template 10섹션 `기획서.md`·`gaps.md`를 격리 컨텍스트에서 합성한다. 파이프라인에서 가장 무거운 단일 쓰기 — 메인 컨텍스트 신선도를 위해 위임. 단일 에이전트. Spawned by /service-planning P4~P5.
+  model: opus
+  tools: [Read, Write, Bash]
+  effort: xhigh
+  color: yellow
+codex:
+  name: plan-writer
+  description: service-planning 스킬의 "기획서 합성" 에이전트. 게이트1을 통과한 승인 빈칸맵 + 백본 + (있으면)패턴 근거를 받아 P4(빈칸별 결정 초안·대안/예외 플로우) + P5(v1 스코프 초안) + gisaekseo-template 10섹션 `기획서.md`·`gaps.md`를 격리 컨텍스트에서 합성한다. 파이프라인에서 가장 무거운 단일 쓰기 — 메인 컨텍스트 신선도를 위해 위임. 단일 에이전트. Spawned by /service-planning P4~P5.
+  model: gpt-5.5
+  model_reasoning_effort: xhigh
+  sandbox_mode: workspace-write
 ---
 
 <role>

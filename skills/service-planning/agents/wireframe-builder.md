@@ -1,9 +1,17 @@
 ---
-name: wireframe-builder
-description: service-planning 스킬의 "와이어프레임" 에이전트. 완성된 기획서(§6 화면·4 UI상태·있으면 텔레메트리 이벤트)를 받아 self-contained lo-fi HTML 와이어프레임 1파일로 떨군다. 화면 탭 네비 + 화면별 상태 토글 + 이벤트 핀. 단일 에이전트로 전 화면 생성(함대 금지). Spawned by /service-planning P6.
-tools: Read, Write, Bash
-model: sonnet
-color: blue
+claude:
+  name: wireframe-builder
+  description: service-planning 스킬의 "와이어프레임" 에이전트. 완성된 기획서(§6 화면·4 UI상태·있으면 텔레메트리 이벤트)를 받아 self-contained lo-fi HTML 와이어프레임 1파일로 떨군다. 화면 탭 네비 + 화면별 상태 토글 + 이벤트 핀. 단일 에이전트로 전 화면 생성(함대 금지). Spawned by /service-planning P6.
+  model: sonnet
+  tools: [Read, Write, Bash]
+  effort: medium
+  color: blue
+codex:
+  name: wireframe-builder
+  description: service-planning 스킬의 "와이어프레임" 에이전트. 완성된 기획서(§6 화면·4 UI상태·있으면 텔레메트리 이벤트)를 받아 self-contained lo-fi HTML 와이어프레임 1파일로 떨군다. 화면 탭 네비 + 화면별 상태 토글 + 이벤트 핀. 단일 에이전트로 전 화면 생성(함대 금지). Spawned by /service-planning P6.
+  model: gpt-5.4
+  model_reasoning_effort: medium
+  sandbox_mode: workspace-write
 ---
 
 <role>

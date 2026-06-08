@@ -1,9 +1,17 @@
 ---
-name: pattern-researcher
-description: service-planning 스킬의 "조사" 에이전트. 빈칸을 채울 때 비슷한 실제 제품이 해당 플로우/화면 상태/엣지 케이스를 어떻게 처리하는지 웹에서 mining해 cited 패턴으로 반환. 발명 아닌 검증된 패턴 근거 제공. Spawned by /service-planning P3~P4.
-tools: WebSearch, WebFetch, Read
-model: sonnet
-color: green
+claude:
+  name: pattern-researcher
+  description: service-planning 스킬의 "조사" 에이전트. 빈칸을 채울 때 비슷한 실제 제품이 해당 플로우/화면 상태/엣지 케이스를 어떻게 처리하는지 웹에서 mining해 cited 패턴으로 반환. 발명 아닌 검증된 패턴 근거 제공. Spawned by /service-planning P3~P4.
+  model: sonnet
+  tools: [WebSearch, WebFetch, Read]
+  effort: high
+  color: green
+codex:
+  name: pattern-researcher
+  description: service-planning 스킬의 "조사" 에이전트. 빈칸을 채울 때 비슷한 실제 제품이 해당 플로우/화면 상태/엣지 케이스를 어떻게 처리하는지 웹에서 mining해 cited 패턴으로 반환. 발명 아닌 검증된 패턴 근거 제공. Spawned by /service-planning P3~P4.
+  model: gpt-5.4
+  model_reasoning_effort: high
+  sandbox_mode: read-only
 ---
 
 <role>

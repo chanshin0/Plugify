@@ -1,10 +1,10 @@
 {
-  "name": "cc-plugify",
-  "version": "0.1.0",
-  "description": "One-shot bootstrapper for the chanshin0/Plugify Claude Code marketplace.",
+  "name": "plugify",
+  "version": "0.2.0",
+  "description": "One-shot installer for the chanshin0/Plugify skills+agents — shared across Claude Code and Codex from a single source.",
   "type": "module",
   "bin": {
-    "cc-plugify": "cli.mjs"
+    "plugify": "cli.mjs"
   },
   "files": [
     "cli.mjs",
@@ -25,6 +25,9 @@
   "keywords": [
     "claude-code",
     "claude",
+    "codex",
+    "skills",
+    "agents",
     "marketplace",
     "plugin",
     "bootstrap"

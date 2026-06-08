@@ -1,23 +1,34 @@
 #!/usr/bin/env node
 /**
- * plugify — Claude Code marketplace bootstrapper for chanshin0/Plugify.
+ * plugify — one-shot installer for the chanshin0/Plugify skills + agents,
+ * shared across Claude Code (~/.claude) and Codex (~/.codex) from one SSOT.
  *
- * Writes extraKnownMarketplaces (always) and enabledPlugins (for `install` subcommand)
- * to .claude/settings.json so Claude Code picks up the marketplace + plugins
- * automatically on next start.
+ * Default (`npx plugify`):
+ *   1. Locate the canonical repo at a STABLE path (reuse an existing clone —
+ *      e.g. the Claude marketplace copy — or clone fresh to ~/.plugify).
+ *      npx itself runs from a throwaway cache, so install.sh must NOT run from
+ *      there: its symlinks would dangle the moment the cache is evicted.
+ *   2. git pull (best-effort; skipped if the clone has local changes).
+ *   3. Run <repo>/scripts/install.sh — symlinks skills into ~/.claude/skills
+ *      and ~/.codex/skills, and generates agents (.md + .toml) for both tools.
+ *
+ * Opt-in (`npx plugify --register [-g]`):
+ *   Also register the Claude Code marketplace in settings.json (Claude-only;
+ *   not needed for Codex, not needed for the symlink/generation install above).
  */
 import {
   readFileSync,
   writeFileSync,
   mkdirSync,
   existsSync,
-  realpathSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 
 const MARKETPLACE_KEY = "plugify";
 const MARKETPLACE_REPO = "chanshin0/Plugify";
+const REPO_URL = "https://github.com/chanshin0/Plugify.git";
 
 const c = {
   reset: "\x1b[0m",
@@ -29,70 +40,98 @@ const c = {
   red: "\x1b[31m",
 };
 
-function log(msg) {
-  process.stdout.write(msg + "\n");
-}
-
-function fail(msg) {
-  process.stderr.write(`${c.red}✗${c.reset} ${msg}\n`);
+const log = (m) => process.stdout.write(m + "\n");
+const fail = (m) => {
+  process.stderr.write(`${c.red}✗${c.reset} ${m}\n`);
   process.exit(1);
-}
+};
 
 function checkNode() {
   const major = Number(process.versions.node.split(".")[0]);
-  if (major < 18) {
-    fail(`Node.js 18+ required. Current: ${process.versions.node}`);
+  if (major < 18) fail(`Node.js 18+ required. Current: ${process.versions.node}`);
+}
+
+function has(bin) {
+  const r = spawnSync(bin, ["--version"], { stdio: "ignore" });
+  return !r.error && r.status === 0;
+}
+
+// --- repo location -------------------------------------------------------
+
+function isRepo(p) {
+  return (
+    !!p &&
+    existsSync(join(p, ".git")) &&
+    existsSync(join(p, "scripts", "install.sh"))
+  );
+}
+
+// Reuse an existing clone if we can find one (avoids a second copy that would
+// split the SSOT). Otherwise install fresh to ~/.plugify.
+function resolveStableRepo() {
+  const candidates = [
+    process.env.PLUGIFY_HOME,
+    join(homedir(), ".claude", "plugins", "marketplaces", "plugify"),
+    join(homedir(), ".plugify"),
+  ];
+  for (const p of candidates) {
+    if (isRepo(p)) return { path: p, existed: true };
+  }
+  return { path: join(homedir(), ".plugify"), existed: false };
+}
+
+function gitClone(dest) {
+  log(`${c.dim}git clone ${REPO_URL} ${dest}${c.reset}`);
+  const r = spawnSync("git", ["clone", "--depth", "1", REPO_URL, dest], {
+    stdio: "inherit",
+  });
+  if (r.status !== 0) fail(`git clone failed (status ${r.status})`);
+}
+
+function gitPullIfClean(repo) {
+  const dirty = spawnSync("git", ["-C", repo, "status", "--porcelain"], {
+    encoding: "utf8",
+  });
+  if (dirty.status === 0 && dirty.stdout.trim()) {
+    log(`${c.yellow}•${c.reset} 로컬 변경 있음 → pull 건너뜀 (현재 상태로 설치): ${repo}`);
+    return;
+  }
+  const r = spawnSync("git", ["-C", repo, "pull", "--ff-only"], { stdio: "inherit" });
+  if (r.status !== 0) {
+    log(`${c.yellow}•${c.reset} git pull 실패 → 기존 클론 그대로 설치 진행`);
   }
 }
 
-function parseArgs(argv) {
-  const args = {
-    global: false,
-    help: false,
-    uninstall: false,
-    install: null,
-  };
-  const rest = argv.slice(2);
-  for (let i = 0; i < rest.length; i++) {
-    const a = rest[i];
-    if (a === "--global" || a === "-g") args.global = true;
-    else if (a === "--help" || a === "-h") args.help = true;
-    else if (a === "--uninstall") args.uninstall = true;
-    else if (a === "install") {
-      const next = rest[i + 1];
-      if (!next || next.startsWith("-")) {
-        fail(`'install' requires a plugin name. Example: npx cc-plugify install <plugin>`);
-      }
-      args.install = next;
-      i++;
-    } else fail(`Unknown argument: ${a}`);
-  }
-  return args;
+function runInstall(repo) {
+  const script = join(repo, "scripts", "install.sh");
+  if (!existsSync(script)) fail(`install script not found: ${script}`);
+  log(`${c.dim}bash ${script}${c.reset}\n`);
+  const r = spawnSync("bash", [script], { stdio: "inherit" });
+  if (r.status !== 0) fail(`install.sh exited with status ${r.status}`);
 }
 
-function printHelp() {
-  log(`${c.bold}cc-plugify${c.reset} — Claude Code marketplace bootstrapper`);
+function setup() {
+  if (!has("git")) fail("git 이 필요합니다 (PATH 에 없음).");
+  const { path: repo, existed } = resolveStableRepo();
+
+  log(`${c.bold}plugify setup${c.reset}`);
+  log(`${c.dim}stable repo: ${repo}${existed ? " (기존 클론 재사용)" : " (신규 clone)"}${c.reset}\n`);
+
+  if (existed) gitPullIfClean(repo);
+  else {
+    mkdirSync(dirname(repo), { recursive: true });
+    gitClone(repo);
+  }
+
+  runInstall(repo);
+
   log("");
-  log(`${c.bold}Usage${c.reset}`);
-  log(`  npx cc-plugify                          ${c.dim}# register marketplace only (project scope)${c.reset}`);
-  log(`  npx cc-plugify install <plugin>         ${c.dim}# register + enable a plugin${c.reset}`);
-  log(`  npx cc-plugify install <plugin> -g      ${c.dim}# user-global scope${c.reset}`);
-  log(`  npx cc-plugify --uninstall              ${c.dim}# remove marketplace entry${c.reset}`);
-  log(`  npx cc-plugify --help`);
-  log("");
-  log(`${c.bold}Project mode${c.reset} ${c.dim}(default)${c.reset}`);
-  log(`  Writes to <cwd>/.claude/settings.json — commit it to share.`);
-  log("");
-  log(`${c.bold}Global mode${c.reset}`);
-  log(`  Writes to ~/.claude/settings.json — applies to all projects on this machine.`);
-  log("");
-  log(`${c.bold}Examples${c.reset}`);
-  log(`  ${c.cyan}npx cc-plugify install <plugin>${c.reset}        ${c.dim}# project: register + enable <plugin>${c.reset}`);
-  log(`  ${c.cyan}npx cc-plugify install <plugin> -g${c.reset}     ${c.dim}# global: same, for all projects${c.reset}`);
-  log("");
-  log(`${c.bold}Available plugins${c.reset} ${c.dim}(see https://github.com/${MARKETPLACE_REPO})${c.reset}`);
-  log(`  ${c.dim}(현재 번들 없음 — marketplace.json plugins 배열 참고)${c.reset}`);
+  log(`${c.green}✓${c.reset} plugify 설치 완료 — 스킬·에이전트가 Claude(~/.claude) + Codex(~/.codex) 양쪽에 노출됨.`);
+  log(`${c.dim}⚠ Claude/Codex 세션을 재시작해야 agentType 레지스트리에 반영됩니다.${c.reset}`);
+  log(`${c.dim}  (SessionStart 훅이 sync-agents.py --ensure 로 매 세션 self-heal)${c.reset}`);
 }
+
+// --- Claude marketplace registration (opt-in) ----------------------------
 
 function readSettings(path) {
   if (!existsSync(path)) return {};
@@ -103,190 +142,60 @@ function readSettings(path) {
   }
 }
 
-function writeSettings(path, settings) {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, JSON.stringify(settings, null, 2) + "\n");
-}
-
-function mergeMarketplace(settings) {
-  const existing =
-    settings.extraKnownMarketplaces &&
-    typeof settings.extraKnownMarketplaces === "object" &&
-    !Array.isArray(settings.extraKnownMarketplaces)
-      ? { ...settings.extraKnownMarketplaces }
-      : {};
-
-  const current = existing[MARKETPLACE_KEY];
-  const desired = {
-    source: { source: "github", repo: MARKETPLACE_REPO },
-  };
-
-  const alreadyCorrect =
-    current &&
-    current.source?.source === desired.source.source &&
-    current.source?.repo === desired.source.repo;
-
-  if (alreadyCorrect) {
-    return { settings, added: false };
-  }
-
-  return {
-    settings: {
-      ...settings,
-      extraKnownMarketplaces: { ...existing, [MARKETPLACE_KEY]: desired },
-    },
-    added: true,
-  };
-}
-
-function mergePlugin(settings, pluginName) {
-  const key = `${pluginName}@${MARKETPLACE_KEY}`;
-  const existing =
-    settings.enabledPlugins &&
-    typeof settings.enabledPlugins === "object" &&
-    !Array.isArray(settings.enabledPlugins)
-      ? { ...settings.enabledPlugins }
-      : {};
-
-  if (existing[key] === true) {
-    return { settings, added: false, key };
-  }
-
-  return {
-    settings: {
-      ...settings,
-      enabledPlugins: { ...existing, [key]: true },
-    },
-    added: true,
-    key,
-  };
-}
-
-function unmergeMarketplace(settings) {
-  const existing =
-    settings.extraKnownMarketplaces &&
-    typeof settings.extraKnownMarketplaces === "object" &&
-    !Array.isArray(settings.extraKnownMarketplaces)
-      ? { ...settings.extraKnownMarketplaces }
-      : null;
-
-  if (!existing || !(MARKETPLACE_KEY in existing)) {
-    return { settings, removed: false };
-  }
-
-  delete existing[MARKETPLACE_KEY];
-  const next = { ...settings };
-  if (Object.keys(existing).length === 0) {
-    delete next.extraKnownMarketplaces;
-  } else {
-    next.extraKnownMarketplaces = existing;
-  }
-  return { settings: next, removed: true };
-}
-
-function resolveSettingsPath(useGlobal) {
-  return useGlobal
+function registerMarketplace(useGlobal) {
+  const path = useGlobal
     ? join(homedir(), ".claude", "settings.json")
     : resolve(process.cwd(), ".claude", "settings.json");
+  const s = readSettings(path);
+  const existing =
+    s.extraKnownMarketplaces && typeof s.extraKnownMarketplaces === "object" && !Array.isArray(s.extraKnownMarketplaces)
+      ? { ...s.extraKnownMarketplaces }
+      : {};
+  const cur = existing[MARKETPLACE_KEY];
+  const ok = cur && cur.source?.source === "github" && cur.source?.repo === MARKETPLACE_REPO;
+  if (ok) {
+    log(`${c.yellow}•${c.reset} "${MARKETPLACE_KEY}" already registered → ${path}`);
+    return;
+  }
+  existing[MARKETPLACE_KEY] = { source: { source: "github", repo: MARKETPLACE_REPO } };
+  const next = { ...s, extraKnownMarketplaces: existing };
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, JSON.stringify(next, null, 2) + "\n");
+  log(`${c.green}✓${c.reset} Registered "${MARKETPLACE_KEY}" → ${MARKETPLACE_REPO} (${path})`);
 }
 
-function canonical(p) {
-  try {
-    return realpathSync(p);
-  } catch {
-    return resolve(p);
-  }
-}
+// --- args / help ---------------------------------------------------------
 
-function guardProjectMode(useGlobal) {
-  if (useGlobal) return;
-  if (canonical(process.cwd()) === canonical(homedir())) {
-    fail(
-      `cwd is your home directory (${homedir()}).\n` +
-        `  Project mode would write to ~/.claude/settings.json — same as --global.\n` +
-        `  → cd into a project first, or pass --global if that's what you want.`
-    );
-  }
+function printHelp() {
+  log(`${c.bold}plugify${c.reset} — Claude Code + Codex 공용 스킬/에이전트 설치기`);
+  log("");
+  log(`${c.bold}Usage${c.reset}`);
+  log(`  npx plugify                  ${c.dim}# 정본 clone/locate → install.sh (claude+codex 셋업)${c.reset}`);
+  log(`  npx plugify --register       ${c.dim}# (추가) Claude 마켓플레이스 등록 — project scope${c.reset}`);
+  log(`  npx plugify --register -g    ${c.dim}# (추가) Claude 마켓플레이스 등록 — user-global${c.reset}`);
+  log(`  npx plugify --help`);
+  log("");
+  log(`${c.bold}Env${c.reset}`);
+  log(`  PLUGIFY_HOME   ${c.dim}# 정본 레포 경로 강제 (기본: 기존 클론 자동탐지 → 없으면 ~/.plugify)${c.reset}`);
 }
 
 function main() {
-  const args = parseArgs(process.argv);
-  if (args.help) {
-    printHelp();
-    return;
-  }
-
   checkNode();
-  guardProjectMode(args.global);
+  const argv = process.argv.slice(2);
+  const want = { help: false, register: false, global: false };
+  for (const a of argv) {
+    if (a === "--help" || a === "-h") want.help = true;
+    else if (a === "--register") want.register = true;
+    else if (a === "--global" || a === "-g") want.global = true;
+    else fail(`Unknown argument: ${a} (try --help)`);
+  }
 
-  const settingsPath = resolveSettingsPath(args.global);
-  const scopeLabel = args.global ? "user-global" : "project";
+  if (want.help) return printHelp();
 
-  const modeLabel = args.uninstall
-    ? "uninstall"
-    : args.install
-    ? `install ${args.install}`
-    : "register marketplace";
-
-  log(`${c.bold}cc-plugify ${modeLabel}${c.reset} ${c.dim}(${scopeLabel} scope)${c.reset}`);
-  log(`${c.dim}Target: ${settingsPath}${c.reset}\n`);
-
-  const current = readSettings(settingsPath);
-
-  if (args.uninstall) {
-    const { settings, removed } = unmergeMarketplace(current);
-    if (removed) {
-      writeSettings(settingsPath, settings);
-      log(`${c.green}✓${c.reset} Removed "${MARKETPLACE_KEY}" from extraKnownMarketplaces`);
-    } else {
-      log(`${c.yellow}•${c.reset} "${MARKETPLACE_KEY}" not registered — nothing to do`);
-    }
+  setup();
+  if (want.register) {
     log("");
-    log(`${c.bold}Cleanup complete.${c.reset} ${c.dim}To also remove installed plugins:${c.reset}`);
-    log(`  ${c.cyan}claude plugin uninstall <plugin>@${MARKETPLACE_KEY}${c.reset}`);
-    return;
-  }
-
-  // Step 1: marketplace
-  const mp = mergeMarketplace(current);
-  let next = mp.settings;
-  if (mp.added) {
-    log(`${c.green}✓${c.reset} Registered "${MARKETPLACE_KEY}" → ${MARKETPLACE_REPO}`);
-  } else {
-    log(`${c.yellow}•${c.reset} "${MARKETPLACE_KEY}" already registered`);
-  }
-
-  // Step 2: plugin (if install subcommand)
-  let pluginKey = null;
-  if (args.install) {
-    const pl = mergePlugin(next, args.install);
-    next = pl.settings;
-    pluginKey = pl.key;
-    if (pl.added) {
-      log(`${c.green}✓${c.reset} Enabled "${pl.key}"`);
-    } else {
-      log(`${c.yellow}•${c.reset} "${pl.key}" already enabled`);
-    }
-  }
-
-  if (mp.added || (args.install && pluginKey && next.enabledPlugins?.[pluginKey])) {
-    writeSettings(settingsPath, next);
-  }
-
-  log("");
-  if (!args.global) {
-    log(`${c.bold}Share with team?${c.reset} ${c.dim}(commit to share with future cloners)${c.reset}`);
-    log(`  ${c.cyan}git add .claude/settings.json && git commit -m "chore: register plugify"${c.reset}`);
-    log("");
-  }
-  log(`${c.bold}Next${c.reset}`);
-  if (args.install) {
-    log(`  ${c.cyan}1.${c.reset} Restart Claude Code (or run /reload-plugins)`);
-    log(`  ${c.cyan}2.${c.reset} Claude Code prompts: trust marketplace + install plugin`);
-    log(`  ${c.cyan}3.${c.reset} ${args.install}@${MARKETPLACE_KEY} is ready to use`);
-  } else {
-    log(`  Use ${c.cyan}claude plugin install <plugin>@${MARKETPLACE_KEY}${c.reset} inside Claude Code,`);
-    log(`  or re-run ${c.cyan}npx cc-plugify install <plugin>${c.reset} to enable one declaratively.`);
+    registerMarketplace(want.global);
   }
 }
 
