@@ -26,6 +26,7 @@
 ├── .claude-plugin/
 │   └── marketplace.json              # 마켓플레이스 카탈로그 (현재 plugins 비어있음 — 정본 직접 사용)
 ├── AGENTS.md                          # 본사 모드 헌법 — 공정 설계 원칙·출하 조건(evals 통과+canary)
+├── SYSTEM.md                          # 시스템 지도 + 현재 위치 + 열린 개선 — 새 세션 이어가기 앵커
 ├── evals/                             # 공정 문제집 — 스킬 회귀 평가 (규약: evals/README.md)
 ├── skills/                            # 정본 스킬 (평면)
 │   ├── ai-readiness-cartography/
