@@ -61,14 +61,31 @@ let committed = false
 let escalation = null
 if (review.pass) {
   if (doCommit) {
-    await agent(
+    // 커밋 실재는 에이전트 자기보고가 아니라 git 상태로 판정한다(2026-06-11: haiku 가
+    // 커밋 없이 완료 응답 → committed:true 오보고로 메인이 픽스 미포함 push 할 뻔한 사고).
+    const commitResult = await agent(
       `리뷰를 통과한 변경을 atomic commit 하라. ${cdNote}\n` +
       `task: ${task}\n` +
-      `1) git add -A 로 관련 변경만 스테이징(무관 파일 제외). 2) .planning/STATE.md 갱신(이 task 완료로, 다음 task 명시). **라이브 검증을 실제로 했으면 정확히 반영 — '미수행'으로 추측 기입 금지.** 3) 한국어 커밋 메시지로 commit(--no-verify·--force 금지). 메시지 끝: Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`,
-      { phase: 'Commit', label: '커밋', model: 'haiku' }
+      `1) git add -A 로 관련 변경만 스테이징(무관 파일 제외). 2) .planning/STATE.md 갱신(이 task 완료로, 다음 task 명시). **라이브 검증을 실제로 했으면 정확히 반영 — '미수행'으로 추측 기입 금지.** 3) 한국어 커밋 메시지로 commit(--no-verify·--force 금지). 메시지 끝: Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n` +
+      `4) 커밋 후 **반드시 실행한 명령의 출력 원문 그대로** 반환하라: git log -1 --format='%H %s' 의 출력과 git status --porcelain 의 출력(빈 출력이면 빈 문자열). 출력을 지어내지 마라 — 커밋에 실패했으면 실패했다고 적고 status 원문을 그대로 줘라.`,
+      {
+        phase: 'Commit', label: '커밋', model: 'haiku',
+        schema: {
+          type: 'object',
+          properties: {
+            headLog: { type: 'string', description: "git log -1 --format='%H %s' 출력 원문" },
+            statusPorcelain: { type: 'string', description: 'git status --porcelain 출력 원문(클린이면 빈 문자열)' },
+          },
+          required: ['headLog', 'statusPorcelain'],
+        },
+      }
     )
-    committed = true
-    log(`커밋 완료: ${task}`)
+    // 판정: 트래킹 변경이 안 남아 있어야 커밋 성공으로 본다(?? untracked 잔여는 허용).
+    const dirty = (commitResult?.statusPorcelain ?? 'UNKNOWN')
+      .split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('??'))
+    committed = dirty.length === 0 && /^[0-9a-f]{7,40} /.test(commitResult?.headLog ?? '')
+    if (committed) log(`커밋 완료: ${commitResult.headLog}`)
+    else log(`⚠ 커밋 미확인(committed=false 반환) — status 잔여: ${dirty.join(' | ') || '(headLog 불일치)'}. 메인이 git log/status 로 직접 확인·수습할 것.`)
   }
 } else {
   // 3회 미통과 → 메인이 전략을 바꿔 재투입해야 한다. 무한 자동 루프는 위험하므로 여기서 멈추고 신호만 올린다.

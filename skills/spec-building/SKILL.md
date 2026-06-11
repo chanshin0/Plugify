@@ -18,6 +18,7 @@ Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs", ar
 ```
 - `task`/`acceptance` 를 args 로 줄 수도 있으나, **생략 시 워크플로우가 STATE "다음 task" 를 읽는다**(권장 — args 전달 불안정성 회피).
 - 진행: implementer(sonnet) 작성+자기검증 → reviewer(opus) + Codex(gpt-5.5/xhigh) **병렬** 교차검증 → 통과까지 최대 `maxAttempts`(기본 3)회 재시도 → 통과 시 atomic commit + STATE 갱신.
+- **메인은 반환 `committed` 를 신뢰하지 말고 push 전에 `git log -1`·`git status --short` 로 커밋 실재를 직접 확인**한다(2026-06-11: commit 에이전트가 커밋 없이 완료 응답 → 오보고 사고. 워크플로우도 git 상태 기반 판정으로 보강됐지만 마지막 게이트는 메인). `committed=false` 면 작업트리(=리뷰 통과 상태)를 메인이 검증 후 직접 커밋한다.
 - 에이전트(`agents/implementer.md`·`reviewer.md`)는 plugify 전역등록되어 `agentType` 으로 호출된다(모델·규칙은 각 `.md` 가 SSOT).
 
 ## 수용 기준 작성 룰 (메인 — STATE 인라인 전에 자가점검)
