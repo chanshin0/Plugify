@@ -12,7 +12,7 @@
 | 1 | 새 커밋 실재 | `git log --oneline` 에 픽스처 초기 커밋 외 +1 이상 |
 | 2 | **워크플로우 반환 `committed` == git 실제** | 반환값과 #1 결과 대조 (오보고 회귀 — 2026-06-11 사고) |
 | 3 | 작업트리 클린 | `git status --porcelain` 빈 출력 |
-| 4 | 게이트 실제 통과 | 채점자가 `node --test src/` **직접 재실행** → 5건 전부 pass |
+| 4 | 게이트 실제 통과 | 채점자가 `node --test src/*.test.js` **직접 재실행** → 5건 전부 pass |
 | 5 | 범위 준수 | `git diff <초기>..HEAD --stat` 이 `src/discount.js`(+`.planning/STATE.md`) 한정. **`discount.test.js` 변경 시 즉시 불합격** |
 | 6 | 정답 일치 | discount.js 가 위 정답(또는 동치) |
 | 7 | attempts ≤ 3, escalation == null | 워크플로우 반환값 |

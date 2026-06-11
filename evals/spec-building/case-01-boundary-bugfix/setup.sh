@@ -10,5 +10,5 @@ git init -q
 git add -A
 git commit -qm "픽스처 초기 상태 (경계 버그 심어짐 — 테스트 2건 실패)"
 echo "버그 재현 (테스트 2건 실패해야 정상):"
-node --test src/ 2>&1 | tail -2 || true
+node --test src/*.test.js 2>&1 | tail -2 || true
 echo "RUN_DIR=$RUN_DIR"
