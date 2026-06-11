@@ -64,6 +64,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 3. **풀체인 모드**(사람은 최종 보고만) — STATE task 큐 자동 순회(spec-building→live-verify→다음). **선행: 프리뷰 배포**(push=즉시 prod 라 완전 무인 불가). 검수자 신뢰는 evals 로 확보 후.
 4. **telemetry-review 루프**(운영→기획 backward edge) — 주간 event 집계→기획 백로그. 지점에 실트래픽 생기면.
 5. **evals 확충** — live-verify·tech-deciding·service-planning 케이스 0. 우선순위는 수정 빈도 순.
+5b. **tech-deciding 에 타깃 픽스 이식** — spec-building 에만 적용된 args JSON-문자열 정규화 + 타깃 해석 fail-fast 가 tech-deciding workflow.mjs 에 없음(같은 조용한 폴백 계열). + 구버그: ADR Write 가 상대경로(`workflow.mjs` adrPath, cd 보호 부재 — 2026-06-05 발견 M2) → 엉뚱한 디렉토리 위험. 한 사이클로 묶어 수정 + eval 케이스 신설이 적합.
 6. **자동화 수위 상향 검토** — live-verify 의 명시 호출 의존(메인이 지시문 따름)을 Stop hook/workflow 화로 기계화할지. 비가역 게이트(push) 분리가 전제.
 7. **comprehension debt** — 에이전트 작성 코드를 사람이 안 읽는 구조. 주요 모듈 "코드 투어" 체크포인트 운영 검토.
 8. plugins/ 번들화(`dev-loop`) — 외부 배포 필요 시.
