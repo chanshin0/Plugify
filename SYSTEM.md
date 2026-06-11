@@ -1,7 +1,16 @@
 # SYSTEM — 개발 루프 시스템 구조 (이어가기 앵커)
 
 > 새 세션에서 시스템 개선을 이어갈 때 이 문서부터 읽는다. 규칙의 정본은 각 SKILL/AGENTS — 이 문서는 **지도 + 현재 위치 + 열린 개선**만 담는다(중복 금지).
-> 마지막 갱신: 2026-06-11 (본사 루프 완성 — evals 문제집 + 첫 canary 사이클 완주)
+> 마지막 갱신: 2026-06-11 (백로그 5b 사이클 진행 중 — 아래 "진행 중 사이클" 참조)
+
+## 진행 중 사이클 — 백로그 5b: tech-deciding 타깃픽스 이식 (2026-06-11, 미완)
+
+작업트리에 **미커밋 공정 변경** 있음(출하 조건 미충족 상태라 의도적 보류): `skills/tech-deciding/workflow.mjs`·`SKILL.md`, `evals/tech-deciding/case-01-target-and-adr-path/`(신설).
+
+- **공정 수정 4건**: ① args JSON-문자열 정규화(spec-building 패턴 이식) ② 타깃/질문 해석 fail-fast — 정본 채널 `/tmp/tech-deciding.target` **JSON 1줄** `{"question","projectRoot","adrPath"?}` (spec-building 의 경로-1줄과 포맷 다름 — question 까지 필요) ③ adrPath 를 projectRoot 기준 절대경로 정규화(2026-06-05 M2) ④ ADR 출처 URL 보존 의무(아래 1차 시험에서 발견된 결함의 픽스)
+- **eval case-01 시험 경과**: 1차 — A1·A2(fail-fast·잔류물0)·B1·B2(ADR 절대경로·오프타깃0)·B4·B5 통과, **B3 불합격**(ADR 에 URL 출처 0개 — haiku ADR 에이전트가 synthesis/critique 의 출처 유실). 픽스 ④ 후 재시험 완료(run `wf_b9494e65-eca` resume — ADR 단계만 재실행, 나머지 캐시).
+- **남은 절차**: ① RUN_DIR `/tmp/plugify-eval-techd-c01.XqM1KT` 의 ADR 재채점(B3: 필수 섹션 + URL ≥3, B1·B2 재확인) ② 전 항목 합격 → 공정 변경 커밋(출시) + canary 선언(다음 실전 tech-deciding 1회 관찰) ③ 이 섹션 제거 + 백로그 5b 닫기 ④ 정리: `rm -rf` RUN_DIR + `/tmp/tech-deciding.target`
+- ⚠ RUN_DIR 은 /tmp — 재부팅으로 소실 시 재채점 불가 → `bash evals/tech-deciding/case-01-target-and-adr-path/setup.sh` 부터 Part B 재실행.
 
 ## 1. 2층 구조 — 본사/지점
 
