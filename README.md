@@ -36,6 +36,18 @@
 └── plugins/                           # 번들 단위 마켓플레이스 노출 (현재 비어있음 — 필요 시 추가)
 ```
 
+## 스킬 지도 — 시스템 vs 독립 유틸
+
+skills/ 는 평면이지만 성격이 두 갈래다:
+
+- **개발 루프 시스템** (서로 배선된 파이프라인 — 지점 레포가 소비):
+  `service-planning`(기획) → `tech-deciding`(결정/ADR) → `spec-building`(격리 구현·적대리뷰·커밋) → `live-verify`(배포 후 라이브 닫기)
+  - 위성: `perf-review`(성능 진단) · `debugger`/`design-explorer`(agents/)
+  - 메타(본사 루프): `incident-protocol`(사고→자산 반영) + `evals/`(문제집 — 출하 조건)
+- **독립 유틸** (단발 도구, 배선 없음): `presentation_slides` · `improve-token-efficiency` · `ai-readiness-cartography` · `self-review` · `push-experience`
+
+본사/지점 운영 모델: 이 레포 = 본사(공정 제작, `AGENTS.md`), 각 프로젝트 레포 = 지점(공정 소비, 그 레포 `AGENTS.md`+`.planning/STATE.md`). 커밋 = 출시.
+
 ## 사용 — 개인 정본 직접 사용 (기본)
 
 정본을 `~/.claude/{skills,agents}` 로 symlink. **`scripts/install.sh` 를 쓴다**(멱등·no-clobber):
