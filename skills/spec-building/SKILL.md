@@ -12,10 +12,12 @@ description: 확정된 구현 task 를 격리 에이전트로 구현·자기검�
 - **task·수용 기준은 `.planning/STATE.md` 의 "## 다음 task" 에 인라인**으로 적는다 — 이게 워크플로우로 task 를 넘기는 안정 인터페이스다(워크플로우 args.task 가 전달 안 되는 환경에서도 동작).
 
 ## 실행
-메인은 Workflow 도구로 **이 스킬 디렉토리의 `workflow.mjs`** 를 절대경로로 실행한다:
+메인은 **① 타깃 포인터 파일을 먼저 쓰고** ② Workflow 도구로 이 스킬 디렉토리의 `workflow.mjs` 를 절대경로로 실행한다:
 ```
+echo "<레포 절대경로>" > /tmp/spec-building.target   # 정본 채널 — args 는 하니스에 따라 미전달(2026-06-11 실증)
 Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs", args: { projectRoot: "<레포 절대경로>" } })
 ```
+- 워크플로우는 타깃을 해석·검증(.planning/STATE.md 실재)하고, 무효면 **조용한 폴백 없이 즉시 실패**한다 — 엉뚱한 레포 실행 차단.
 - `task`/`acceptance` 를 args 로 줄 수도 있으나, **생략 시 워크플로우가 STATE "다음 task" 를 읽는다**(권장 — args 전달 불안정성 회피).
 - 진행: implementer(sonnet) 작성+자기검증 → reviewer(opus) + Codex(gpt-5.5/xhigh) **병렬** 교차검증 → 통과까지 최대 `maxAttempts`(기본 3)회 재시도 → 통과 시 atomic commit + STATE 갱신.
 - **메인은 반환 `committed` 를 신뢰하지 말고 push 전에 `git log -1`·`git status --short` 로 커밋 실재를 직접 확인**한다(2026-06-11: commit 에이전트가 커밋 없이 완료 응답 → 오보고 사고. 워크플로우도 git 상태 기반 판정으로 보강됐지만 마지막 게이트는 메인). `committed=false` 면 작업트리(=리뷰 통과 상태)를 메인이 검증 후 직접 커밋한다.

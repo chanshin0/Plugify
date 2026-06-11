@@ -12,11 +12,41 @@ export const meta = {
 // ── 입력 ──────────────────────────────────────────────
 const task        = args?.task ?? '.planning/STATE.md 의 "## 다음 task" 최상단 미완료 항목을 거기 적힌 수용 기준대로 구현하라.'
 const acceptance  = args?.acceptance ?? '수용 기준은 .planning/STATE.md 의 해당 task 항목(하위 글머리)에 인라인으로 적혀 있다 — 그것을 SSOT 로 따르라.'
-const projectRoot = args?.projectRoot ?? '.'
 const isolation   = args?.isolation === 'worktree' ? { isolation: 'worktree' } : {}
 const doCommit    = args?.commit !== false
 const MAX         = args?.maxAttempts ?? 3
-const cdNote      = `작업 디렉토리는 ${projectRoot} 다. Bash 사용 시 항상 먼저 cd ${projectRoot}.`
+
+// ── 타깃 해석 — 조용한 기본값 금지 ─────────────────────
+// 2026-06-11 canary 사고: 이 하니스에서 args 가 전달되지 않는데 `?? '.'` 폴백이
+// 시험을 엉뚱한 레포에서 실행시킴. 정본 채널 = 포인터 파일 /tmp/spec-building.target
+// (메인이 Workflow 호출 직전에 절대경로 1줄 기록). args 는 보조 채널.
+log(`args 수신: ${JSON.stringify(args ?? null)}`)
+const argRoot = (typeof args?.projectRoot === 'string' && args.projectRoot.trim()) ? args.projectRoot.trim() : null
+const probe = await agent(
+  `타깃 디렉토리 해석 — 아래 절차만 수행하고 결과를 반환하라(구현 작업 아님).\n` +
+  (argRoot
+    ? `1) 후보 경로: ${argRoot}\n`
+    : `1) 후보 경로를 \`cat /tmp/spec-building.target\` 으로 읽어라(1줄 절대경로). 파일이 없으면 resolvedRoot 를 빈 문자열로.\n`) +
+  `2) 후보 디렉토리가 존재하고 그 안에 .planning/STATE.md 파일이 실재하는지 ls 로 확인.\n` +
+  `3) resolvedRoot(절대경로)·statePresent 만 반환. **추측·대체 경로 탐색 금지** — 후보가 무효면 무효라고 반환하라(다른 레포를 찾아내지 마라).`,
+  {
+    phase: 'Implement', label: '타깃 해석', model: 'haiku',
+    schema: {
+      type: 'object',
+      properties: {
+        resolvedRoot: { type: 'string', description: '검증된 절대경로(무효면 빈 문자열)' },
+        statePresent: { type: 'boolean', description: '<resolvedRoot>/.planning/STATE.md 실재 여부' },
+      },
+      required: ['resolvedRoot', 'statePresent'],
+    },
+  }
+)
+if (!probe?.statePresent || !probe.resolvedRoot) {
+  throw new Error('projectRoot 해석 실패 — args.projectRoot 와 /tmp/spec-building.target 둘 다 유효한 .planning 레포를 가리키지 않음. 조용한 기본값으로 진행하지 않는다(메인: 포인터 파일을 쓰고 재실행).')
+}
+const projectRoot = probe.resolvedRoot
+log(`타깃 확정: ${projectRoot}`)
+const cdNote      = `작업 디렉토리는 ${projectRoot} 다. Bash 사용 시 항상 먼저 cd ${projectRoot}. 이 디렉토리 밖의 레포를 건드리지 마라.`
 
 const REVIEW_SCHEMA = {
   type: 'object',
