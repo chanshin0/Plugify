@@ -10,18 +10,20 @@ export const meta = {
 }
 
 // ── 입력 ──────────────────────────────────────────────
-const task        = args?.task ?? '.planning/STATE.md 의 "## 다음 task" 최상단 미완료 항목을 거기 적힌 수용 기준대로 구현하라.'
-const acceptance  = args?.acceptance ?? '수용 기준은 .planning/STATE.md 의 해당 task 항목(하위 글머리)에 인라인으로 적혀 있다 — 그것을 SSOT 로 따르라.'
-const isolation   = args?.isolation === 'worktree' ? { isolation: 'worktree' } : {}
-const doCommit    = args?.commit !== false
-const MAX         = args?.maxAttempts ?? 3
+// 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 canary 실증: args 수신 로그가 "{\"projectRoot\"...}" 문자열) → 객체로 정규화.
+const A = (typeof args === 'string') ? (() => { try { return JSON.parse(args) } catch { return null } })() : (args ?? null)
+const task        = A?.task ?? '.planning/STATE.md 의 "## 다음 task" 최상단 미완료 항목을 거기 적힌 수용 기준대로 구현하라.'
+const acceptance  = A?.acceptance ?? '수용 기준은 .planning/STATE.md 의 해당 task 항목(하위 글머리)에 인라인으로 적혀 있다 — 그것을 SSOT 로 따르라.'
+const isolation   = A?.isolation === 'worktree' ? { isolation: 'worktree' } : {}
+const doCommit    = A?.commit !== false
+const MAX         = A?.maxAttempts ?? 3
 
 // ── 타깃 해석 — 조용한 기본값 금지 ─────────────────────
 // 2026-06-11 canary 사고: 이 하니스에서 args 가 전달되지 않는데 `?? '.'` 폴백이
 // 시험을 엉뚱한 레포에서 실행시킴. 정본 채널 = 포인터 파일 /tmp/spec-building.target
 // (메인이 Workflow 호출 직전에 절대경로 1줄 기록). args 는 보조 채널.
-log(`args 수신: ${JSON.stringify(args ?? null)}`)
-const argRoot = (typeof args?.projectRoot === 'string' && args.projectRoot.trim()) ? args.projectRoot.trim() : null
+log(`args 수신(정규화 후): ${JSON.stringify(A)}`)
+const argRoot = (typeof A?.projectRoot === 'string' && A.projectRoot.trim()) ? A.projectRoot.trim() : null
 const probe = await agent(
   `타깃 디렉토리 해석 — 아래 절차만 수행하고 결과를 반환하라(구현 작업 아님).\n` +
   (argRoot
