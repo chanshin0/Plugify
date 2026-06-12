@@ -12,12 +12,16 @@ description: 되돌리기 비싼 기술/아키텍처 결정을 추측이 아니�
 - 결과는 `.planning/decisions/NNN-<slug>.md` ADR 로 남긴다(다음 단계 spec-building 의 SSOT).
 
 ## 실행
-메인은 Workflow 도구로 **이 스킬 디렉토리의 `workflow.mjs`** 를 절대경로로 실행한다:
+메인은 **① 타깃 포인터 파일(JSON 1줄)을 먼저 쓰고** ② Workflow 도구로 이 스킬 디렉토리의 `workflow.mjs` 를 절대경로로 실행한다:
 ```
+echo '{"question":"<결정할 질문>","projectRoot":"<레포 절대경로>","adrPath":".planning/decisions/NNN-<slug>.md"}' \
+  > /tmp/tech-deciding.target   # 정본 채널 — args 는 하니스에 따라 미전달(2026-06-11 실증). question 까지 필요해 JSON 포맷(spec-building 의 경로 1줄과 다름)
 Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs",
            args: { question: "<결정할 질문>", projectRoot: "<레포 절대경로>",
                    adrPath: ".planning/decisions/NNN-<slug>.md" } })
 ```
+- 워크플로우는 question·projectRoot 를 해석·검증하고, 무효면 **조용한 폴백 없이 즉시 실패**한다(placeholder question 으로 비싼 조사 낭비 금지·엉뚱한 레포 실행 차단).
+- `adrPath` 상대경로는 projectRoot 기준 **절대경로로 정규화**되어 ADR 이 항상 타깃 레포에 기록된다(2026-06-05 M2: 상대경로 Write 가 엉뚱한 디렉토리로 갈 위험).
 - 진행: define(sonnet 난제 매핑) → researcher(sonnet) **축별 병렬** 조사 → synthesize(opus) → critique(opus 적대검증) → ADR(haiku Write).
 - 에이전트(`agents/researcher.md`)는 plugify 전역등록되어 `agentType: researcher` 로 호출된다(모델·규칙은 `.md` SSOT).
 - 산출: 선정안 + 적대 검증 + ADR 파일.

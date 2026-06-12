@@ -1,16 +1,7 @@
 # SYSTEM — 개발 루프 시스템 구조 (이어가기 앵커)
 
 > 새 세션에서 시스템 개선을 이어갈 때 이 문서부터 읽는다. 규칙의 정본은 각 SKILL/AGENTS — 이 문서는 **지도 + 현재 위치 + 열린 개선**만 담는다(중복 금지).
-> 마지막 갱신: 2026-06-11 (백로그 5b 사이클 진행 중 — 아래 "진행 중 사이클" 참조)
-
-## 진행 중 사이클 — 백로그 5b: tech-deciding 타깃픽스 이식 (2026-06-11, 미완)
-
-작업트리에 **미커밋 공정 변경** 있음(출하 조건 미충족 상태라 의도적 보류): `skills/tech-deciding/workflow.mjs`·`SKILL.md`, `evals/tech-deciding/case-01-target-and-adr-path/`(신설).
-
-- **공정 수정 4건**: ① args JSON-문자열 정규화(spec-building 패턴 이식) ② 타깃/질문 해석 fail-fast — 정본 채널 `/tmp/tech-deciding.target` **JSON 1줄** `{"question","projectRoot","adrPath"?}` (spec-building 의 경로-1줄과 포맷 다름 — question 까지 필요) ③ adrPath 를 projectRoot 기준 절대경로 정규화(2026-06-05 M2) ④ ADR 출처 URL 보존 의무(아래 1차 시험에서 발견된 결함의 픽스)
-- **eval case-01 시험 경과**: 1차 — A1·A2(fail-fast·잔류물0)·B1·B2(ADR 절대경로·오프타깃0)·B4·B5 통과, **B3 불합격**(ADR 에 URL 출처 0개 — haiku ADR 에이전트가 synthesis/critique 의 출처 유실). 픽스 ④ 후 재시험 완료(run `wf_b9494e65-eca` resume — ADR 단계만 재실행, 나머지 캐시).
-- **남은 절차**: ① RUN_DIR `/tmp/plugify-eval-techd-c01.XqM1KT` 의 ADR 재채점(B3: 필수 섹션 + URL ≥3, B1·B2 재확인) ② 전 항목 합격 → 공정 변경 커밋(출시) + canary 선언(다음 실전 tech-deciding 1회 관찰) ③ 이 섹션 제거 + 백로그 5b 닫기 ④ 정리: `rm -rf` RUN_DIR + `/tmp/tech-deciding.target`
-- ⚠ RUN_DIR 은 /tmp — 재부팅으로 소실 시 재채점 불가 → `bash evals/tech-deciding/case-01-target-and-adr-path/setup.sh` 부터 Part B 재실행.
+> 마지막 갱신: 2026-06-12 (백로그 5b 완료 — tech-deciding 타깃픽스 이식 + eval case-01 합격·출시)
 
 ## 1. 2층 구조 — 본사/지점
 
@@ -47,7 +38,8 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
                                    └── 불합격: 결함 수정 ←──────────┘  합격 → 커밋(출시) + canary 선언
 ```
 - 종료조건 = **문제집 통과**(1사례 검증 금지). 출제·합격선 = 사람(굿하트 차단). 사고 → 회귀 케이스 추가(incident-protocol 절차 4).
-- 문제집 현황: `evals/spec-building/case-01`(경계 버그픽스 — 타깃정합·committed 실재·범위·게이트 8항목) ✅ 1회 합격(2026-06-11) / `evals/perf-review/case-01`(심은 버그 3+오탐 함정 1) — **미실행**(perf-review 다음 수정 시 첫 실행).
+- 문제집 현황: `evals/spec-building/case-01`(경계 버그픽스 — 타깃정합·committed 실재·범위·게이트 8항목) ✅ 1회 합격(2026-06-11) / `evals/tech-deciding/case-01`(타깃 fail-fast + ADR 절대경로·출처 보존 7항목) ✅ 합격(2026-06-12 — 1차 B3 불합격: haiku ADR 이 출처 URL 유실 → 출처 보존 의무 픽스 후 재시험 합격. 문제집이 실결함을 잡은 첫 사례) / `evals/perf-review/case-01`(심은 버그 3+오탐 함정 1) — **미실행**(perf-review 다음 수정 시 첫 실행).
+- **현재 canary**: tech-deciding 2026-06-12 출시분 — 다음 실전 tech-deciding 실행 1회가 관찰 대상(포인터 JSON 채널·ADR 절대경로·출처 보존 실증).
 
 ## 4. 하니스 사실 (실증된 것 — 추측 아님)
 
@@ -63,7 +55,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 
 - 버그픽스 수용 기준 = 실코드 경로 실증 + 라이브 닫기 → `skills/spec-building/SKILL.md` "수용 기준 작성 룰"
 - reviewer: 재현 실경로성 검증 + **리뷰 대상 레포 git 변조 금지** → `skills/spec-building/agents/reviewer.md`
-- 타깃 해석 fail-fast(조용한 폴백 금지) → `skills/spec-building/workflow.mjs`
+- 타깃 해석 fail-fast(조용한 폴백 금지) → `skills/spec-building/workflow.mjs` · `skills/tech-deciding/workflow.mjs`(2026-06-12 이식 — 포인터는 JSON 1줄, +ADR 절대경로 정규화·출처 URL 보존)
 - 사고→자산 반영→회귀 케이스→canary → `skills/incident-protocol/SKILL.md`
 
 ## 6. 열린 개선 (다음 세션 백로그)
@@ -72,8 +64,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 2. **commit 원자성** — canary 관찰: implementer 가 픽스 직접 커밋 + commit 에이전트가 STATE 별도 커밋(2분할). implementer.md 에 "커밋은 commit 단계 소관" 명시 검토.
 3. **풀체인 모드**(사람은 최종 보고만) — STATE task 큐 자동 순회(spec-building→live-verify→다음). **선행: 프리뷰 배포**(push=즉시 prod 라 완전 무인 불가). 검수자 신뢰는 evals 로 확보 후.
 4. **telemetry-review 루프**(운영→기획 backward edge) — 주간 event 집계→기획 백로그. 지점에 실트래픽 생기면.
-5. **evals 확충** — live-verify·tech-deciding·service-planning 케이스 0. 우선순위는 수정 빈도 순.
-5b. **tech-deciding 에 타깃 픽스 이식** — spec-building 에만 적용된 args JSON-문자열 정규화 + 타깃 해석 fail-fast 가 tech-deciding workflow.mjs 에 없음(같은 조용한 폴백 계열). + 구버그: ADR Write 가 상대경로(`workflow.mjs` adrPath, cd 보호 부재 — 2026-06-05 발견 M2) → 엉뚱한 디렉토리 위험. 한 사이클로 묶어 수정 + eval 케이스 신설이 적합.
+5. **evals 확충** — live-verify·service-planning 케이스 0. 우선순위는 수정 빈도 순. (tech-deciding case-01 은 2026-06-12 신설·합격 — 백로그 5b 완료)
 6. **자동화 수위 상향 검토** — live-verify 의 명시 호출 의존(메인이 지시문 따름)을 Stop hook/workflow 화로 기계화할지. 비가역 게이트(push) 분리가 전제.
 7. **comprehension debt** — 에이전트 작성 코드를 사람이 안 읽는 구조. 주요 모듈 "코드 투어" 체크포인트 운영 검토.
 8. plugins/ 번들화(`dev-loop`) — 외부 배포 필요 시.
