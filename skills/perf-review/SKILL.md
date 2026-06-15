@@ -14,7 +14,7 @@ description: 프로젝트 성능을 전문화 에이전트 4종(렌더링·데�
 | `perf-render-analyst` | sonnet | UI 렌더링·번들 정적 분석 | 루브릭 명확한 도메인 코드 분석 — 병렬 3개라 비용/속도 균형 |
 | `perf-data-analyst` | sonnet | 데이터 계층(쿼리·인덱스·캐싱) 정적 분석 | 동일 |
 | `perf-runtime-prober` | sonnet | 프로덕션 빌드 실측 | 측정은 기계적이지만 수치→원인 코드 귀속에 추론 필요 |
-| `perf-judge` | fable | 적대 검증 + 종합 + 랭킹 | 오탐 제거가 파이프라인 가치의 핵심 — 거짓 양성 1개가 보고서 신뢰 전체를 깎는다. 최상위 추론 모델 |
+| `perf-judge` | opus | 적대 검증 + 종합 + 랭킹 | 오탐 제거가 파이프라인 가치의 핵심 — 거짓 양성 1개가 보고서 신뢰 전체를 깎는다. 최상위 추론 모델 |
 
 - **haiku 미채용 사유**: 성능 안티패턴 판별은 컨텍스트 의존(`'use client'` 자체는 죄가 아니다) — 패턴매칭 단독은 오탐이 폭주해 judge 비용이 더 든다.
 - 에이전트는 plugify `scripts/install.sh` 로 전역 등록되어 `agentType` 으로 호출한다. **등록 전/미재시작 세션 폴백**: `general-purpose` + 해당 `agents/<name>.md` 본문을 프롬프트에 인라인 + Agent `model` 파라미터로 동일 모델 지정.

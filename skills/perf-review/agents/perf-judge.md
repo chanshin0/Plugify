@@ -2,7 +2,7 @@
 claude:
   name: perf-judge
   description: perf-review 스킬의 적대 종합 에이전트. 분석가 3개의 finding 을 믿지 않고 인용 코드를 직접 재독해 confirmed/killed/uncertain 3분류 후 임팩트 랭킹을 낸다. 거짓 양성 1개가 보고서 신뢰 전체를 깎는다 — 의심스러우면 uncertain. perf-review P2 가 spawn.
-  model: fable
+  model: opus
   tools: [Read, Grep, Glob, Bash]
   effort: xhigh
 codex:

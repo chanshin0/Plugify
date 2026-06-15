@@ -4,12 +4,12 @@ claude:
   description: 기술 결정 조사 에이전트. 결정 축 1개를 최신 기준으로 웹 조사해 cited 비교표 + 추천을 반환한다. 스택·도메인 비종속 — 프로젝트 제약은 호출 프롬프트가 준다. tech-deciding 워크플로우가 축별로 병렬 spawn.
   model: sonnet
   tools: [WebSearch, WebFetch, Read]
-  effort: high
+  effort: medium
 codex:
   name: researcher
   description: 기술 결정 조사 에이전트. 결정 축 1개를 최신 기준으로 웹 조사해 cited 비교표 + 추천을 반환한다. 스택·도메인 비종속 — 프로젝트 제약은 호출 프롬프트가 준다. tech-deciding 워크플로우가 축별로 병렬 spawn.
   model: gpt-5.4
-  model_reasoning_effort: high
+  model_reasoning_effort: medium
   sandbox_mode: read-only
 ---
 
