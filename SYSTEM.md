@@ -72,7 +72,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 ★2 **살아있는 루프 — 현황판·운영→기획 피드백·자기 시계** (★1 위에 얹음)
 - 진단: 지점 루프는 태스크 안의 폐루프지만 human-clocked(매번 사람 트리거). 빠진 OS 속성 3개: 자기 박동(스케줄러)·질의가능 현황(/proc)·운영→기획 backward edge.
 - 원칙: **루프(기계)는 본사가 만든다, 신호(데이터)는 지점이 정해진 규격으로 건넨다.** niche-market = 첫 입주자지 의존 대상 아님. 지점 목록 = 데이터(파일 한 줄).
-- 단계: **P0 `plugify status` ✅(scripts/status.sh — 본사 evals·canary·★ + 지점 STATE·git 한 화면, 지점=~/Projects/* 스캔)** → P1 telemetry backward edge(지점이 "운영 신호 뽑는 명령" 계약 제공, 없으면 건너뜀 = 기존 #4) → P2 cron 박동(지점 목록 순회) → P3 canary 자동 닫기. 규율: 자율성은 트리거·관찰에만, 합격판정·push 는 결정적/사람. 모든 박동은 "다음 행동(백로그/STATE task)"으로 끝나야(안 닫는 자동화 = 소음).
+- 단계: **P0 `plugify status` ✅(scripts/status.sh — 본사 evals·canary·★ + 지점 STATE·git 한 화면, 지점=~/Projects/* 스캔)** → **P1 telemetry backward edge ← 다음 착수**(⚠ niche-market 세션 정리 후 시작 — 이벤트 규격이 지점 변경을 요함. 본사 쪽 루프=주간 집계·기획 백로그 append 를 먼저 짜두고, 지점 "운영 신호 뽑는 명령" 계약은 그때 붙임. 계약 없는 지점은 건너뜀 = 기존 #4) → P2 cron 박동(지점 목록 순회) → P3 canary 자동 닫기. 규율: 자율성은 트리거·관찰에만, 합격판정·push 는 결정적/사람. 모든 박동은 "다음 행동(백로그/STATE task)"으로 끝나야(안 닫는 자동화 = 소음).
 
 1. **perf-review eval 첫 실행** — case-01 미실행 상태. perf-review 를 다음에 손댈 때 함께.
 2. **commit 원자성** — canary 관찰: implementer 가 픽스 직접 커밋 + commit 에이전트가 STATE 별도 커밋(2분할). implementer.md 에 "커밋은 commit 단계 소관" 명시 검토.
