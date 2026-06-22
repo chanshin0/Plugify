@@ -12,8 +12,8 @@ export const meta = {
 // ── 입력 ──────────────────────────────────────────────
 // 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 canary 실증: args 수신 로그가 "{\"projectRoot\"...}" 문자열) → 객체로 정규화.
 const A = (typeof args === 'string') ? (() => { try { return JSON.parse(args) } catch { return null } })() : (args ?? null)
-const task        = A?.task ?? '.planning/STATE.md 의 "## 다음 task" 최상단 미완료 항목을 거기 적힌 수용 기준대로 구현하라.'
-const acceptance  = A?.acceptance ?? '수용 기준은 .planning/STATE.md 의 해당 task 항목(하위 글머리)에 인라인으로 적혀 있다 — 그것을 SSOT 로 따르라.'
+const task        = A?.task ?? '.planning/STATE.md 의 "## 다음 task" 의 ### 목표 를, 같은 task 의 ### 게이트 항목이 전부 통과하도록 구현하라.'
+const acceptance  = A?.acceptance ?? '수용 기준 = .planning/STATE.md 해당 task 의 "### 게이트" 항목 전부 — auto: 는 명시된 명령/테스트/라이브 프로브로 실증, human: 은 사람이 닫는다. 이것을 SSOT 로 따르라.'
 const isolation   = A?.isolation === 'worktree' ? { isolation: 'worktree' } : {}
 const doCommit    = A?.commit !== false
 const MAX         = A?.maxAttempts ?? 3
@@ -49,6 +49,47 @@ if (!probe?.statePresent || !probe.resolvedRoot) {
 const projectRoot = probe.resolvedRoot
 log(`타깃 확정: ${projectRoot}`)
 const cdNote      = `작업 디렉토리는 ${projectRoot} 다. Bash 사용 시 항상 먼저 cd ${projectRoot}. 이 디렉토리 밖의 레포를 건드리지 마라.`
+
+// ── 게이트 검증 — 구현 전에 "통과의 정의"가 있는가 (결정적 반려) ──────────
+// Phase A (2026-06-22, SYSTEM.md §6 ★1): STATE "## 다음 task" 는 목표+게이트 형식이어야 한다.
+// 게이트(통과 기준)가 없으면 구현하지 않는다 — 검증을 끝으로 미루는 폭포수 차단.
+// "게이트 존재/auto 개수"는 속으면 안 되는 판정 → 에이전트는 사실만 읽고, 반려는 코드가 결정한다(타깃 해석과 동일 패턴).
+const gate = await agent(
+  `STATE 게이트 점검 — 아래만 수행하고 사실을 반환하라(구현·수정·보정 금지).\n` +
+  `1) ${projectRoot}/.planning/STATE.md 를 읽어라.\n` +
+  `2) "## 다음 task" 섹션만 본다(다음 "## " 헤더 또는 "---" 구분선 전까지).\n` +
+  `3) 그 안에 "### 게이트" 하위 섹션이 있는가 → gatePresent.\n` +
+  `4) 게이트 항목 글머리 중 "auto:" 로 시작하는 개수 → autoCount, "human:" 으로 시작하는 개수 → humanCount. ` +
+  `앞쪽 글머리표(- · *)·체크박스(- [ ])·공백은 무시하고 마커만 센다.\n` +
+  `**친절한 추론 금지** — 형식이 구식(게이트 섹션 없이 "수용 기준:" 산문만)이면 gatePresent=false 로 사실대로 반환하라. 비어 있으면 비었다고 답하라.`,
+  {
+    phase: 'Implement', label: '게이트 점검', model: 'haiku',
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        gatePresent: { type: 'boolean', description: '"## 다음 task" 안에 "### 게이트" 섹션 실재 여부' },
+        autoCount:   { type: 'integer', description: '게이트의 "auto:" 항목 개수' },
+        humanCount:  { type: 'integer', description: '게이트의 "human:" 항목 개수' },
+      },
+      required: ['gatePresent', 'autoCount', 'humanCount'],
+    },
+  }
+)
+const gateEmpty = (gate?.autoCount ?? 0) === 0 && (gate?.humanCount ?? 0) === 0
+if (!gate?.gatePresent || gateEmpty) {
+  throw new Error(
+    `게이트 없는 task — 구현 거부. ".planning/STATE.md 의 ## 다음 task" 에 "### 게이트" 가 없거나 비어 있다 ` +
+    `(gatePresent=${gate?.gatePresent}, auto=${gate?.autoCount}, human=${gate?.humanCount}). ` +
+    `통과의 정의(게이트)를 구현 전에 박아라 — 형식: ### 목표 / ### 게이트(항목마다 "auto:"<명령·테스트·라이브프로브+통과 신호> 또는 "human:"<취향·비가역>, auto≥1 권장) / ### 비가역 표면. ` +
+    `(검증을 끝으로 미루는 폭포수 차단 — SYSTEM.md §6 ★1 Phase A)`
+  )
+}
+if ((gate.autoCount ?? 0) === 0) {
+  log(`⚠ human-only 게이트(auto=0, human=${gate.humanCount}) — 자동 검증 불가, 사람이 닫는 task 로 진행. 가능하면 auto 신호 1개 이상 추가 권장.`)
+} else {
+  log(`게이트 확인: auto=${gate.autoCount}, human=${gate.humanCount}`)
+}
 
 const REVIEW_SCHEMA = {
   type: 'object',
