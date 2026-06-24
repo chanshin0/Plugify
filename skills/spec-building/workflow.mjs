@@ -131,6 +131,7 @@ while (true) {
 
 // ── 커밋(통과) 또는 에스컬레이션(미통과) ──────────────
 let committed = false
+let commitInfo = null
 let escalation = null
 if (review.pass) {
   if (doCommit) {
@@ -139,8 +140,9 @@ if (review.pass) {
     const commitResult = await agent(
       `리뷰를 통과한 변경을 atomic commit 하라. ${cdNote}\n` +
       `task: ${task}\n` +
-      `1) git add -A 로 관련 변경만 스테이징(무관 파일 제외). 2) .planning/STATE.md 갱신(이 task 완료로, 다음 task 명시). **라이브 검증을 실제로 했으면 정확히 반영 — '미수행'으로 추측 기입 금지.** 3) 한국어 커밋 메시지로 commit(--no-verify·--force 금지). 메시지 끝: Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n` +
-      `4) 커밋 후 **반드시 실행한 명령의 출력 원문 그대로** 반환하라: git log -1 --format='%H %s' 의 출력과 git status --porcelain 의 출력(빈 출력이면 빈 문자열). 출력을 지어내지 마라 — 커밋에 실패했으면 실패했다고 적고 status 원문을 그대로 줘라.`,
+      `**중요(2026-06-23 사고 방지): 너는 커밋만 한다 — 새 파일을 만들거나 구현 코드를 수정하지 마라.** implementer/reviewer 가 남긴 작업트리(=리뷰 통과 상태)를 *그대로* 스테이징·커밋만 하라. 코드를 다시 짜거나 새 스크립트/파일을 발명하면 미검증 코드 출하다(실제 사고: commit 에이전트가 reviewer 미검증 파일을 발명·커밋하고 검증본을 작업트리에 방치).\n` +
+      `1) git add -A 로 작업트리의 리뷰-통과 변경을 스테이징(무관 파일만 제외, **새 파일 생성 금지**). 2) .planning/STATE.md 갱신(이 task 완료로, 다음 task 명시). **라이브 검증을 실제로 했으면 정확히 반영 — '미수행'으로 추측 기입 금지.** 3) 한국어 커밋 메시지로 commit(--no-verify·--force 금지). 메시지 끝: Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n` +
+      `4) 커밋 후 **반드시 실행한 명령의 출력 원문 그대로** 반환하라: (a) headLog = git log -1 --format='%H %s', (b) statusPorcelain = git status --porcelain(빈 출력이면 빈 문자열), (c) committedFiles = git show HEAD --stat --format='' 의 출력(이번 커밋이 담은 파일 목록). 출력을 지어내지 마라 — 커밋에 실패했으면 실패했다고 적고 status 원문을 그대로 줘라.`,
       {
         phase: 'Commit', label: '커밋', model: 'haiku',
         schema: {
@@ -148,8 +150,9 @@ if (review.pass) {
           properties: {
             headLog: { type: 'string', description: "git log -1 --format='%H %s' 출력 원문" },
             statusPorcelain: { type: 'string', description: 'git status --porcelain 출력 원문(클린이면 빈 문자열)' },
+            committedFiles: { type: 'string', description: "git show HEAD --stat --format='' 출력 원문(이번 커밋이 담은 파일 목록)" },
           },
-          required: ['headLog', 'statusPorcelain'],
+          required: ['headLog', 'statusPorcelain', 'committedFiles'],
         },
       }
     )
@@ -157,8 +160,10 @@ if (review.pass) {
     const dirty = (commitResult?.statusPorcelain ?? 'UNKNOWN')
       .split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('??'))
     committed = dirty.length === 0 && /^[0-9a-f]{7,40} /.test(commitResult?.headLog ?? '')
-    if (committed) log(`커밋 완료: ${commitResult.headLog}`)
-    else log(`⚠ 커밋 미확인(committed=false 반환) — status 잔여: ${dirty.join(' | ') || '(headLog 불일치)'}. 메인이 git log/status 로 직접 확인·수습할 것.`)
+    const cFiles = (commitResult?.committedFiles ?? '').trim()
+    commitInfo = { headLog: commitResult?.headLog ?? '', committedFiles: cFiles, statusPorcelain: commitResult?.statusPorcelain ?? '' }
+    if (committed) log(`커밋 완료: ${commitResult.headLog}\n  담은 파일:\n${cFiles}`)
+    else log(`⚠ 커밋 미확인(committed=false) — status 잔여: ${dirty.join(' | ') || '(headLog 불일치)'}. **메인 주의**: committed=false 라도 HEAD 가 이동했을 수 있다(부당/부분 커밋 공존, 2026-06-23 사고). 그냥 작업트리를 덧커밋하지 말고, git log 로 HEAD 이동 여부 + 커밋 파일집합이 리뷰-검증 변경과 일치하는지 먼저 확인하라 — 불일치 시 amend/되돌림으로 수습.`)
   }
 } else {
   // 3회 미통과 → 메인이 전략을 바꿔 재투입해야 한다. 무한 자동 루프는 위험하므로 여기서 멈추고 신호만 올린다.
@@ -175,4 +180,4 @@ if (review.pass) {
   log(`⚠ 에스컬레이션: ${escalation.reason}. 메인이 위 nextOptions 중 택해 재투입할 것.`)
 }
 
-return { task, attempts: attempt, impl, review, committed, escalation }
+return { task, attempts: attempt, impl, review, committed, commit: commitInfo, escalation }

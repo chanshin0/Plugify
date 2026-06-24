@@ -24,7 +24,8 @@ Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs", ar
 - 워크플로우는 타깃을 해석·검증(.planning/STATE.md 실재)하고, 무효면 **조용한 폴백 없이 즉시 실패**한다 — 엉뚱한 레포 실행 차단.
 - `task`/`acceptance` 를 args 로 줄 수도 있으나, **생략 시 워크플로우가 STATE "다음 task" 를 읽는다**(권장 — args 전달 불안정성 회피).
 - 진행: implementer(sonnet) 작성+자기검증 → reviewer(opus) + Codex(gpt-5.5/xhigh) **병렬** 교차검증 → 통과까지 최대 `maxAttempts`(기본 3)회 재시도 → 통과 시 atomic commit + STATE 갱신.
-- **메인은 반환 `committed` 를 신뢰하지 말고 push 전에 `git log -1`·`git status --short` 로 커밋 실재를 직접 확인**한다(2026-06-11: commit 에이전트가 커밋 없이 완료 응답 → 오보고 사고. 워크플로우도 git 상태 기반 판정으로 보강됐지만 마지막 게이트는 메인). `committed=false` 면 작업트리(=리뷰 통과 상태)를 메인이 검증 후 직접 커밋한다.
+- **메인은 반환 `committed`·`commit.committedFiles` 를 신뢰하지 말고 push 전에 `git log -1`·`git status --short`·`git show --stat HEAD` 로 커밋 실재 + 커밋 파일집합이 리뷰-검증 변경과 일치하는지 직접 확인**한다(2026-06-11: 커밋 없이 완료 응답 오보고. 2026-06-23: commit 에이전트가 reviewer 미검증 파일을 *발명·커밋*하고 검증본을 작업트리에 방치). 워크플로우 판정은 "트리 클린"만 보지 "검증본을 커밋했나"는 못 본다 — 마지막 게이트는 메인.
+- **`committed=false` 가 "커밋이 없다"는 뜻이 아니다** — HEAD 가 부당 이동했는지 먼저 본다. (a) HEAD 미이동 + 작업트리=리뷰 통과 상태 → 메인이 검증 후 직접 커밋. (b) HEAD 가 미검증/부분 커밋으로 이동(부당 커밋 공존) → **그 위에 덧커밋 금지**(미검증 코드가 history 에 남는다) — 검증본으로 `amend` 하거나 부당 커밋을 되돌린 뒤 올바른 changeset 을 커밋한다(2026-06-23 사고: `committed=false` 인데 잘못된 커밋이 HEAD 에 있었고, 메인이 디스크렙시 조사로 잡아 amend).
 - 에이전트(`agents/implementer.md`·`reviewer.md`)는 plugify 전역등록되어 `agentType` 으로 호출된다(모델·규칙은 각 `.md` 가 SSOT).
 
 ## 게이트 작성 룰 (`### 게이트` 의 auto 항목을 적을 때 — 이제 형식이 강제)
