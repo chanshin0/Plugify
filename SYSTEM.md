@@ -1,7 +1,7 @@
 # SYSTEM — 개발 루프 시스템 구조 (이어가기 앵커)
 
 > 새 세션에서 시스템 개선을 이어갈 때 이 문서부터 읽는다. 규칙의 정본은 각 SKILL/AGENTS — 이 문서는 **지도 + 현재 위치 + 열린 개선**만 담는다(중복 금지).
-> 마지막 갱신: 2026-06-22 (Phase A 출하 3cf2c2b. Phase B(비가역 게이트) 보류 — 솔로·수동 트리거 단계엔 사람이 이미 게이트라 자율 흐름(C/D) 생기면 그때. ★2 착수: P0 현황판 = scripts/status.sh)
+> 마지막 갱신: 2026-06-24 (★2-P1 backward edge **본사 파트 출하** — `scripts/telemetry-digest.sh` + `telemetry/CONTRACT.md` 규격 + eval `telemetry-digest/case-01` 합격. 지점 `telemetry.sh` 구현은 실트래픽 대기. 다음 = P2 cron 박동.)
 
 ## 1. 2층 구조 — 본사/지점
 
@@ -38,8 +38,8 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
                                    └── 불합격: 결함 수정 ←──────────┘  합격 → 커밋(출시) + canary 선언
 ```
 - 종료조건 = **문제집 통과**(1사례 검증 금지). 출제·합격선 = 사람(굿하트 차단). 사고 → 회귀 케이스 추가(incident-protocol 절차 4).
-- 문제집 현황: `evals/spec-building/case-01`(경계 버그픽스 — 타깃정합·committed 실재·범위·게이트 8항목) ✅ 1회 합격(2026-06-11) / `evals/tech-deciding/case-01`(타깃 fail-fast + ADR 절대경로·출처 보존 7항목) ✅ 합격(2026-06-12 — 1차 B3 불합격: haiku ADR 이 출처 URL 유실 → 출처 보존 의무 픽스 후 재시험 합격. 문제집이 실결함을 잡은 첫 사례) / `evals/perf-review/case-01`(심은 버그 3+오탐 함정 1) — **미실행**(perf-review 다음 수정 시 첫 실행).
-- **현재 canary**: tech-deciding 2026-06-12 출시분 — 다음 실전 tech-deciding 실행 1회가 관찰 대상(포인터 JSON 채널·ADR 절대경로·출처 보존 실증).
+- 문제집 현황: `evals/spec-building/case-01`(경계 버그픽스 — 타깃정합·committed 실재·범위·게이트 8항목) ✅ 1회 합격(2026-06-11) / `evals/tech-deciding/case-01`(타깃 fail-fast + ADR 절대경로·출처 보존 7항목) ✅ 합격(2026-06-12 — 1차 B3 불합격: haiku ADR 이 출처 URL 유실 → 출처 보존 의무 픽스 후 재시험 합격. 문제집이 실결함을 잡은 첫 사례) / `evals/perf-review/case-01`(심은 버그 3+오탐 함정 1) — **미실행**(perf-review 다음 수정 시 첫 실행) / `evals/telemetry-digest/case-01`(계약 수용·skip 3종(계약없음·JSON깨짐·필드누락)·관찰≠task·멱등 9항목) ✅ 합격(2026-06-24).
+- **현재 canary**: ① tech-deciding 2026-06-12 출시분 — 다음 실전 tech-deciding 실행 1회 관찰(포인터 JSON·ADR 절대경로·출처 보존) · ② telemetry-digest 2026-06-24 출시분 — **첫 지점이 `.planning/telemetry.sh` 계약을 구현했을 때** 첫 backward edge 실행이 관찰 대상(실신호가 다이제스트+telemetry-log 로 흐르는지·STATE 불변). 실트래픽 대기.
 
 ## 4. 하니스 사실 (실증된 것 — 추측 아님)
 
@@ -50,6 +50,8 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 | SessionStart 훅은 메인 세션만 | 서브에이전트에 wiki/컨텍스트 자동 주입 없음 — spawn 프롬프트에 명시 전달 |
 | 커밋 실재는 git 상태로만 판정 | committed 오보고 사고(2026-06-11) → workflow.mjs 가 headLog+porcelain 으로 판정, 메인도 push 전 git 직접 확인 |
 | node --test 디렉토리 인자 미동작(v22.22) | 글롭(`src/*.test.js`) 사용 |
+| macOS 기본 `timeout` 부재 | telemetry-digest 는 계약 hang 방어를 `perl -e 'alarm'` 로 이식(coreutils 비의존). 스키마 검증은 `jq` |
+| 지점 발견 = `~/Projects/*/.planning/` 글롭 | status.sh·telemetry-digest 공통 규약. 지점 목록 = 데이터(파일시스템), 본사 코드에 하드코딩 금지 |
 
 ## 5. 2026-06-11 확립된 룰 (정본 위치만 — 내용은 그 파일)
 
@@ -72,12 +74,12 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 ★2 **살아있는 루프 — 현황판·운영→기획 피드백·자기 시계** (★1 위에 얹음)
 - 진단: 지점 루프는 태스크 안의 폐루프지만 human-clocked(매번 사람 트리거). 빠진 OS 속성 3개: 자기 박동(스케줄러)·질의가능 현황(/proc)·운영→기획 backward edge.
 - 원칙: **루프(기계)는 본사가 만든다, 신호(데이터)는 지점이 정해진 규격으로 건넨다.** niche-market = 첫 입주자지 의존 대상 아님. 지점 목록 = 데이터(파일 한 줄).
-- 단계: **P0 `plugify status` ✅(scripts/status.sh — 본사 evals·canary·★ + 지점 STATE·git 한 화면, 지점=~/Projects/* 스캔)** → **P1 telemetry backward edge ← 다음 착수**(⚠ niche-market 세션 정리 후 시작 — 이벤트 규격이 지점 변경을 요함. 본사 쪽 루프=주간 집계·기획 백로그 append 를 먼저 짜두고, 지점 "운영 신호 뽑는 명령" 계약은 그때 붙임. 계약 없는 지점은 건너뜀 = 기존 #4) → P2 cron 박동(지점 목록 순회) → P3 canary 자동 닫기. 규율: 자율성은 트리거·관찰에만, 합격판정·push 는 결정적/사람. 모든 박동은 "다음 행동(백로그/STATE task)"으로 끝나야(안 닫는 자동화 = 소음).
+- 단계: **P0 `plugify status` ✅(scripts/status.sh — 본사 evals·canary·★ + 지점 STATE·git 한 화면, 지점=~/Projects/* 스캔)** → **P1 telemetry backward edge 본사 파트 ✅(2026-06-24 — `scripts/telemetry-digest.sh` 가 지점 계약 호출→주간 다이제스트 `telemetry/digest-<ISO주>.md`+지점 `.planning/telemetry-log.md` 멱등 append. 규격 정본 `telemetry/CONTRACT.md`(지점이 `.planning/telemetry.sh`→JSON stdout). 불변식: 관찰≠task(STATE 다음 task 불가침)·HQ 는 지점 커밋 안 함·skip 사유 출력. 지점 telemetry.sh 구현은 실트래픽 대기 = 기존 #4)** → **P2 cron 박동 ← 다음 착수**(지점 목록 순회 = telemetry-digest 주간 자동 호출. telemetry-digest 가 이미 "다음 행동"으로 끝맺고 멱등이라 cron 안전. canary 자동 닫기(P3)와 묶어 검토) → P3 canary 자동 닫기. 규율: 자율성은 트리거·관찰에만, 합격판정·push 는 결정적/사람. 모든 박동은 "다음 행동(백로그/STATE task)"으로 끝나야(안 닫는 자동화 = 소음).
 
 1. **perf-review eval 첫 실행** — case-01 미실행 상태. perf-review 를 다음에 손댈 때 함께.
 2. **commit 원자성** — canary 관찰: implementer 가 픽스 직접 커밋 + commit 에이전트가 STATE 별도 커밋(2분할). implementer.md 에 "커밋은 commit 단계 소관" 명시 검토.
 3. **풀체인 모드**(사람은 최종 보고만) — STATE task 큐 자동 순회(spec-building→live-verify→다음). **선행: 프리뷰 배포**(push=즉시 prod 라 완전 무인 불가). 검수자 신뢰는 evals 로 확보 후.
-4. **telemetry-review 루프**(운영→기획 backward edge) — 주간 event 집계→기획 백로그. 지점에 실트래픽 생기면.
+4. **telemetry-review 루프**(운영→기획 backward edge) — *기계 파트는 ★2-P1 에서 완료*(telemetry-digest + CONTRACT). 잔여 = ⓐ 지점 `.planning/telemetry.sh` 실구현(niche-market, 실트래픽 생기면) ⓑ (선택) 다이제스트를 사람이 주간 리뷰→승격하는 얇은 스킬. 트래픽 전까진 박동이 그냥 skip.
 5. **evals 확충** — live-verify·service-planning 케이스 0. 우선순위는 수정 빈도 순. (tech-deciding case-01 은 2026-06-12 신설·합격 — 백로그 5b 완료)
 6. **자동화 수위 상향 검토** — live-verify 의 명시 호출 의존(메인이 지시문 따름)을 Stop hook/workflow 화로 기계화할지. 비가역 게이트(push) 분리가 전제.
 7. **comprehension debt** — 에이전트 작성 코드를 사람이 안 읽는 구조. 주요 모듈 "코드 투어" 체크포인트 운영 검토.
