@@ -31,8 +31,9 @@ for skill in "$HQ"/evals/*/; do
   [ "$n" -gt 0 ] && echo "      $(basename "$skill"): ${n}케이스"
 done
 
-canary=$(grep -m1 "현재 canary" "$HQ/SYSTEM.md" 2>/dev/null | sed -E 's/.*현재 canary[*:： ]*//')
-[ -n "$canary" ] && echo "  · canary: $canary"
+# canary (정본 = telemetry/canaries.jsonl, 점검 = canary-check.sh) — 닫기 확정은 사람 (★2-P3)
+echo "  · canary (닫기 확정=사람):"
+bash "$HQ/scripts/canary-check.sh" 2>/dev/null | sed 's/^/    /' || echo "    (점검 실패)"
 
 # 박동(heartbeat) — 자기 시계 마지막 실행 + launchd 등록 여부 (★2-P2)
 hb="$HQ/telemetry/heartbeat.json"

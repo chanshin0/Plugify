@@ -1,7 +1,7 @@
 # SYSTEM — 개발 루프 시스템 구조 (이어가기 앵커)
 
 > 새 세션에서 시스템 개선을 이어갈 때 이 문서부터 읽는다. 규칙의 정본은 각 SKILL/AGENTS — 이 문서는 **지도 + 현재 위치 + 열린 개선**만 담는다(중복 금지).
-> 마지막 갱신: 2026-06-24 (★2-**P2 자기 박동 출하** — `scripts/heartbeat.sh`(launchd `com.plugify.heartbeat` 매주 월 09:00) + `heartbeat-ctl.sh` 설치/해제 + 현황판 '박동' 줄. launchd 등록·kickstart 실증(rc=0). P1(telemetry-digest+CONTRACT, eval 합격)·P0(status) 위에 얹음. 다음 = P3 canary 자동 닫기.)
+> 마지막 갱신: 2026-06-24 (★2-**P3 canary 닫기 후보 탐지 출하 — ★2(살아있는 루프) 완결** — canary 를 `telemetry/canaries.jsonl` 레지스트리로 승격 + `scripts/canary-check.sh`(탐지하되 닫기는 사람) + 현황판/박동 연동. eval `canary-check/case-01` 합격. ★2 P0~P3 전부 완료. 다음 큰 방향 = ★1 Phase C/D.)
 
 ## 1. 2층 구조 — 본사/지점
 
@@ -39,7 +39,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 ```
 - 종료조건 = **문제집 통과**(1사례 검증 금지). 출제·합격선 = 사람(굿하트 차단). 사고 → 회귀 케이스 추가(incident-protocol 절차 4).
 - 문제집 현황: `evals/spec-building/case-01`(경계 버그픽스 — 타깃정합·committed 실재·범위·게이트 8항목) ✅ 1회 합격(2026-06-11) / `evals/tech-deciding/case-01`(타깃 fail-fast + ADR 절대경로·출처 보존 7항목) ✅ 합격(2026-06-12 — 1차 B3 불합격: haiku ADR 이 출처 URL 유실 → 출처 보존 의무 픽스 후 재시험 합격. 문제집이 실결함을 잡은 첫 사례) / `evals/perf-review/case-01`(심은 버그 3+오탐 함정 1) — **미실행**(perf-review 다음 수정 시 첫 실행) / `evals/telemetry-digest/case-01`(계약 수용·skip 3종(계약없음·JSON깨짐·필드누락)·관찰≠task·멱등 9항목) ✅ 합격(2026-06-24).
-- **현재 canary**: ① tech-deciding 2026-06-12 출시분 — 다음 실전 tech-deciding 실행 1회 관찰(포인터 JSON·ADR 절대경로·출처 보존) · ② telemetry-digest 2026-06-24 출시분 — **첫 지점이 `.planning/telemetry.sh` 계약을 구현했을 때** 첫 backward edge 실행이 관찰 대상(실신호가 다이제스트+telemetry-log 로 흐르는지·STATE 불변). 실트래픽 대기.
+- **현재 canary**: 정본 = `telemetry/canaries.jsonl`(구조화 레지스트리, ★2-P3). 상태 점검 = `scripts/canary-check.sh`(현황판·박동이 호출). 닫기 신호 = `telemetry-signal`(지점 telemetry-log 출현) / `manual`. **탐지·표시는 자동, 닫기 확정(레지스트리 줄 제거)은 사람**(자동편집 금지 — P1 "승격은 사람" 형제). 현재 2건: telemetry-digest-2026-06-24(=대기, 첫 지점 계약 구현 대기) · tech-deciding-2026-06-12(=수동, 다음 실전 1회 실증).
 
 ## 4. 하니스 사실 (실증된 것 — 추측 아님)
 
@@ -54,6 +54,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 | 지점 발견 = `~/Projects/*/.planning/` 글롭 | status.sh·telemetry-digest 공통 규약. 지점 목록 = 데이터(파일시스템), 본사 코드에 하드코딩 금지 |
 | launchd 최소 PATH(`/usr/bin:/bin`)는 brew 못 봄 | jq @/opt/homebrew/bin → heartbeat.sh 가 PATH 선보정. 없으면 launchd 발사 시 telemetry-digest 가 "jq 필요" rc=2 사망. kickstart rc=0 으로 실증 |
 | 자기 박동 = launchd LaunchAgent(cron 아님) | darwin 네이티브 + 슬립 후 깨면 누락분 1회 따라잡음. `com.plugify.heartbeat` 매주 월. 설치/해제 `scripts/heartbeat-ctl.sh`(완전 가역). install.sh 에 안 묶음 — 활성화는 명시적(opt-in) |
+| 지점 telemetry-log.md 존재 = 실신호 1회+ 발생 | telemetry-digest 는 계약 통과·수집 시에만 그 파일 생성 → canary-check 의 `telemetry-signal` 닫기 판정 근거(휘발성 현재주 collected 가 아닌 durable 존재성) |
 
 ## 5. 2026-06-11 확립된 룰 (정본 위치만 — 내용은 그 파일)
 
@@ -73,10 +74,10 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 - 도입(각 단계 본사 루프 통과, 작은 task 경로부터·한번에 갈아엎기 금지): **A 입구를 목표+게이트로 ✅(3cf2c2b)** / **B 적응형 분류+안전판 — 보류**(비가역 게이트는 솔로·수동 트리거 단계엔 사람이 이미 게이트라 값 안 함; 자율 흐름 생기면 실제 위험 모양에 맞춰 재설계) / C 게이트를 운전대로(live-verify 흡수) / D 큰 task 병렬 탐색. 기존 #3(풀체인)·#6(자동화 수위)은 "사람은 push만/메신저 제거"로 이 줄기에 흡수.
 - **Phase A 구체(✅ 완료, 3cf2c2b)**: STATE "## 다음 task" 새 형식 = `### 목표` + `### 게이트`(항목마다 `auto:`<명령/테스트/라이브프로브 + 통과 신호> 또는 `human:`<취향·비가역>, auto≥1 권장) + `### 비가역 표면`. workflow.mjs 가 게이트 블록 없음/auto 0개 → **fail-fast 반려**(결정적 코드·조용한 폴백 금지, human-only 는 경고만). eval `spec-building/case-02-no-gate-rejected`(게이트 없는 task → 워크플로우가 구현 안 하고 반려 + 작업트리 무변경 = 합격) = 출하 조건. 완료 task 가 이미 적는 마커를 *회고*에서 *시작 전 계약*으로 앞당기는 것 — 현 SKILL §수용 기준 작성 룰(실코드 경로·게이트≠동작·라이브로 닫기)은 유지하되 형식이 강제하게 격상.
 
-★2 **살아있는 루프 — 현황판·운영→기획 피드백·자기 시계** (★1 위에 얹음)
+★2 **살아있는 루프 — 현황판·운영→기획 피드백·자기 시계** (★1 위에 얹음) — ✅ P0~P3 완료(2026-06-24). 잔여 활성화 = 지점 telemetry.sh 구현(트래픽 대기).
 - 진단: 지점 루프는 태스크 안의 폐루프지만 human-clocked(매번 사람 트리거). 빠진 OS 속성 3개: 자기 박동(스케줄러)·질의가능 현황(/proc)·운영→기획 backward edge.
 - 원칙: **루프(기계)는 본사가 만든다, 신호(데이터)는 지점이 정해진 규격으로 건넨다.** niche-market = 첫 입주자지 의존 대상 아님. 지점 목록 = 데이터(파일 한 줄).
-- 단계: **P0 `plugify status` ✅(scripts/status.sh — 본사 evals·canary·★ + 지점 STATE·git 한 화면, 지점=~/Projects/* 스캔)** → **P1 telemetry backward edge 본사 파트 ✅(2026-06-24 — `scripts/telemetry-digest.sh` 가 지점 계약 호출→주간 다이제스트 `telemetry/digest-<ISO주>.md`+지점 `.planning/telemetry-log.md` 멱등 append. 규격 정본 `telemetry/CONTRACT.md`(지점이 `.planning/telemetry.sh`→JSON stdout). 불변식: 관찰≠task(STATE 다음 task 불가침)·HQ 는 지점 커밋 안 함·skip 사유 출력. 지점 telemetry.sh 구현은 실트래픽 대기 = 기존 #4)** → **P2 자기 박동 ✅(2026-06-24 — `scripts/heartbeat.sh` 가 launchd(`com.plugify.heartbeat`, 매주 월 09:00)로 telemetry-digest 주간 자동 호출 → `heartbeat.json` 요약 → status.sh '박동' 줄(박동→현황판→사람). launchd 최소 PATH 보정으로 jq 사망 방지(kickstart rc=0 실증). 설치/해제 `heartbeat-ctl.sh`(완전 가역, install.sh 비결합·opt-in). 빈 박동은 조용·신호 생기면 현황판에 뜸)** → **P3 canary 자동 닫기 ← 다음 착수**(박동이 지점 telemetry-log 에 실신호 출현을 감지→해당 canary 를 닫기 *후보*로 현황판 표시. SYSTEM 자동편집은 위험 → 닫기 확정은 사람). 규율: 자율성은 트리거·관찰에만, 합격판정·push 는 결정적/사람. 모든 박동은 "다음 행동(백로그/STATE task)"으로 끝나야(안 닫는 자동화 = 소음).
+- 단계: **P0 `plugify status` ✅(scripts/status.sh — 본사 evals·canary·★ + 지점 STATE·git 한 화면, 지점=~/Projects/* 스캔)** → **P1 telemetry backward edge 본사 파트 ✅(2026-06-24 — `scripts/telemetry-digest.sh` 가 지점 계약 호출→주간 다이제스트 `telemetry/digest-<ISO주>.md`+지점 `.planning/telemetry-log.md` 멱등 append. 규격 정본 `telemetry/CONTRACT.md`(지점이 `.planning/telemetry.sh`→JSON stdout). 불변식: 관찰≠task(STATE 다음 task 불가침)·HQ 는 지점 커밋 안 함·skip 사유 출력. 지점 telemetry.sh 구현은 실트래픽 대기 = 기존 #4)** → **P2 자기 박동 ✅(2026-06-24 — `scripts/heartbeat.sh` 가 launchd(`com.plugify.heartbeat`, 매주 월 09:00)로 telemetry-digest 주간 자동 호출 → `heartbeat.json` 요약 → status.sh '박동' 줄(박동→현황판→사람). launchd 최소 PATH 보정으로 jq 사망 방지(kickstart rc=0 실증). 설치/해제 `heartbeat-ctl.sh`(완전 가역, install.sh 비결합·opt-in). 빈 박동은 조용·신호 생기면 현황판에 뜸)** → **P3 canary 닫기 후보 탐지 ✅(2026-06-24 — canary 를 `telemetry/canaries.jsonl` 레지스트리로 승격. `scripts/canary-check.sh` 가 닫기 신호(`telemetry-signal`=지점 telemetry-log 출현 / `manual`)를 평가해 후보/대기/수동 분류 → 현황판·박동이 표시. **순수 평가기 — 레지스트리·SYSTEM 자동편집 0, 닫기 확정은 사람**(P1 "승격은 사람" 형제). eval case-01 합격(대기↔후보 전환·레지스트리 불변·순수성 8항목))**. **→ ★2(살아있는 루프) P0~P3 완결.** 규율: 자율성은 트리거·관찰에만, 합격판정·push·canary 닫기는 결정적/사람. 모든 박동은 "다음 행동(백로그/STATE task)"으로 끝나야(안 닫는 자동화 = 소음).
 
 1. **perf-review eval 첫 실행** — case-01 미실행 상태. perf-review 를 다음에 손댈 때 함께.
 2. **commit 원자성** — canary 관찰: implementer 가 픽스 직접 커밋 + commit 에이전트가 STATE 별도 커밋(2분할). implementer.md 에 "커밋은 commit 단계 소관" 명시 검토.

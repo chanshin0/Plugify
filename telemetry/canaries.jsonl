@@ -1,0 +1,2 @@
+{"id":"telemetry-digest-2026-06-24","skill":"telemetry-digest","shipped":"2026-06-24","what":"첫 지점이 .planning/telemetry.sh 계약 구현 시 backward edge 가 실신호를 다이제스트+telemetry-log 로 흘리는지·STATE 불변","close":"telemetry-signal"}
+{"id":"tech-deciding-2026-06-12","skill":"tech-deciding","shipped":"2026-06-12","what":"다음 실전 tech-deciding 1회가 포인터 JSON 채널·ADR 절대경로·출처 보존을 실증","close":"manual"}

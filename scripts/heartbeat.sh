@@ -34,6 +34,11 @@ hdr="$(grep -m1 '관찰.*지점.*건너뜀' "$digest" 2>/dev/null || true)"
 collected="$(printf '%s' "$hdr" | sed -nE 's/.*관찰 ([0-9]+)지점.*/\1/p')"; collected="${collected:-0}"
 skipped="$(printf '%s' "$hdr" | sed -nE 's/.*건너뜀 ([0-9]+)지점.*/\1/p')"; skipped="${skipped:-0}"
 
+# P3: 박동 끝에 canary 닫기 후보 점검 — 후보면 현황판이 띄움(닫기 확정은 사람).
+canary_out="$(bash "$HQ/scripts/canary-check.sh" "$PROJECTS_DIR" 2>&1 || true)"
+printf '\n[canary-check]\n%s\n' "$canary_out" >> "$LOG"
+canary_cand="$(printf '%s' "$canary_out" | sed -nE 's/^요약: 후보 ([0-9]+).*/\1/p')"; canary_cand="${canary_cand:-0}"
+
 # 박동 기록 — 현황판이 읽는 단일 포인터(멱등 덮어쓰기).
 cat > "$RECORD" <<JSON
 {
@@ -41,10 +46,11 @@ cat > "$RECORD" <<JSON
   "week": "$WEEK",
   "collected": $collected,
   "skipped": $skipped,
+  "canary_candidates": $canary_cand,
   "rc": $rc,
   "digest": "$digest"
 }
 JSON
 
-echo "박동 완료 $NOW · 관찰 ${collected}지점 · skip ${skipped} · 기록 $RECORD"
+echo "박동 완료 $NOW · 관찰 ${collected}지점 · skip ${skipped} · canary후보 ${canary_cand} · 기록 $RECORD"
 exit "$rc"
