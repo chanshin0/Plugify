@@ -34,6 +34,21 @@ done
 canary=$(grep -m1 "현재 canary" "$HQ/SYSTEM.md" 2>/dev/null | sed -E 's/.*현재 canary[*:： ]*//')
 [ -n "$canary" ] && echo "  · canary: $canary"
 
+# 박동(heartbeat) — 자기 시계 마지막 실행 + launchd 등록 여부 (★2-P2)
+hb="$HQ/telemetry/heartbeat.json"
+if [ -f "$hb" ] && command -v jq >/dev/null 2>&1; then
+  echo "  · 박동: $(jq -r '.last_run' "$hb") · 관찰 $(jq -r '.collected' "$hb")지점·skip $(jq -r '.skipped' "$hb")"
+elif [ -f "$hb" ]; then
+  echo "  · 박동: $(grep -m1 last_run "$hb" | sed -E 's/.*"last_run": *"([^"]*)".*/\1/')"
+else
+  echo "  · 박동: 미실행"
+fi
+if launchctl list 2>/dev/null | grep -q com.plugify.heartbeat; then
+  echo "      launchd: 등록됨(주간 월 09:00)"
+else
+  echo "      launchd: 미등록 — scripts/heartbeat-ctl.sh install"
+fi
+
 echo "  · 다음 큰 방향(SYSTEM §6 ★):"
 grep -E "^★" "$HQ/SYSTEM.md" 2>/dev/null | sed -E 's/\*\*//g; s/^/      /'
 

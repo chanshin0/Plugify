@@ -1,2 +1,6 @@
-# 주간 다이제스트는 런타임 산출물 — 재생성되므로 버전관리 제외. 규격(CONTRACT.md)만 추적.
+# 런타임 산출물 — 재생성되므로 버전관리 제외. 규격(CONTRACT.md)만 추적.
 digest-*.md
+heartbeat.json
+heartbeat.log
+heartbeat.launchd.out
+heartbeat.launchd.err

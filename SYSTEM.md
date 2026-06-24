@@ -1,7 +1,7 @@
 # SYSTEM — 개발 루프 시스템 구조 (이어가기 앵커)
 
 > 새 세션에서 시스템 개선을 이어갈 때 이 문서부터 읽는다. 규칙의 정본은 각 SKILL/AGENTS — 이 문서는 **지도 + 현재 위치 + 열린 개선**만 담는다(중복 금지).
-> 마지막 갱신: 2026-06-24 (★2-P1 backward edge **본사 파트 출하** — `scripts/telemetry-digest.sh` + `telemetry/CONTRACT.md` 규격 + eval `telemetry-digest/case-01` 합격. 지점 `telemetry.sh` 구현은 실트래픽 대기. 다음 = P2 cron 박동.)
+> 마지막 갱신: 2026-06-24 (★2-**P2 자기 박동 출하** — `scripts/heartbeat.sh`(launchd `com.plugify.heartbeat` 매주 월 09:00) + `heartbeat-ctl.sh` 설치/해제 + 현황판 '박동' 줄. launchd 등록·kickstart 실증(rc=0). P1(telemetry-digest+CONTRACT, eval 합격)·P0(status) 위에 얹음. 다음 = P3 canary 자동 닫기.)
 
 ## 1. 2층 구조 — 본사/지점
 
@@ -52,6 +52,8 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 | node --test 디렉토리 인자 미동작(v22.22) | 글롭(`src/*.test.js`) 사용 |
 | macOS 기본 `timeout` 부재 | telemetry-digest 는 계약 hang 방어를 `perl -e 'alarm'` 로 이식(coreutils 비의존). 스키마 검증은 `jq` |
 | 지점 발견 = `~/Projects/*/.planning/` 글롭 | status.sh·telemetry-digest 공통 규약. 지점 목록 = 데이터(파일시스템), 본사 코드에 하드코딩 금지 |
+| launchd 최소 PATH(`/usr/bin:/bin`)는 brew 못 봄 | jq @/opt/homebrew/bin → heartbeat.sh 가 PATH 선보정. 없으면 launchd 발사 시 telemetry-digest 가 "jq 필요" rc=2 사망. kickstart rc=0 으로 실증 |
+| 자기 박동 = launchd LaunchAgent(cron 아님) | darwin 네이티브 + 슬립 후 깨면 누락분 1회 따라잡음. `com.plugify.heartbeat` 매주 월. 설치/해제 `scripts/heartbeat-ctl.sh`(완전 가역). install.sh 에 안 묶음 — 활성화는 명시적(opt-in) |
 
 ## 5. 2026-06-11 확립된 룰 (정본 위치만 — 내용은 그 파일)
 
@@ -74,7 +76,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 ★2 **살아있는 루프 — 현황판·운영→기획 피드백·자기 시계** (★1 위에 얹음)
 - 진단: 지점 루프는 태스크 안의 폐루프지만 human-clocked(매번 사람 트리거). 빠진 OS 속성 3개: 자기 박동(스케줄러)·질의가능 현황(/proc)·운영→기획 backward edge.
 - 원칙: **루프(기계)는 본사가 만든다, 신호(데이터)는 지점이 정해진 규격으로 건넨다.** niche-market = 첫 입주자지 의존 대상 아님. 지점 목록 = 데이터(파일 한 줄).
-- 단계: **P0 `plugify status` ✅(scripts/status.sh — 본사 evals·canary·★ + 지점 STATE·git 한 화면, 지점=~/Projects/* 스캔)** → **P1 telemetry backward edge 본사 파트 ✅(2026-06-24 — `scripts/telemetry-digest.sh` 가 지점 계약 호출→주간 다이제스트 `telemetry/digest-<ISO주>.md`+지점 `.planning/telemetry-log.md` 멱등 append. 규격 정본 `telemetry/CONTRACT.md`(지점이 `.planning/telemetry.sh`→JSON stdout). 불변식: 관찰≠task(STATE 다음 task 불가침)·HQ 는 지점 커밋 안 함·skip 사유 출력. 지점 telemetry.sh 구현은 실트래픽 대기 = 기존 #4)** → **P2 cron 박동 ← 다음 착수**(지점 목록 순회 = telemetry-digest 주간 자동 호출. telemetry-digest 가 이미 "다음 행동"으로 끝맺고 멱등이라 cron 안전. canary 자동 닫기(P3)와 묶어 검토) → P3 canary 자동 닫기. 규율: 자율성은 트리거·관찰에만, 합격판정·push 는 결정적/사람. 모든 박동은 "다음 행동(백로그/STATE task)"으로 끝나야(안 닫는 자동화 = 소음).
+- 단계: **P0 `plugify status` ✅(scripts/status.sh — 본사 evals·canary·★ + 지점 STATE·git 한 화면, 지점=~/Projects/* 스캔)** → **P1 telemetry backward edge 본사 파트 ✅(2026-06-24 — `scripts/telemetry-digest.sh` 가 지점 계약 호출→주간 다이제스트 `telemetry/digest-<ISO주>.md`+지점 `.planning/telemetry-log.md` 멱등 append. 규격 정본 `telemetry/CONTRACT.md`(지점이 `.planning/telemetry.sh`→JSON stdout). 불변식: 관찰≠task(STATE 다음 task 불가침)·HQ 는 지점 커밋 안 함·skip 사유 출력. 지점 telemetry.sh 구현은 실트래픽 대기 = 기존 #4)** → **P2 자기 박동 ✅(2026-06-24 — `scripts/heartbeat.sh` 가 launchd(`com.plugify.heartbeat`, 매주 월 09:00)로 telemetry-digest 주간 자동 호출 → `heartbeat.json` 요약 → status.sh '박동' 줄(박동→현황판→사람). launchd 최소 PATH 보정으로 jq 사망 방지(kickstart rc=0 실증). 설치/해제 `heartbeat-ctl.sh`(완전 가역, install.sh 비결합·opt-in). 빈 박동은 조용·신호 생기면 현황판에 뜸)** → **P3 canary 자동 닫기 ← 다음 착수**(박동이 지점 telemetry-log 에 실신호 출현을 감지→해당 canary 를 닫기 *후보*로 현황판 표시. SYSTEM 자동편집은 위험 → 닫기 확정은 사람). 규율: 자율성은 트리거·관찰에만, 합격판정·push 는 결정적/사람. 모든 박동은 "다음 행동(백로그/STATE task)"으로 끝나야(안 닫는 자동화 = 소음).
 
 1. **perf-review eval 첫 실행** — case-01 미실행 상태. perf-review 를 다음에 손댈 때 함께.
 2. **commit 원자성** — canary 관찰: implementer 가 픽스 직접 커밋 + commit 에이전트가 STATE 별도 커밋(2분할). implementer.md 에 "커밋은 commit 단계 소관" 명시 검토.
