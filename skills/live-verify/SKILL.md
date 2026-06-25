@@ -14,6 +14,8 @@ description: 배포 후 라이브 검증 루프 — push 실재 확인→배포 
 
 ## P0 — push 실재 확인
 `git log origin/<branch> -1`·`git status --short` 로 검증 대상 커밋이 원격에 있는지 확인. **워크플로우/에이전트의 committed·pushed 보고를 믿지 않는다 — git 상태가 SSOT** (2026-06-11 committed 오보고 사고).
+- **push 미실재면 여기서 정지.** 행동 = **"push/배포 먼저"** (push 는 비가역 경계 = 사람 몫 — executor 가 대신 `git push` 하지 않는다). push≠자동배포면 배포 트리거 누락도 동일 처리.
+- 이건 **코드 버그가 아니라 미완료 액션**이다 → **표준 버그 블록·spec-building 대상 아님**. STATE 에 버그 블록을 적지 마라 — 버그 블록은 *코드 실패*를 구현으로 되돌리는 인터페이스라, push 누락에 쓰면 spec-building 으로 오라우팅된다(고칠 코드가 없는데 재구현). "push 하면 닫힘"으로 끝맺는다(git 상태가 이미 SSOT).
 
 ## P1 — 배포 반영 폴링 (background Bash)
 마커 전략, 위에서 아래로:
@@ -31,7 +33,7 @@ description: 배포 후 라이브 검증 루프 — push 실재 확인→배포 
 
 ## P3 — 판정·행동
 - **성공**: 증거(스크린샷·응답 마커) + "라이브 검증 ✅" 로 보고, STATE 해당 task 에 한 줄 기록. 테스트 잔여물(드래프트 등) 만들었으면 명시.
-- **실패**: 아래 **표준 버그 블록**을 STATE `## 다음 task` 최상단에 append → spec-building 재투입 제안(진행은 메인 게이트). 원인 미상 실패면 블록 작성 전에 **debugger 로 원인 확정**부터 — 원인 없는 픽스 task 금지.
+- **실패**: 아래 **표준 버그 블록**을 STATE `## 다음 task` 최상단에 append → spec-building 재투입 제안(진행은 메인 게이트). 원인 미상 실패면 블록 작성 전에 **debugger 로 원인 확정**부터 — 원인 없는 픽스 task 금지. (단 **P0 에서 막힌 push/배포 미실재는 코드 실패가 아니므로 버그 블록 대상 아님** — P0 의 "push 먼저"로 끝낸다.)
 
 ### 표준 버그 블록 (진단→구현 공용 인터페이스 — debugger·perf-review 산출도 이 양식으로 수렴시킨다)
 ```

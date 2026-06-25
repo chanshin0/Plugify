@@ -1,2 +1,3 @@
 {"id":"telemetry-digest-2026-06-24","skill":"telemetry-digest","shipped":"2026-06-24","what":"첫 지점이 .planning/telemetry.sh 계약 구현 시 backward edge 가 실신호를 다이제스트+telemetry-log 로 흘리는지·STATE 불변","close":"telemetry-signal"}
 {"id":"tech-deciding-2026-06-12","skill":"tech-deciding","shipped":"2026-06-12","what":"다음 실전 tech-deciding 1회가 포인터 JSON 채널·ADR 절대경로·출처 보존을 실증","close":"manual"}
+{"id":"live-verify-2026-06-25","skill":"live-verify","shipped":"2026-06-25","what":"다음 실전 live-verify 가 push/배포 미실재(P0 실패)를 만나면 버그블록·spec-building 오라우팅 없이 'push 먼저'로 끝맺는지","close":"manual"}
