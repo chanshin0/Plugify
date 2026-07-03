@@ -24,16 +24,23 @@ Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs", ar
 ```
 - 워크플로우는 타깃을 해석·검증(.planning/STATE.md 실재)하고, 무효면 **조용한 폴백 없이 즉시 실패**한다 — 엉뚱한 레포 실행 차단.
 - `task`/`acceptance` 를 args 로 줄 수도 있으나, **생략 시 워크플로우가 STATE "다음 task" 를 읽는다**(권장 — args 전달 불안정성 회피).
-- 진행: implementer(sonnet) 작성+자기검증 → reviewer(opus) 적대 검증 → 통과까지 최대 `maxAttempts`(기본 3)회 재시도 → 통과 시 atomic commit + STATE 갱신. **Codex(gpt-5.5/xhigh) 병렬 교차검증은 task 에 `### 비가역 표면` 이 실질 내용으로 있을 때만**(2026-07-03 YAGNI 리뷰 — 판정은 워크플로우 게이트 점검이 결정, 규칙 정본 = `agents/reviewer.md`).
+- 진행: implementer(sonnet) 작성+자기검증 → reviewer(opus) 적대 검증 → 통과 시 atomic commit + STATE 갱신 → **라이브 게이트 있으면(아래 §라이브 게이트) 작업 브랜치 push→프리뷰 프로브까지** — 전체 상한 `maxAttempts`(기본 3)회 자율 반복. **Codex(gpt-5.5/xhigh) 병렬 교차검증은 task 에 `### 비가역 표면` 이 실질 내용으로 있을 때만**(2026-07-03 YAGNI 리뷰 — 판정은 워크플로우 게이트 점검이 결정, 규칙 정본 = `agents/reviewer.md`).
 - **메인은 반환 `committed`·`commit.committedFiles` 를 신뢰하지 말고 push 전에 `git log -1`·`git status --short`·`git show --stat HEAD` 로 커밋 실재 + 커밋 파일집합이 리뷰-검증 변경과 일치하는지 직접 확인**한다(2026-06-11: 커밋 없이 완료 응답 오보고. 2026-06-23: commit 에이전트가 reviewer 미검증 파일을 *발명·커밋*하고 검증본을 작업트리에 방치). 워크플로우 판정은 "트리 클린"만 보지 "검증본을 커밋했나"는 못 본다 — 마지막 게이트는 메인.
 - **`committed=false` 가 "커밋이 없다"는 뜻이 아니다** — HEAD 가 부당 이동했는지 먼저 본다. (a) HEAD 미이동 + 작업트리=리뷰 통과 상태 → 메인이 검증 후 직접 커밋. (b) HEAD 가 미검증/부분 커밋으로 이동(부당 커밋 공존) → **그 위에 덧커밋 금지**(미검증 코드가 history 에 남는다) — 검증본으로 `amend` 하거나 부당 커밋을 되돌린 뒤 올바른 changeset 을 커밋한다(2026-06-23 사고: `committed=false` 인데 잘못된 커밋이 HEAD 에 있었고, 메인이 디스크렙시 조사로 잡아 amend).
 - 에이전트(`agents/implementer.md`·`reviewer.md`)는 plugify 전역등록되어 `agentType` 으로 호출된다(모델·규칙은 각 `.md` 가 SSOT).
+
+## 라이브 게이트 (★1 Phase C — 2026-07-03, 프리뷰로 닫는 자율 루프)
+- **`auto:` 항목에 `{PREVIEW_URL}` 이 들어가면 라이브 게이트**다. 워크플로우가 커밋 후 ① 작업 브랜치 push(**main/master 면 push 없이 skip** — prod 반영=사람, 코드가 판정) ② 지점 `.planning/preview.sh <branch>` 로 프리뷰 URL 획득 ③ `{PREVIEW_URL}` 치환 후 항목 실행·대조 ④ 실패면 그 실동작을 피드백으로 implementer 재투입 — `maxAttempts` 상한 안에서 사람 재트리거 없이 반복한다.
+- **지점 규격 `.planning/preview.sh <branch> [timeout]`**: push 된 브랜치의 프리뷰 배포를 기다려 성공 시 stdout **마지막 줄** = ready URL(rc=0), 실패 시 rc≠0 + stderr 사유. 배포 방식은 지점 소유(예: niche-market 는 Vercel×GitHub Deployments API 폴링 + 프로브에 bypass 헤더 — 그 레포 AGENTS.md 참조). 규격 없는 지점에서 라이브 게이트를 쓰면 `preview-failed` 로 에스컬레이션된다.
+- 프로브는 레포 루트 `.env.local` 이 있으면 로드한다(보호 우회 시크릿 등 — 값 노출 금지).
+- **신뢰 경계**: 워크플로우의 push 는 작업 브랜치까지만 — **prod 반영(main merge/push)은 사람**. 라이브 게이트 통과 = "프리뷰에서 실증됨"이지 배포 완료가 아니다. 사람이 merge 한 뒤 prod 최종 확인은 `live-verify`(프리뷰에서 이미 닫힌 항목은 스팟체크만).
+- 반환 `liveGate.status`: `passed`(프리뷰 실증) / `failed`·`preview-failed`(에스컬레이션 — 커밋은 브랜치에만 있어 안전) / `skipped-main-branch`(main 에서 실행됨 — push 후 live-verify 로).
 
 ## 게이트 작성 룰 (`### 게이트` 의 auto 항목을 적을 때 — 이제 형식이 강제)
 아래는 게이트의 `auto:` 항목이 *진짜로 동작을 닫는지* 보장하는 룰이다. 버그픽스 검증 설계 실수의 재발 방지 (niche-market Bug-9→10 교훈, 2026-06-11):
 - **실증 기준은 실코드 경로**: 재현/실증 수용 기준은 실제 프로덕션 코드 경로(실모듈 import 또는 동일 구조 *전체* 경유)를 통과해야 한다. **진단에 쓴 최소 재현을 수용 기준으로 복사 금지** — 최소 재현은 원인 격리용이지 픽스 검증용이 아니다. 직렬 마스킹(앞 버그가 뒷 버그를 가림) 구조에서는 픽스 후 실경로 재실행 없이는 가려진 버그가 그대로 출하된다.
 - **게이트 통과 ≠ 동작**: 프로젝트 테스트가 순수로직만 커버하면(네트워크·DB·외부 IO 경로 공백) 그 공백을 수용 기준의 실증 항목으로 명시해 메운다. 4게이트 전부 초록이어도 IO 경로 버그는 통과한다.
-- **사용자-가시 버그는 라이브로 닫는다**: 커밋·배포 후 증상이 보고된 환경에서 증상 경로를 재실행해 확인하는 단계까지가 픽스다. 이 확인은 메인이 한다(워크플로우 범위 밖) — 확인 전에 "해결됨"이라고 보고하지 않는다. **표준 절차 = `live-verify` 스킬** (push 확인→배포 폴링→경로 재실행→실패 시 표준 버그 블록으로 재투입).
+- **사용자-가시 버그는 라이브로 닫는다**: 커밋·배포 후 증상이 보고된 환경에서 증상 경로를 재실행해 확인하는 단계까지가 픽스다. **1순위 = 라이브 게이트**(`{PREVIEW_URL}` 항목 — 워크플로우가 프리뷰에서 자율로 닫음, §라이브 게이트). 프리뷰로 판정 불가한 경로·prod 최종 확인은 사람 merge 후 `live-verify` 스킬(push 확인→배포 폴링→경로 재실행→실패 시 표준 버그 블록으로 재투입). 확인 전에 "해결됨"이라고 보고하지 않는다.
 
 ## 에스컬레이션 (메인이 처리 — 무한루프 방지)
 워크플로우 반환의 **`escalation !== null`** 이면 3회 미통과로 멈춘 것이다(커밋 안 됨). 메인이 `escalation.blockers`·`nextOptions` 를 보고 **전략을 바꿔 재투입**한다:

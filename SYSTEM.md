@@ -1,7 +1,7 @@
 # SYSTEM — 개발 루프 시스템 구조 (이어가기 앵커)
 
 > 새 세션에서 시스템 개선을 이어갈 때 이 문서부터 읽는다. 규칙의 정본은 각 SKILL/AGENTS — 이 문서는 **지도 + 현재 위치 + 열린 개선**만 담는다(중복 금지).
-> 마지막 갱신: 2026-07-03 (**적대 YAGNI 리뷰(opus) + 업계 대조 리서치(sonnet) 반영** — ① ★2 운영 계층 냉동: launchd 박동 해제(9일 실신호 0 = "안 닫는 자동화=소음" 자기규율 위반), digest/heartbeat 스크립트는 냉동 보존 ② canary 레지스트리·canary-check·그 eval 제거 → §3 불릿 격하(복원=git 89eb2f9) ③ Codex 교차검증 = 비가역 표면 task 만 ④ trivial 우회로 명문화(spec-building SKILL) ⑤ push-experience 제거(3중 드리프트 死스킬). 다음 큰 방향 = **★1 Phase C/D — 선행: 프리뷰 배포**.)
+> 마지막 갱신: 2026-07-03 두 번째 사이클 (**★1 Phase C 출하 — 게이트를 운전대로**: 선행 프리뷰 배포(니치마켓 Vercel 실증: 브랜치 push→Preview 배포→`.planning/preview.sh` 가 GitHub Deployments API 폴링→bypass 헤더로 200) + spec-building 에 라이브 게이트(`{PREVIEW_URL}` 항목 = 커밋→브랜치 push→프리뷰 프로브→종결 커밋, 상한 내 자율 반복) 이식. eval case-03 신설 — **첫 시험이 실결함 3종을 잡음**(커밋 에이전트의 게이트 정의 파괴·거짓 완료 기록 + 2분할 + 프로브 공허 통과, 넷째 사례) → 항목 인라인 캡처·결정적 결과 대조·STATE 불가침·종결 커밋 분리로 수정 → 3케이스 전부 재합격. 잔여 = 니치마켓 `phasec/preview-flow` 브랜치 **사람 merge**. 같은 날 첫 사이클 = 적대 YAGNI 리뷰 반영(★2 냉동·canary §3.1 격하·Codex 비가역 한정·trivial 우회로·push-experience 제거). 다음 = **★1 Phase D(큰 task 병렬 탐색)**.)
 
 ## 1. 2층 구조 — 본사/지점
 
@@ -20,15 +20,15 @@
 ## 2. 지점 루프 (제품 개발 파이프라인)
 
 ```
-service-planning → tech-deciding → spec-building ─→ live-verify ─→ (통과) 보고
-   (기획서)          (ADR)        │ implementer(sonnet)   │ 실패: 표준 버그 블록을
-                                  │ → reviewer(opus)       │ STATE "다음 task"에 append
-                                  │   (+Codex: 비가역만)   │ → spec-building 재투입
-                                  │ → commit(git상태 판정) └ 3바퀴 상한·동일증상 2회→debugger
-                                  └ 최대 3회→에스컬레이션
+service-planning → tech-deciding → spec-building ────────→ (사람 main merge) → live-verify → 보고
+   (기획서)          (ADR)        │ implementer(sonnet)              (prod 최종 확인·스팟체크)
+                                  │ → reviewer(opus)(+Codex: 비가역만)
+                                  │ → commit(git상태 판정)
+                                  │ → 라이브 게이트({PREVIEW_URL}): 브랜치 push→프리뷰 프로브→종결 커밋
+                                  └ 상한 3회 자율 반복 → 미통과 시 에스컬레이션 (Phase C)
 위성: perf-review(성능 진단, 분석3+judge) · debugger(라이브 증거 진단) · design-explorer(UI 톤)
 ```
-- **루프 종결 신호 = 라이브 동작**(게이트 통과 아님) — live-verify 가 닫는다. 표준 버그 블록 양식 = live-verify SKILL 내(진단→구현 공용 인터페이스).
+- **루프 종결 신호 = 라이브 동작**(게이트 통과 아님). task 의 라이브 닫힘 = **프리뷰 라이브 게이트**(Phase C — spec-building 이 자율로), prod 최종 = 사람 merge 후 live-verify(스팟체크). 라이브 게이트 규칙 정본 = spec-building SKILL §라이브 게이트, 지점 규격 = `.planning/preview.sh`. 표준 버그 블록 양식 = live-verify SKILL 내(진단→구현 공용 인터페이스).
 - 워크플로우 호출 규약: **포인터 파일 먼저** `echo <레포절대경로> > /tmp/spec-building.target` → Workflow 실행 (spec-building SKILL "실행" 참조).
 - **trivial 은 공정을 안 태운다**(2026-07-03 명문화): 게이트를 적을 가치가 없는 변경(오타·주석·문서)은 직접 편집+커밋 — 설계된 우회로. 정본 = spec-building SKILL §선행 조건.
 
@@ -40,7 +40,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
                                    └── 불합격: 결함 수정 ←──────────┘  합격 → 커밋(출시) + canary 선언
 ```
 - 종료조건 = **문제집 통과**(1사례 검증 금지). 출제·합격선 = 사람(굿하트 차단). 사고 → 회귀 케이스 추가(incident-protocol 절차 4).
-- 문제집 현황: `evals/spec-building/case-01`(경계 버그픽스 — 타깃정합·committed 실재·범위·게이트 8항목) ✅ 합격(2026-06-11 · **재실행 2026-07-03 합격** — Codex 조건부 게이팅 회귀: 비가역 표면 "없음" 픽스처에서 reviewer 가 지시대로 Codex 생략·단독 판정, attempts=1·전 항목 클린) + `case-02`(게이트 없는 task 반려) ✅ 재실행 합격(2026-07-03 — 게이트 점검 스키마 확장(irreversiblePresent) 후에도 fail-fast 반려·작업트리 무변경 유지) / `evals/tech-deciding/case-01`(타깃 fail-fast + ADR 절대경로·출처 보존 7항목) ✅ 합격(2026-06-12 — 1차 B3 불합격: haiku ADR 이 출처 URL 유실 → 출처 보존 의무 픽스 후 재시험 합격. 문제집이 실결함을 잡은 첫 사례) / `evals/perf-review/case-01`(심은 버그 3+오탐 함정 1) — ✅ **합격(2026-06-25 첫 실행)**: 심은 버그 3 전부 confirmed(N+1·search·readFileSync)·CATEGORIES 함정 미혼동·환각 0·prober 빌드부재 정직보고. judge 가 분석가 계산오류(240→280B 실측 정정)·per-request 오판을 uncertain 강등 = **오탐 죽이기 실증** / `evals/telemetry-digest/case-01`(계약 수용·skip 3종(계약없음·JSON깨짐·필드누락)·관찰≠task·멱등 9항목) ✅ 합격(2026-06-24, 스크립트와 함께 냉동) / ~~`evals/canary-check/case-01`~~ (2026-07-03 기계와 함께 제거 — 복원=git 89eb2f9) / `evals/live-verify/case-01`(push 미실재→P0 정지·git SSOT·성공 미선언·버그블록 미작성 7항목) ✅ 합격(2026-06-25 — **eval 이 공정 갭 발견**: live-verify P0 실패 행동 미명세 → executor 가 push 누락에 버그블록 오라우팅(spec-building 로). SKILL P0 에 "push 미실재=미완료액션≠버그블록, push 먼저" 명세 후 재실행 클린. 문제집이 실결함 잡은 셋째 사례) / `evals/service-planning/case-01`(completeness-critic — 심은 누락 2(UI상태·예외)+가짜 PMF 주장 정탐 · 정당제외(역할·auth) 오탐억제 6항목) ✅ 합격(2026-06-25 첫 실행 — critic 이 cat4·cat5 누락+PMF 가짜주장 다 잡고 n=1 pruned 카테고리 오탐 0, "(스코프상 제외)" 표기 실확인 후 정당제외 처리 = critic 핵심 실패모드 회피).
+- 문제집 현황: `evals/spec-building/case-01`(경계 버그픽스 — 타깃정합·committed 실재·범위·게이트 8항목) ✅ 합격(2026-06-11 · 재실행 2026-07-03 ×2 합격 — Codex 조건부·Phase C 재구조화 후에도 기존 경로 불변) + `case-02`(게이트 없는 task 반려) ✅ 재실행 2026-07-03 ×2 합격 + `case-03`(라이브 게이트 — push 실재(원격 서빙 프리뷰)·main 불변·프로브 정직성·커밋 구조 9항목) ✅ **합격(2026-07-03 — 첫 시험 불합격이 실결함 3종을 잡음(넷째 사례): 커밋 에이전트가 라이브 검증 *전에* STATE 게이트 정의를 지우고 "완료·라이브 검증" 거짓 기록 + 코드/STATE 2분할 + 프로브가 지워진 STATE 재독으로 0항목 공허 통과. 방지책 = 게이트 항목 인라인 캡처(STATE 재독 제거)·결과 수 결정적 대조·hasLive 시 커밋 에이전트 STATE 불가침·종결 커밋 분리(라이브 실증 후에만 완료 기록) → 재시험 전 항목 합격)** / `evals/tech-deciding/case-01`(타깃 fail-fast + ADR 절대경로·출처 보존 7항목) ✅ 합격(2026-06-12 — 1차 B3 불합격: haiku ADR 이 출처 URL 유실 → 출처 보존 의무 픽스 후 재시험 합격. 문제집이 실결함을 잡은 첫 사례) / `evals/perf-review/case-01`(심은 버그 3+오탐 함정 1) — ✅ **합격(2026-06-25 첫 실행)**: 심은 버그 3 전부 confirmed(N+1·search·readFileSync)·CATEGORIES 함정 미혼동·환각 0·prober 빌드부재 정직보고. judge 가 분석가 계산오류(240→280B 실측 정정)·per-request 오판을 uncertain 강등 = **오탐 죽이기 실증** / `evals/telemetry-digest/case-01`(계약 수용·skip 3종(계약없음·JSON깨짐·필드누락)·관찰≠task·멱등 9항목) ✅ 합격(2026-06-24, 스크립트와 함께 냉동) / ~~`evals/canary-check/case-01`~~ (2026-07-03 기계와 함께 제거 — 복원=git 89eb2f9) / `evals/live-verify/case-01`(push 미실재→P0 정지·git SSOT·성공 미선언·버그블록 미작성 7항목) ✅ 합격(2026-06-25 — **eval 이 공정 갭 발견**: live-verify P0 실패 행동 미명세 → executor 가 push 누락에 버그블록 오라우팅(spec-building 로). SKILL P0 에 "push 미실재=미완료액션≠버그블록, push 먼저" 명세 후 재실행 클린. 문제집이 실결함 잡은 셋째 사례) / `evals/service-planning/case-01`(completeness-critic — 심은 누락 2(UI상태·예외)+가짜 PMF 주장 정탐 · 정당제외(역할·auth) 오탐억제 6항목) ✅ 합격(2026-06-25 첫 실행 — critic 이 cat4·cat5 누락+PMF 가짜주장 다 잡고 n=1 pruned 카테고리 오탐 0, "(스코프상 제외)" 표기 실확인 후 정당제외 처리 = critic 핵심 실패모드 회피).
 - **canary 정본 = 아래 §3.1 불릿**(2026-07-03 격하: jsonl 레지스트리+canary-check.sh 는 닫힌 canary 0건·관리 대상 3줄에 과설계 — 제거, 복원=git 89eb2f9. 재승격 조건 = 지점 3~4개+로 수동 추적이 실제로 깨질 때). **닫기 = 사람이 불릿 줄 제거.** 현황판(status.sh)이 이 목록을 grep 해 표시.
 
 ### 3.1 canary — 다음에 확인할 것 (닫기 = 사람: 줄 제거)
@@ -48,6 +48,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 - tech-deciding(2026-06-12 출하): 다음 실전 1회가 포인터 JSON 채널·ADR 절대경로·출처 URL 보존을 실증
 - live-verify(2026-06-25 출하): 다음 실전이 push/배포 미실재(P0)를 만나면 버그블록 오라우팅 없이 "push 먼저"로 끝맺는지
 - spec-building Codex 조건부(2026-07-03 출하): 다음 실전 1회에서 비가역 표면 유무에 따라 Codex 수행/생략 로그가 맞게 찍히는지
+- spec-building 라이브 게이트(2026-07-03 출하, Phase C): 실전 지점 task 1회가 `{PREVIEW_URL}` 게이트→브랜치 push→프리뷰 프로브→종결 커밋으로 닫히는지 — 선행: 니치마켓 `phasec/preview-flow` 사람 merge
 - telemetry backward edge(2026-06-24 출하, ★2 냉동과 연동): 지점이 telemetry.sh 계약을 구현·해동한 첫 주에 실신호가 다이제스트+telemetry-log 로 흐르는지
 
 ## 4. 하니스 사실 (실증된 것 — 추측 아님)
@@ -71,6 +72,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 - reviewer: 재현 실경로성 검증 + **리뷰 대상 레포 git 변조 금지** → `skills/spec-building/agents/reviewer.md`
 - 타깃 해석 fail-fast(조용한 폴백 금지) → `skills/spec-building/workflow.mjs` · `skills/tech-deciding/workflow.mjs`(2026-06-12 이식 — 포인터는 JSON 1줄, +ADR 절대경로 정규화·출처 URL 보존)
 - 사고→자산 반영→회귀 케이스→canary → `skills/incident-protocol/SKILL.md`
+- (2026-07-03) 라이브 게이트(`{PREVIEW_URL}`)·지점 프리뷰 규격·신뢰 경계(브랜치 push=워크플로우, main=사람) → `skills/spec-building/SKILL.md` §라이브 게이트 · 검증 전 STATE 완료 기록 금지/종결 커밋 분리 → `skills/spec-building/workflow.mjs`
 
 ## 6. 열린 개선 (다음 세션 백로그)
 
@@ -80,7 +82,7 @@ service-planning → tech-deciding → spec-building ─→ live-verify ─→ (
 - 진단: 본사 루프는 이미 AI 네이티브(목표+evals+통과까지 반복)인데 지점 루프(기획→결정→구현→검증)는 사람 조직도 디지털화(폭포수 + 사람이 모든 이음매의 메신저). 신뢰 종류로 가르는 축("속으면 안 되는 건 코드")을 미시엔 쓰면서 거시 파이프라인은 사람-역할 축으로 짬.
 - 새 모양: 목표+수용게이트(입구) → 오케스트레이터 깊이 분류(비가역 표면이면 깊은 길 강제) → (큰 것만) 옵션 병렬생성·판정 → 게이트 대고 자율 반복 → 라이브 게이트 통과 → 사람은 게이트 정의+push만. 기존 스킬은 버리지 않고 역할만 변경(service-planning=게이트/옵션 생성기, tech-deciding=비가역축에서만, live-verify=게이트의 라이브 부분).
 - 신뢰 경계 불변: 커밋실재·게이트통과=결정적코드, push=사람. 새 안전판: 비가역 표면 → 깊은 길 강제(under-분류가 새 실패 모드).
-- 도입(각 단계 본사 루프 통과, 작은 task 경로부터·한번에 갈아엎기 금지): **A 입구를 목표+게이트로 ✅(3cf2c2b)** / **B 적응형 분류+안전판 — 보류**(비가역 게이트는 솔로·수동 트리거 단계엔 사람이 이미 게이트라 값 안 함; 자율 흐름 생기면 실제 위험 모양에 맞춰 재설계) / **C 게이트를 운전대로(live-verify 흡수) ← 다음 사이클 최우선(2026-07-03)** — 에이전트가 auto 게이트를 상대로 사람 재트리거 없이 반복, live-verify 는 게이트의 라이브 부분으로 흡수, 사람은 게이트 정의+push 만. **선행 조건 = 프리뷰 배포**(#3 과 동일 — push=즉시 prod 라 무인 반복 위험) / D 큰 task 병렬 탐색. 기존 #3(풀체인)·#6(자동화 수위)은 "사람은 push만/메신저 제거"로 이 줄기에 흡수. Codex 부분 축소는 반영됨(2026-07-03: 교차검증 = 비가역 표면 task 만 — 모델 발전 시 부채화 2순위라 추가 축소 재평가 대상).
+- 도입(각 단계 본사 루프 통과, 작은 task 경로부터·한번에 갈아엎기 금지): **A 입구를 목표+게이트로 ✅(3cf2c2b)** / **B 적응형 분류+안전판 — 보류**(비가역 게이트는 솔로·수동 트리거 단계엔 사람이 이미 게이트라 값 안 함; 자율 흐름 생기면 실제 위험 모양에 맞춰 재설계) / **C 게이트를 운전대로 ✅(2026-07-03 출하)** — ⓐ 선행 프리뷰 배포: 니치마켓 실증(브랜치 push→Vercel Preview→`.planning/preview.sh` 규격(GitHub Deployments API 폴링)→Deployment Protection bypass 헤더로 200. 지점 사실 정본 = 니치마켓 AGENTS.md §브랜치·배포 플로우) ⓑ spec-building 에 라이브 게이트 이식: `{PREVIEW_URL}` auto 항목 → 커밋 후 작업 브랜치 push(**main 이면 코드가 skip** — prod=사람)→프리뷰 프로브(항목 인라인 캡처+결과 수 결정적 대조 = 공허 통과 차단)→종결 커밋(라이브 실증 후에만 STATE 완료 기록) — 상한 내 자율 반복, live-verify 는 prod 최종 확인으로 재배치. eval case-03 출하 조건 합격. **잔여 = 니치마켓 `phasec/preview-flow` 사람 merge**(그 전까지 지점 실전 라이브 게이트 불가) / **D 큰 task 병렬 탐색 ← 다음**. 기존 #3(풀체인)·#6(자동화 수위)은 "사람은 push만/메신저 제거"로 이 줄기에 흡수. Codex 부분 축소는 반영됨(2026-07-03: 교차검증 = 비가역 표면 task 만).
 - **Phase A 구체(✅ 완료, 3cf2c2b)**: STATE "## 다음 task" 새 형식 = `### 목표` + `### 게이트`(항목마다 `auto:`<명령/테스트/라이브프로브 + 통과 신호> 또는 `human:`<취향·비가역>, auto≥1 권장) + `### 비가역 표면`. workflow.mjs 가 게이트 블록 없음/auto 0개 → **fail-fast 반려**(결정적 코드·조용한 폴백 금지, human-only 는 경고만). eval `spec-building/case-02-no-gate-rejected`(게이트 없는 task → 워크플로우가 구현 안 하고 반려 + 작업트리 무변경 = 합격) = 출하 조건. 완료 task 가 이미 적는 마커를 *회고*에서 *시작 전 계약*으로 앞당기는 것 — 현 SKILL §수용 기준 작성 룰(실코드 경로·게이트≠동작·라이브로 닫기)은 유지하되 형식이 강제하게 격상.
 
 ★2 **살아있는 루프 — 현황판·운영→기획 피드백·자기 시계** (★1 위에 얹음) — ✅ P0~P3 완료(2026-06-24) → **❄ 2026-07-03 부분 냉동**(적대 YAGNI 리뷰: 지점 1개·트래픽 0 에서 선건축, heartbeat 3회 발사 전부 `collected 0` = 9일간 실신호 0 — "안 닫는 자동화=소음" 자기규율 위반). 냉동 내역: launchd 박동 해제(`heartbeat-ctl.sh uninstall`), `telemetry-digest.sh`·`heartbeat.sh`·CONTRACT.md·그 eval 은 보존(해동용), canary 레지스트리·canary-check.sh·그 eval 은 제거(§3.1 불릿 격하, 복원=git 89eb2f9). **status.sh(P0 현황판)는 산 채로 유지.** 해동 조건 = 지점 `.planning/telemetry.sh` 실구현(#4) → `heartbeat-ctl.sh install`.
