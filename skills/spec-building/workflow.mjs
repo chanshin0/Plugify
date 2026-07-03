@@ -1,10 +1,10 @@
 export const meta = {
   name: 'spec-building',
-  description: '구현 task 1개를 격리 implementer 가 작성+자기검증 → reviewer(+Codex 교차검증) 리뷰 → 통과까지 재시도 → 통과 시 atomic commit. 3회 미통과 시 메인 에스컬레이션 신호 반환. 스택·도메인 비종속(규칙은 프로젝트 ADR/STATE/기존코드에서).',
+  description: '구현 task 1개를 격리 implementer 가 작성+자기검증 → reviewer 리뷰(+Codex 교차검증: 비가역 표면 task 만) → 통과까지 재시도 → 통과 시 atomic commit. 3회 미통과 시 메인 에스컬레이션 신호 반환. 스택·도메인 비종속(규칙은 프로젝트 ADR/STATE/기존코드에서).',
   whenToUse: '확정된 task 를 격리해서 구현할 때. args: { task?, acceptance?, projectRoot, isolation?, commit?, maxAttempts? }. task/acceptance 생략 시 STATE.md "다음 task" 를 읽는다.',
   phases: [
     { title: 'Implement', detail: '격리 implementer(sonnet) — 작성 + 자기검증' },
-    { title: 'Review', detail: '격리 reviewer(opus) + Codex 병렬 교차검증' },
+    { title: 'Review', detail: '격리 reviewer(opus) — Codex 병렬 교차검증은 비가역 표면 task 만' },
     { title: 'Commit', detail: '통과 시 atomic commit(haiku) + STATE 갱신 / 미통과 시 에스컬레이션' },
   ],
 }
@@ -61,6 +61,8 @@ const gate = await agent(
   `3) 그 안에 "### 게이트" 하위 섹션이 있는가 → gatePresent.\n` +
   `4) 게이트 항목 글머리 중 "auto:" 로 시작하는 개수 → autoCount, "human:" 으로 시작하는 개수 → humanCount. ` +
   `앞쪽 글머리표(- · *)·체크박스(- [ ])·공백은 무시하고 마커만 센다.\n` +
+  `5) 같은 task 안에 "### 비가역 표면" 하위 섹션이 있고 **실질 내용**이 있는가 → irreversiblePresent. ` +
+  `섹션이 없거나, 내용이 비었거나, "없음"·"N/A"·"-" 뿐이면 false. 스키마·인증·배포설정 등 실제 표면이 명시돼 있으면 true.\n` +
   `**친절한 추론 금지** — 형식이 구식(게이트 섹션 없이 "수용 기준:" 산문만)이면 gatePresent=false 로 사실대로 반환하라. 비어 있으면 비었다고 답하라.`,
   {
     phase: 'Implement', label: '게이트 점검', model: 'haiku',
@@ -71,8 +73,9 @@ const gate = await agent(
         gatePresent: { type: 'boolean', description: '"## 다음 task" 안에 "### 게이트" 섹션 실재 여부' },
         autoCount:   { type: 'integer', description: '게이트의 "auto:" 항목 개수' },
         humanCount:  { type: 'integer', description: '게이트의 "human:" 항목 개수' },
+        irreversiblePresent: { type: 'boolean', description: '"### 비가역 표면" 섹션이 실질 내용으로 존재("없음"·빈 내용이면 false)' },
       },
-      required: ['gatePresent', 'autoCount', 'humanCount'],
+      required: ['gatePresent', 'autoCount', 'humanCount', 'irreversiblePresent'],
     },
   }
 )
@@ -90,6 +93,12 @@ if ((gate.autoCount ?? 0) === 0) {
 } else {
   log(`게이트 확인: auto=${gate.autoCount}, human=${gate.humanCount}`)
 }
+// Codex 교차검증은 비가역 표면 task 만 (2026-07-03 YAGNI 리뷰: 매 task 이중 프런티어 모델의
+// 실증된 마진 catch 부재 → 비용 반감. 규칙 정본 = agents/reviewer.md §외부 모델 교차검증).
+const codexDirective = gate.irreversiblePresent
+  ? 'Codex 교차검증: 수행 — task 에 비가역 표면이 있다(에이전트 정의 §외부 모델 교차검증대로 병렬 실행).'
+  : 'Codex 교차검증: 생략 — 비가역 표면 없음(reviewer 단독 판정, summary 에 생략 사실 명시).'
+log(gate.irreversiblePresent ? 'Codex 교차검증: 수행(비가역 표면 있음)' : 'Codex 교차검증: 생략(비가역 표면 없음)')
 
 const REVIEW_SCHEMA = {
   type: 'object',
@@ -119,7 +128,8 @@ while (true) {
   review = await agent(
     `task: ${task}\n${cdNote}\n` +
     (acceptance ? `수용 기준(이 기준으로 pass 판정):\n${acceptance}\n` : '') +
-    `구현 보고:\n${impl}\n\n(검증·Codex 병렬 교차검증·판정 규칙은 너의 에이전트 정의에 있다 — 따르라.)`,
+    `${codexDirective}\n` +
+    `구현 보고:\n${impl}\n\n(검증·교차검증·판정 규칙은 너의 에이전트 정의에 있다 — 위 Codex 지시와 함께 따르라.)`,
     { agentType: 'reviewer', schema: REVIEW_SCHEMA, phase: 'Review', label: attempt > 1 ? `리뷰 ${attempt}` : '리뷰' }
   )
 

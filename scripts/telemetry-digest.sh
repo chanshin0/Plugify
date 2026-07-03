@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # plugify telemetry-digest — 운영→기획 backward edge (★2-P1, SYSTEM.md §6 ★2)
 #
+# ❄ 냉동(2026-07-03 YAGNI 리뷰): 지점 계약 0·실신호 0 상태의 선건축 — 주기 호출(박동) 해제됨.
+#    스크립트·CONTRACT.md·eval 은 해동용으로 보존. 해동 조건 = 지점 telemetry.sh 실구현.
+#
 # 각 지점의 telemetry 계약(.planning/telemetry.sh)을 호출해 운영 신호를 모으고
 #   (1) 본사 주간 다이제스트 telemetry/digest-<ISO주>.md
 #   (2) 각 지점 기획 백로그 .planning/telemetry-log.md 에 "관찰" append

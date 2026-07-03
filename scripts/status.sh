@@ -31,9 +31,10 @@ for skill in "$HQ"/evals/*/; do
   [ "$n" -gt 0 ] && echo "      $(basename "$skill"): ${n}케이스"
 done
 
-# canary (정본 = telemetry/canaries.jsonl, 점검 = canary-check.sh) — 닫기 확정은 사람 (★2-P3)
-echo "  · canary (닫기 확정=사람):"
-bash "$HQ/scripts/canary-check.sh" 2>/dev/null | sed 's/^/    /' || echo "    (점검 실패)"
+# canary (정본 = SYSTEM.md §3.1 불릿 — 2026-07-03 레지스트리 격하) — 닫기 = 사람(줄 제거)
+echo "  · canary (닫기=사람, 정본=SYSTEM.md §3.1):"
+awk '/^### 3\.1 canary/{f=1;next} f&&/^#/{exit} f&&/^- /' "$HQ/SYSTEM.md" 2>/dev/null | sed 's/^- /    ⏳ /'
+[ -z "$(awk '/^### 3\.1 canary/{f=1;next} f&&/^#/{exit} f&&/^- /' "$HQ/SYSTEM.md" 2>/dev/null)" ] && echo "    (열린 canary 없음)"
 
 # 박동(heartbeat) — 자기 시계 마지막 실행 + launchd 등록 여부 (★2-P2)
 hb="$HQ/telemetry/heartbeat.json"
@@ -47,7 +48,7 @@ fi
 if launchctl list 2>/dev/null | grep -q com.plugify.heartbeat; then
   echo "      launchd: 등록됨(주간 월 09:00)"
 else
-  echo "      launchd: 미등록 — scripts/heartbeat-ctl.sh install"
+  echo "      launchd: 미등록 — ❄ 냉동(2026-07-03, 해동 조건: 지점 telemetry.sh 실구현 → heartbeat-ctl.sh install)"
 fi
 
 echo "  · 다음 큰 방향(SYSTEM §6 ★):"

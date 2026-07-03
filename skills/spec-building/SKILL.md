@@ -1,6 +1,6 @@
 ---
 name: spec-building
-description: 확정된 구현 task 를 격리 에이전트로 구현·자기검증·적대리뷰(+Codex 교차검증)·커밋까지 자동으로 민다. "구현해", "이 task 구현", "다음 task 진행", "STATE 다음 거 만들어", "스펙대로 구현", "implement" 등에 트리거. 기획(service-planning)·결정(tech-deciding) 다음 단계. lean-agent-design — 메인은 task 분해·게이트·에스컬레이션만, 구현 잡음은 격리 서브에이전트에 가둔다.
+description: 확정된 구현 task 를 격리 에이전트로 구현·자기검증·적대리뷰(+Codex 교차검증은 비가역 표면 task 만)·커밋까지 자동으로 민다. "구현해", "이 task 구현", "다음 task 진행", "STATE 다음 거 만들어", "스펙대로 구현", "implement" 등에 트리거. 기획(service-planning)·결정(tech-deciding) 다음 단계. lean-agent-design — 메인은 task 분해·게이트·에스컬레이션만, 구현 잡음은 격리 서브에이전트에 가둔다.
 ---
 
 # spec-building — task → 격리 구현 → 검증 → 커밋
@@ -14,6 +14,7 @@ description: 확정된 구현 task 를 격리 에이전트로 구현·자기검�
   - `### 게이트` — "통과 = 됐다"의 정의. 항목마다 `auto:`<명령·테스트·라이브 프로브 + 통과 신호> 또는 `human:`<취향·비가역, 되도록 적게>. **auto 최소 1개 권장**(에이전트가 대고 반복할 수 있어야).
   - `### 비가역 표면` — 있으면(스키마·인증·배포설정 등).
 - **게이트는 구현 *전에* 박는다.** 워크플로우가 STATE 를 읽어 게이트가 없거나 비어 있으면 **구현하지 않고 fail-fast 반려**한다(결정적 코드, 조용한 폴백 금지). human-only 게이트(auto 0)는 경고 후 진행 — 사람이 닫는 task.
+- **trivial 우회로(2026-07-03 명문화)**: 게이트를 적을 가치가 없는 변경(오타·주석·문서·설정 1줄 등 제품 동작이 안 바뀌는 것)은 이 스킬을 태우지 않는다 — 사람/메인이 직접 편집+커밋. **우회는 규율 위반이 아니라 설계된 경로다.** 단 제품 동작이 바뀌는 변경은 크기와 무관하게 공정을 태운다(작은 diff ≠ trivial — 경계값 1글자도 동작 변경이다).
 
 ## 실행
 메인은 **① 타깃 포인터 파일을 먼저 쓰고** ② Workflow 도구로 이 스킬 디렉토리의 `workflow.mjs` 를 절대경로로 실행한다:
@@ -23,7 +24,7 @@ Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs", ar
 ```
 - 워크플로우는 타깃을 해석·검증(.planning/STATE.md 실재)하고, 무효면 **조용한 폴백 없이 즉시 실패**한다 — 엉뚱한 레포 실행 차단.
 - `task`/`acceptance` 를 args 로 줄 수도 있으나, **생략 시 워크플로우가 STATE "다음 task" 를 읽는다**(권장 — args 전달 불안정성 회피).
-- 진행: implementer(sonnet) 작성+자기검증 → reviewer(opus) + Codex(gpt-5.5/xhigh) **병렬** 교차검증 → 통과까지 최대 `maxAttempts`(기본 3)회 재시도 → 통과 시 atomic commit + STATE 갱신.
+- 진행: implementer(sonnet) 작성+자기검증 → reviewer(opus) 적대 검증 → 통과까지 최대 `maxAttempts`(기본 3)회 재시도 → 통과 시 atomic commit + STATE 갱신. **Codex(gpt-5.5/xhigh) 병렬 교차검증은 task 에 `### 비가역 표면` 이 실질 내용으로 있을 때만**(2026-07-03 YAGNI 리뷰 — 판정은 워크플로우 게이트 점검이 결정, 규칙 정본 = `agents/reviewer.md`).
 - **메인은 반환 `committed`·`commit.committedFiles` 를 신뢰하지 말고 push 전에 `git log -1`·`git status --short`·`git show --stat HEAD` 로 커밋 실재 + 커밋 파일집합이 리뷰-검증 변경과 일치하는지 직접 확인**한다(2026-06-11: 커밋 없이 완료 응답 오보고. 2026-06-23: commit 에이전트가 reviewer 미검증 파일을 *발명·커밋*하고 검증본을 작업트리에 방치). 워크플로우 판정은 "트리 클린"만 보지 "검증본을 커밋했나"는 못 본다 — 마지막 게이트는 메인.
 - **`committed=false` 가 "커밋이 없다"는 뜻이 아니다** — HEAD 가 부당 이동했는지 먼저 본다. (a) HEAD 미이동 + 작업트리=리뷰 통과 상태 → 메인이 검증 후 직접 커밋. (b) HEAD 가 미검증/부분 커밋으로 이동(부당 커밋 공존) → **그 위에 덧커밋 금지**(미검증 코드가 history 에 남는다) — 검증본으로 `amend` 하거나 부당 커밋을 되돌린 뒤 올바른 changeset 을 커밋한다(2026-06-23 사고: `committed=false` 인데 잘못된 커밋이 HEAD 에 있었고, 메인이 디스크렙시 조사로 잡아 amend).
 - 에이전트(`agents/implementer.md`·`reviewer.md`)는 plugify 전역등록되어 `agentType` 으로 호출된다(모델·규칙은 각 `.md` 가 SSOT).

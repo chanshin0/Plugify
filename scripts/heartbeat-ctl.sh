@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # plugify heartbeat-ctl — 자기 박동 스케줄러 설치/해제/상태/즉시실행 (★2-P2).
 #
+# ❄ 냉동(2026-07-03 YAGNI 리뷰): uninstall 실행됨. 해동(install) 조건 = 지점 telemetry.sh 실구현.
+#
 # darwin launchd LaunchAgent 사용(cron 대신): 맥 네이티브 + 슬립 중 놓친 일정을 깨어날 때
 # 1회 따라잡음 + 사용자 세션 권한. 매주 월 09:00 heartbeat.sh 발사.
 # 되돌리기: `uninstall` (launchctl bootout + plist 삭제) — 완전 가역.

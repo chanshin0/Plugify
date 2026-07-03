@@ -32,7 +32,6 @@
 │   ├── ai-readiness-cartography/
 │   ├── improve-token-efficiency/
 │   ├── presentation_slides/
-│   ├── push-experience/
 │   └── self-review/
 └── plugins/                           # 번들 단위 마켓플레이스 노출 (현재 비어있음 — 필요 시 추가)
 ```
@@ -45,7 +44,7 @@ skills/ 는 평면이지만 성격이 두 갈래다:
   `service-planning`(기획) → `tech-deciding`(결정/ADR) → `spec-building`(격리 구현·적대리뷰·커밋) → `live-verify`(배포 후 라이브 닫기)
   - 위성: `perf-review`(성능 진단) · `debugger`/`design-explorer`(agents/)
   - 메타(본사 루프): `incident-protocol`(사고→자산 반영) + `evals/`(문제집 — 출하 조건)
-- **독립 유틸** (단발 도구, 배선 없음): `presentation_slides` · `improve-token-efficiency` · `ai-readiness-cartography` · `self-review` · `push-experience`
+- **독립 유틸** (단발 도구, 배선 없음): `presentation_slides` · `improve-token-efficiency` · `ai-readiness-cartography` · `self-review`
 
 본사/지점 운영 모델: 이 레포 = 본사(공정 제작, `AGENTS.md`), 각 프로젝트 레포 = 지점(공정 소비, 그 레포 `AGENTS.md`+`.planning/STATE.md`). 커밋 = 출시.
 
@@ -109,7 +108,6 @@ plugins/<bundle-name>/
 | `ai-readiness-cartography` | repo AI-readiness 스코어링 + HTML 대시보드 |
 | `improve-token-efficiency` | Claude Code 세션 토큰/비용 효율 분석 리포트 |
 | `presentation_slides` | YouTube 영상용 다크 테마 HTML 슬라이드 자동 생성 |
-| `push-experience` | (확인 필요 — TODO) |
 | `self-review` | 직전 답변 3라운드 비판적 재검토 (R1/R2/R3) |
 
 각 스킬 상세는 `skills/<name>/SKILL.md`. scenario-first 5 스킬은 [scenario-first-development-template](https://github.com/chanshin0/scenario-first-development-template) 로 이동.
