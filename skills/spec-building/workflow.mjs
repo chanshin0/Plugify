@@ -110,33 +110,79 @@ const liveItems = Array.isArray(gate.liveItems) ? gate.liveItems.filter(s => typ
 const hasLive = liveItems.length > 0
 if (hasLive) log(`라이브 게이트 ${liveItems.length}개 캡처 — 커밋 후 push→프리뷰 프로브로 닫는다 (Phase C)`)
 
+// implementer 상태값 프로토콜(dryforge 이식, 2026-07-06): 판정 이원화 — 사실(상태)은 에이전트,
+// 분기(리뷰 생략/진행)는 아래 코드가 결정.
+const IMPL_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    status:       { type: 'string', enum: ['DONE', 'DONE_WITH_CONCERNS', 'NEEDS_CONTEXT', 'BLOCKED'] },
+    filesChanged: { type: 'array', items: { type: 'string' } },
+    decisions:    { type: 'string' },
+    selfCheck:    { type: 'string' },
+    concerns:     { type: 'array', items: { type: 'string' }, description: '비차단 우려(DONE_WITH_CONCERNS 일 때만, 그 외 빈 배열)' },
+    missing:      { type: 'string', description: 'NEEDS_CONTEXT/BLOCKED 일 때 부족분 구체 서술(그 외 빈 문자열)' },
+  },
+  required: ['status', 'filesChanged', 'decisions', 'selfCheck', 'concerns', 'missing'],
+}
+
 const REVIEW_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   properties: {
     pass:    { type: 'boolean' },
     issues:  { type: 'array', items: { type: 'string' } },
+    // 조용한 기각 금지(2026-07-06): 비차단 지적은 버리지 않고 advisories 로 반환.
+    advisories: { type: 'array', items: { type: 'string' }, description: '비차단 지적(없으면 빈 배열) — 버리지 말고 여기 담는다' },
+    concernDispositions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          concern:     { type: 'string' },
+          disposition: { type: 'string', enum: ['resolved', 'accepted', 'blocker'] },
+          note:        { type: 'string' },
+        },
+        required: ['concern', 'disposition', 'note'],
+      },
+      description: 'implementer 가 DONE_WITH_CONCERNS 로 보고한 concerns 1:1 판정(개수 불일치·미판정 시 코드가 불통과 처리 — 공허 통과 방지 가드)',
+    },
     summary: { type: 'string' },
   },
-  required: ['pass', 'issues', 'summary'],
+  required: ['pass', 'issues', 'advisories', 'concernDispositions', 'summary'],
 }
 
 // ── 구현 ↔ 리뷰 ↔ (커밋 → 라이브 게이트) 루프 ──────────
 // Phase C: 라이브 게이트 task 는 커밋 후 push→프리뷰 프로브까지 이 루프 안에서 닫는다
 // (사람 재트리거 없는 자율 반복 — 상한 MAX 공유). 라이브 게이트 없으면 기존 모양 그대로.
-let impl, review, feedback = '', attempt = 0
-let committed = false, commitInfo = null, escalation = null, liveGate = null
+let impl, review = null, feedback = '', attempt = 0
+let committed = false, commitInfo = null, escalation = null, liveGate = null, blockedInfo = null
 while (true) {
   attempt++
-  // implementer: 규칙·SSOT·자기검증은 에이전트 정의(agents/implementer.md)에 있다 → 프롬프트엔 입력만.
+  // 모델 상향 렁: 마지막 시도만 opus 격상. 단발 실행(maxAttempts=1)은 상향 없음 — 조용한 비용 놀람 방지.
+  const lastAttempt = attempt === MAX && MAX > 1
+  if (lastAttempt) log(`⚠ 모델 상향(opus) 최종 시도 — implementer 를 opus 로 격상해 투입 (${attempt}/${MAX})`)
+  // implementer: 규칙·SSOT·자기검증·상태값 규칙은 에이전트 정의(agents/implementer.md)에 있다 → 프롬프트엔 입력만.
   impl = await agent(
     `구현 task: ${task}\n${cdNote}\n` +
     (acceptance ? `\n수용 기준(전부 만족해야 함):\n${acceptance}\n` : '') +
     (hasLive ? `\n참고: 게이트의 {PREVIEW_URL} 항목(라이브 게이트)은 네 범위 밖이다 — 커밋 후 워크플로우가 push→프리뷰에서 닫는다. 로컬 판정 가능한 게이트만 자기검증하라.\n` : '') +
     (feedback ? `\n⚠ 이전 시도가 막혔다. 아래 블로커를 반드시 해결하라:\n${feedback}\n` : '') +
-    `\n(역할·읽을 SSOT·자기검증 규칙은 너의 에이전트 정의에 있다 — 따르라.) 반환: 변경 파일 목록 · 핵심 결정(추정 표시) · 자기검증 결과.`,
-    { agentType: 'implementer', phase: 'Implement', label: attempt > 1 ? `구현(재시도 ${attempt}/${MAX})` : '구현', ...isolation }
+    `\n(역할·읽을 SSOT·자기검증·상태값 규칙은 너의 에이전트 정의에 있다 — 따르라.) 반환은 스키마(status·filesChanged·decisions·selfCheck·concerns·missing) 그대로.`,
+    { agentType: 'implementer', phase: 'Implement', label: attempt > 1 ? `구현(재시도 ${attempt}/${MAX})` : '구현', schema: IMPL_SCHEMA, ...isolation, ...(lastAttempt ? { model: 'opus' } : {}) }
   )
+
+  // NEEDS_CONTEXT/BLOCKED: 리뷰로는 판정할 게 없다(구현 자체가 성립 안 함) — 리뷰 건너뛰고 missing 을 피드백으로 재투입.
+  if (impl?.status === 'NEEDS_CONTEXT' || impl?.status === 'BLOCKED') {
+    blockedInfo = impl
+    review = null // 이전 시도의 stale 리뷰가 반환(review·advisories·concernDispositions)에 실리는 것 차단 — 이 시도는 리뷰 미도달
+    log(`⚠ implementer ${impl.status} — 리뷰 생략. 부족분: ${impl.missing || '(미기재)'}`)
+    if (attempt >= MAX) { log(`✗ ${MAX}회 후에도 ${impl.status} — 메인 에스컬레이션 필요`); break }
+    feedback = `implementer 가 ${impl.status} 상태를 반환했다 — 아래 부족분을 반드시 보강하라:\n${impl.missing || '(미기재)'}`
+    continue
+  }
+  blockedInfo = null
 
   // reviewer: 검증·Codex 교차검증·판정 규칙은 에이전트 정의(agents/reviewer.md)에 있다 → 프롬프트엔 입력만.
   review = await agent(
@@ -144,9 +190,29 @@ while (true) {
     (acceptance ? `수용 기준(이 기준으로 pass 판정):\n${acceptance}\n` : '') +
     `${codexDirective}\n` +
     (hasLive ? `라이브 게이트({PREVIEW_URL} 항목)는 리뷰 범위 밖 — 커밋 후 워크플로우 Live 단계가 프리뷰에서 닫는다. 로컬 판정 가능한 게이트만 재실행해 판정하고, 라이브 항목 미실행을 블로커로 삼지 마라.\n` : '') +
-    `구현 보고:\n${impl}\n\n(검증·교차검증·판정 규칙은 너의 에이전트 정의에 있다 — 위 Codex 지시와 함께 따르라.)`,
+    (impl.status === 'DONE_WITH_CONCERNS' && impl.concerns?.length
+      ? `⚠ implementer 가 DONE_WITH_CONCERNS 로 보고했다 — 아래 concerns 를 하나도 빠짐없이 concernDispositions(resolved/accepted/blocker)로 판정하라:\n${impl.concerns.map((c, i) => `  ${i + 1}. ${c}`).join('\n')}\n`
+      : '') +
+    `구현 보고(JSON):\n${JSON.stringify(impl)}\n\n(검증·교차검증·판정 규칙은 너의 에이전트 정의에 있다 — 위 Codex 지시와 함께 따르라.)`,
     { agentType: 'reviewer', schema: REVIEW_SCHEMA, phase: 'Review', label: attempt > 1 ? `리뷰 ${attempt}` : '리뷰' }
   )
+
+  // 조용한 기각 금지 게이트(결정적, 2026-07-06): DONE_WITH_CONCERNS 면 concernDispositions 가
+  // concerns 와 1:1 이어야 하고, blocker 판정은 issues 로 승격 — probedAll 공허 통과 가드와 동일 패턴.
+  if (impl.status === 'DONE_WITH_CONCERNS') {
+    const concernCount = impl.concerns?.length ?? 0
+    const dispositions = Array.isArray(review.concernDispositions) ? review.concernDispositions : []
+    if (dispositions.length !== concernCount) {
+      review.pass = false
+      review.issues = [...(review.issues ?? []), `concernDispositions 개수 불일치(concerns=${concernCount}, dispositions=${dispositions.length}) — 우려 판정 누락(조용한 기각 금지 가드)`]
+    } else {
+      const promoted = dispositions.filter(d => d?.disposition === 'blocker')
+      if (promoted.length) {
+        review.pass = false
+        review.issues = [...(review.issues ?? []), ...promoted.map(d => `[concern→blocker 승격] ${d.concern}: ${d.note}`)]
+      }
+    }
+  }
 
   if (!review.pass) {
     if (attempt >= MAX) { log(`✗ ${MAX}회 미통과 — 메인 에스컬레이션 필요`); break }
@@ -236,7 +302,7 @@ while (true) {
     `1) 레포 루트에 .env.local 이 있으면 셸에서 \`set -a; . ./.env.local; set +a\` 로 로드하라(시크릿 값은 출력·반환에 절대 노출 금지).\n` +
     `2) 각 항목의 {PREVIEW_URL} 을 위 프리뷰 URL 로 치환해 명령을 실행하고, 항목에 적힌 통과 신호와 실제 출력을 대조하라.\n` +
     `3) results 에 항목마다 {item, pass, output} 을 담아라 — **${liveItems.length}개 전부**, output 은 실행 출력 원문(시크릿 마스킹).\n` +
-    `4) **통과 신호를 지어내지 마라** — 하나라도 불일치면 pass=false, failures 에 항목+실제 출력.`,
+    `4) **통과 신호를 지어내지 마라** — 하나라도 불일치면 pass=false, failures 에 항목+실제 출력. **평가 불능 = 실패**: 명령이 대조 전에 죽거나, 출력을 파싱할 수 없거나, 매치 0건이면 그 항목은 pass=false다 — "서버가 로그를 남겼다"·"파일이 생겼다" 같은 부수효과로 pass 를 추론하지 마라.`,
     {
       phase: 'Live', label: attempt > 1 ? `라이브 프로브 ${attempt}` : '라이브 프로브', model: 'haiku',
       schema: {
@@ -296,14 +362,27 @@ if (liveGate?.status === 'passed' && doCommit) {
 }
 
 // ── 에스컬레이션 판정 (무한 자동 루프 방지 — 상한 도달 시 멈추고 신호만 올린다) ──
-if (!review?.pass) {
+if (blockedInfo) {
+  escalation = {
+    reason: `${MAX}회 시도 후에도 implementer ${blockedInfo.status}(리뷰 미도달) — 부족분: ${blockedInfo.missing || '(미기재)'}`,
+    blockers: [blockedInfo.missing || '(missing 미기재)'],
+    nextOptions: [
+      'task/수용 기준에 빠진 정보(스키마·ADR·기존 코드 위치 등)를 STATE·ADR 에 보강한 뒤 재투입',
+      MAX > 1 ? '마지막 시도는 이미 opus 였다 — 정보 보강 없는 재시도는 같은 결과일 가능성 높음'
+              : '단발 실행(maxAttempts=1)이라 opus 상향이 없었다 — maxAttempts≥2 로 재투입하면 마지막 시도가 opus 로 격상된다',
+      '구조적으로 막혔나(외부 의존·권한·환경) → 사용자에게 에스컬레이션',
+    ],
+  }
+  log(`⚠ 에스컬레이션: ${escalation.reason}`)
+} else if (!review?.pass) {
   escalation = {
     reason: `${MAX}회 시도 후에도 reviewer 미통과(커밋 보류)`,
     blockers: review?.issues ?? [],
     nextOptions: [
       '수용 기준이 과하거나 모순인가 → STATE 의 수용 기준 조정 후 재투입',
       'task 가 너무 큰가 → 더 작은 단위로 분해 후 각각 재투입',
-      'implementer 모델이 약한가 → maxAttempts 와 함께 implementer 를 opus 로 격상해 1~2회 추가',
+      MAX > 1 ? '마지막 시도는 이미 opus 로 격상됐다 — 그래도 막히면 maxAttempts 증량보다 task 분해를 우선'
+              : '단발 실행(maxAttempts=1)이라 opus 상향이 없었다 — maxAttempts≥2 로 재투입하면 마지막 시도가 opus 로 격상된다',
       '구조적으로 막혔나(외부 의존·환경) → 사용자에게 에스컬레이션',
     ],
   }
@@ -324,4 +403,9 @@ if (!review?.pass) {
   log(`⚠ 에스컬레이션: ${escalation.reason}.`)
 }
 
-return { task, attempts: attempt, impl, review, committed, commit: commitInfo, liveGate, escalation }
+return {
+  task, attempts: attempt, impl, review,
+  advisories: review?.advisories ?? [],
+  concernDispositions: review?.concernDispositions ?? [],
+  committed, commit: commitInfo, liveGate, escalation,
+}

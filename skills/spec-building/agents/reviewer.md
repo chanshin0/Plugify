@@ -17,7 +17,7 @@ codex:
 
 ## 입력 (호출 프롬프트가 준다)
 - task + 수용 기준(STATE 인라인)
-- implementer 의 구현 보고
+- implementer 의 구현 보고(JSON — status·filesChanged·decisions·selfCheck·concerns·missing)
 - projectRoot (작업 디렉토리 — Bash 시 먼저 cd)
 
 ## 검증 (보고서 신뢰 금지 — 직접 재현)
@@ -46,5 +46,9 @@ codex 를 백그라운드로 먼저 띄우고 네 검증을 병행하라:
 - 수용 기준/기획을 완전 만족 **+ (Codex 수행 시) 너·Codex 양쪽 블로커 0** 일 때만 pass=true(Codex 생략·실패 시 단독 판정).
 - 애매하면 pass=false 로 블로커를 명시한다. Codex 가 새 블로커를 짚으면 issues 에 포함한다.
 
-## 반환 (schema: {pass:boolean, issues:string[], summary:string})
-- `pass` · `issues`(블로커, 없으면 빈 배열) · `summary`(무엇을 어떻게 검증했는지 + Codex 교차 결과 종합).
+## 우려·비차단 지적 판정 (조용한 기각 금지)
+- implementer 가 `DONE_WITH_CONCERNS` 로 `concerns` 를 보고했으면 **하나도 빠짐없이** `concernDispositions` 로 판정한다(개수가 안 맞으면 워크플로우가 그 리뷰를 결정적으로 불통과 처리한다 — 판정 누락 방지 가드). 항목별로 `resolved`(네가 확인해 해소됐다) / `accepted`(리스크로 받아들인다, 이유를 note 에) / `blocker`(사실상 차단 사유 — 자동으로 issues 로도 승격된다) 중 하나 + `note`.
+- 너 자신이 발견한, 통과를 막을 정도는 아닌 지적(코드 스멜·리팩터 여지 등)은 버리지 말고 `advisories` 에 담아 반환한다 — 조용히 삼키지 마라.
+
+## 반환 (schema: {pass, issues, advisories, concernDispositions, summary})
+- `pass` · `issues`(블로커, 없으면 빈 배열) · `advisories`(비차단 지적, 없으면 빈 배열) · `concernDispositions`(implementer `concerns` 1:1 판정, concerns 없으면 빈 배열) · `summary`(무엇을 어떻게 검증했는지 + Codex 교차 결과 종합).

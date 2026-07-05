@@ -32,5 +32,10 @@ codex:
 ## 금지
 - ADR 결정 임의 변경 · `git --no-verify`·`--force` · 미검증 추측 코드 · task 범위 밖 변경.
 
-## 반환 형식
-변경 파일 목록 · 핵심 구현 결정(추정 표시) · 자기검증 결과(통과/실패 + 실패 시 로그 요약) · 남은 우려/후속.
+## 반환 형식 (schema: {status, filesChanged, decisions, selfCheck, concerns, missing})
+- `status`: `DONE`(수용 기준 전부 충족, 우려 없음) / `DONE_WITH_CONCERNS`(구현은 끝났으나 트레이드오프·우려가 있음 — `concerns` 에 구체적으로, reviewer 가 하나도 빠짐없이 판정한다) / `NEEDS_CONTEXT`(task·수용 기준 자체가 불명확·모순이라 구현 불가) / `BLOCKED`(외부 의존·권한·환경 등 네가 풀 수 없는 장애).
+- `filesChanged`: 변경한 파일 경로 배열.
+- `decisions`: 핵심 구현 결정(추정한 부분은 표시).
+- `selfCheck`: 자기검증 결과(통과/실패 + 실패 시 로그 요약).
+- `concerns`: 비차단 우려/트레이드오프 배열(`DONE_WITH_CONCERNS` 일 때만 채움, 그 외 빈 배열).
+- `missing`: `NEEDS_CONTEXT`/`BLOCKED` 일 때 무엇이 부족한지 구체적으로(그 외 빈 문자열) — 리뷰 없이 이 값으로 재투입된다.
