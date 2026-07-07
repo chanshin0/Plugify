@@ -51,9 +51,9 @@ service-planning → tech-deciding → spec-building ────────→
 - spec-building Codex 조건부(2026-07-03 출하): 다음 실전 1회에서 비가역 표면 유무에 따라 Codex 수행/생략 로그가 맞게 찍히는지
 - spec-building 라이브 게이트(2026-07-03 출하, Phase C): 실전 지점 task 1회가 `{PREVIEW_URL}` 게이트→브랜치 push→프리뷰 프로브→종결 커밋으로 닫히는지 (선행 merge 완료 2026-07-05 — 지점 규격 main 반영, 즉시 적용 가능)
 - telemetry backward edge(2026-06-24 출하, ★2 냉동과 연동): 지점이 telemetry.sh 계약을 구현·해동한 첫 주에 실신호가 다이제스트+telemetry-log 로 흐르는지
-- spec-building 구조화 계약(2026-07-06 출하): 다음 실전 task 1회가 status·concerns→concernDispositions 흐름을 스키마 위반 없이 통과하고, 반환 advisories 를 메인이 실제로 처분(픽스 or STATE 기록)하는지 (+재시도 발생 시 마지막 시도 opus 상향 로그)
+- spec-building 구조화 계약(2026-07-06 출하): 다음 실전 task 1회가 status·concerns→concernDispositions 흐름을 스키마 위반 없이 통과하고, 반환 advisories 를 메인이 실제로 처분(픽스 or STATE 기록)하는지 (+재시도 발생 시 마지막 시도 opus 상향 로그) — **← 2026-07-07 니치마켓 소프트삭제 후속 런이 실증**(concerns 2건 1:1 판정·advisory 가 codex shim 누락을 실발견·처분). opus 상향만 미발화(1회 통과) — 닫기 판단은 사람
 - graph-workflow Phase D(2026-07-06 출하): 첫 실전 그래프 task 1회가 wave→merge-gate→통합 게이트로 닫히는지 (+선행: case-04·05 출제 confirm = 사람)
-- 접지 스캔·지점 노트·평가불능=실패(2026-07-06 출하): 다음 실전 사이클에서 메인이 접지 스캔을 수행하고, 종결 시 `.planning/notes.md` append 여부를 판단하며, 판정 불능 프로브를 실패로 처리하는지
+- 접지 스캔·지점 노트·평가불능=실패(2026-07-06 출하): 다음 실전 사이클에서 메인이 접지 스캔을 수행하고, 종결 시 `.planning/notes.md` append 여부를 판단하며, 판정 불능 프로브를 실패로 처리하는지 — **← 2026-07-07 같은 런이 실증**(접지 확정 2건·notes.md 신설 4건+양방향 정정 1건). 닫기 판단은 사람
 
 ## 4. 하니스 사실 (실증된 것 — 추측 아님)
 
