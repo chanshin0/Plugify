@@ -1,0 +1,60 @@
+#!/bin/bash
+# voice2text — 음성 파일을 전사하고 품질을 검증한다 (음성→세컨브레인 파이프라인의 기계 단계)
+# 사용: voice2text <음성파일> [출력폴더]   (기본 출력: 음성파일과 같은 폴더)
+# 산출: transcript-<이름>.txt / .srt + 품질 리포트(stdout, 상태 OK|SUSPECT)
+set -euo pipefail
+
+FILE="${1:?사용법: voice2text <음성파일> [출력폴더]}"
+OUTDIR="${2:-$(cd "$(dirname "$FILE")" && pwd)}"
+MODEL="$HOME/.cache/whisper-cpp/ggml-large-v3-turbo.bin"
+
+command -v whisper-cli >/dev/null || { echo "whisper-cli 없음 → brew install whisper-cpp"; exit 1; }
+command -v ffmpeg >/dev/null || { echo "ffmpeg 없음 → brew install ffmpeg"; exit 1; }
+if [ ! -f "$MODEL" ]; then
+  echo "전사 모델 없음. 받으려면:"
+  echo "  mkdir -p ~/.cache/whisper-cpp && curl -L -o $MODEL https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin"
+  exit 1
+fi
+
+BASE=$(basename "$FILE"); NAME="${BASE%.*}"
+DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$FILE")
+MIN=$(awk -v d="$DUR" 'BEGIN{printf "%.1f", d/60}')
+
+WAV=$(mktemp -t voice2text).wav
+trap 'rm -f "$WAV"' EXIT
+ffmpeg -y -v error -i "$FILE" -ar 16000 -ac 1 "$WAV"
+
+# -mc 0: 직전 문맥 이어받기 차단 — 초반 소음 한 번이 전체를 헛말 루프로
+# 오염시키는 사고 방지 (2026-07-15, 옹달샘 녹음 4건 중 3건에서 실제 발생)
+whisper-cli -m "$MODEL" -f "$WAV" -l ko -t 8 -mc 0 -et 2.0 \
+  -otxt -osrt -of "$OUTDIR/transcript-$NAME" >/dev/null 2>&1
+
+TXT="$OUTDIR/transcript-$NAME.txt"
+BYTES=$(wc -c < "$TXT" | tr -d ' ')
+LINES=$(wc -l < "$TXT" | tr -d ' ')
+BPM=$(awk -v b="$BYTES" -v m="$MIN" 'BEGIN{printf "%d", (m>0.1)? b/m : b}')
+# head -1 은 pipefail 하에서 큰 입력일 때 SIGPIPE(141)로 스크립트를 죽인다 — sed -n 1p 는 입력을 끝까지 읽어 안전
+TOPLINE=$(sort "$TXT" | uniq -c | sort -rn | sed -n 1p)
+TOPN=$(echo "$TOPLINE" | awk '{print $1}')
+TOPSHARE=$(awk -v t="$TOPN" -v l="$LINES" 'BEGIN{printf "%d", (l>0)? t*100/l : 0}')
+
+STATUS=OK
+WARN=""
+if [ "$BPM" -lt 300 ]; then
+  STATUS=SUSPECT
+  WARN="${WARN}⚠ 분당 전사량 ${BPM}B/min < 300 — 전사 유실 또는 긴 무음 의심\n"
+fi
+if [ "$TOPSHARE" -gt 20 ]; then
+  STATUS=SUSPECT
+  SAMPLE=$(echo "$TOPLINE" | sed 's/^ *[0-9]* //' | cut -c1-40)
+  WARN="${WARN}⚠ 최다 반복 줄이 전체의 ${TOPSHARE}% — 헛말 루프 의심: \"${SAMPLE}\"\n"
+fi
+
+echo "파일: $BASE (${MIN}분)"
+echo "전사: $TXT (${BYTES}B, ${LINES}줄, ${BPM}B/min)"
+echo "상태: $STATUS"
+if [ -n "$WARN" ]; then
+  printf "%b" "$WARN"
+  echo "→ 원인 확인: 10%/50%/85% 지점을 2분씩 잘라 재전사해 말소리 유무 확인"
+  echo "   ffmpeg -ss <초> -t 120 -i \"$FILE\" -ar 16000 -ac 1 /tmp/probe.wav && whisper-cli -m $MODEL -f /tmp/probe.wav -l ko -t 8"
+fi
