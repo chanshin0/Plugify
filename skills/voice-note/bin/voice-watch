@@ -46,6 +46,25 @@ def notify(title, body):
     subprocess.run(["/usr/bin/osascript", "-e",
                     f'display notification "{body}" with title "{title}"'],
                    capture_output=True)
+    notify_telegram(f"[{title}] {body}")
+
+
+def notify_telegram(text):
+    """수행 채널(노트북 봇2)로 메타데이터만 전송 — 회의 내용·요지 금지 (프라이버시 규칙 R1)."""
+    try:
+        cfg = json.load(open(HOME / ".cokacdir/bot_settings.json", encoding="utf-8"))
+        for b in cfg.values():
+            if b.get("username") == "chanshin0_claude01_bot":
+                tok, chat = b.get("token"), b.get("owner_user_id")
+                if tok and chat:
+                    subprocess.run(["/usr/bin/curl", "-s", "-m", "10",
+                                    f"https://api.telegram.org/bot{tok}/sendMessage",
+                                    "-d", f"chat_id={chat}",
+                                    "--data-urlencode", f"text={text}"],
+                                   capture_output=True, timeout=15)
+                return
+    except Exception:
+        pass  # 알림 실패는 파이프라인을 막지 않는다
 
 
 def probe(path):
