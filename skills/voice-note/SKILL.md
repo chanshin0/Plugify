@@ -7,6 +7,13 @@ description: 음성 파일(회의·대화·메모 녹음)을 전사→품질검�
 
 원칙: **기계 단계는 스크립트, 판단 단계는 Claude, 세컨 브레인 진입은 사용자 y/n.**
 
+## 0. 자동 수신 (2026-07-16 구축 — 기계 단계 무인화)
+launchd 에이전트 `com.chanshin.voice-watch`(정본: 이 폴더 `bin/voice-watch`)가 맥 음성메모 폴더와 `~/Inbox-음성`(갤럭시 Syncthing 수신)을 감시한다:
+- 새 *.m4a → 안정화 확인 → 원장(`~/.local/state/voice-note/ledger.jsonl`, 멱등) → 시각·길이 겹침 짝짓기(이중 녹음의 늦게 온 쪽은 백업 보관만) → `~/Documents/옹달샘-대화/{날짜}/`로 아카이브 + voice2text 본전사 → macOS 알림
+- 처리 대기 표시는 날짜 폴더의 `.pending-review` — Claude 세션은 이 마커를 보면 §3 정리본부터 이어가면 된다 (전사는 이미 되어 있음)
+- **프라이버시 규칙**: 알림·텔레그램 등 외부 채널에는 메타데이터(파일명·길이·상태)만. 회의 내용·요지는 싣지 않는다 — 봇 채널은 종단간 암호화가 아니다
+- 로그·권한 문제는 `~/.local/state/voice-note/watch.log` 확인
+
 ## 1. 전사 + 품질검증
 ```
 voice2text <음성파일> [출력폴더]     # ~/.local/bin — 처방(-mc 0) 내장

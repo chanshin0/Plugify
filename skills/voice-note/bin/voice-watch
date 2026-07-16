@@ -1,0 +1,222 @@
+#!/opt/homebrew/bin/python3
+# voice-watch — 이중 녹음(맥 음성메모 + 갤럭시/Syncthing) 감시·짝짓기·자동 전사 (voice-note 파이프라인 기계 단계)
+# launchd(WatchPaths + 주기)로 호출된다. 판단 단계(정리본·과제 도출)는 Claude 몫 — 여기서는 안 한다.
+#
+# 동작: 새 *.m4a 발견 → 안정화 확인 → 원장(멱등) → 시각·길이 겹침으로 쌍둥이 짝짓기
+#   - 쌍둥이가 이미 본전사됨 → 이 파일은 백업으로 보관만
+#   - 쌍둥이가 같은 런에 함께 있음 → 2분 샘플 전사로 품질 좋은 쪽을 본전사
+#   - 쌍둥이 없음 → 본전사
+# 본전사: 원본을 아카이브 폴더로 복사(음성메모)/이동(인박스) 후 voice2text 실행.
+# 알림: macOS 알림만 (회의 내용은 텔레그램 등 외부 채널에 싣지 않는다 — 프라이버시 규칙 R1).
+
+import fcntl
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+from datetime import datetime, timedelta
+from pathlib import Path
+
+HOME = Path.home()
+VM_DIR = HOME / "Library/Group Containers/group.com.apple.VoiceMemos.shared/Recordings"
+INBOX = HOME / "Inbox-음성"
+ARCHIVE = HOME / "Documents/옹달샘-대화"
+STATE = HOME / ".local/state/voice-note"
+LEDGER = STATE / "ledger.jsonl"
+LOCK = STATE / "watch.lock"
+LOG = STATE / "watch.log"
+VOICE2TEXT = HOME / ".local/bin/voice2text"
+FFPROBE = "/opt/homebrew/bin/ffprobe"
+
+STABLE_SECS = 20      # 파일 크기가 이 시간 동안 불변이면 확정으로 간주
+MIN_SECS = 60         # 이보다 짧은 녹음은 무시 (주머니 소음 등)
+OVERLAP_MIN = 0.5     # 짧은 쪽 길이의 50% 이상 겹치면 같은 자리로 판정
+
+
+def log(msg):
+    STATE.mkdir(parents=True, exist_ok=True)
+    line = f"{datetime.now().isoformat(timespec='seconds')} {msg}"
+    with open(LOG, "a", encoding="utf-8") as f:
+        f.write(line + "\n")
+
+
+def notify(title, body):
+    subprocess.run(["/usr/bin/osascript", "-e",
+                    f'display notification "{body}" with title "{title}"'],
+                   capture_output=True)
+
+
+def probe(path):
+    """duration(sec), creation_time(datetime|None)"""
+    r = subprocess.run([FFPROBE, "-v", "error", "-show_entries",
+                        "format=duration:format_tags=creation_time",
+                        "-of", "json", str(path)], capture_output=True, text=True)
+    try:
+        d = json.loads(r.stdout)["format"]
+        dur = float(d.get("duration", 0))
+        ct = d.get("tags", {}).get("creation_time")
+        cdt = datetime.fromisoformat(ct.replace("Z", "+00:00")).astimezone().replace(tzinfo=None) if ct else None
+        return dur, cdt
+    except Exception:
+        return 0.0, None
+
+
+def infer_span(path, dur, cdt):
+    """녹음 시작·종료 시각 추정. 파일명 규칙 우선, 없으면 메타/뮤테이션 시각."""
+    name = path.name
+    m = re.match(r"(\d{8}) (\d{6})", name)             # 맥 음성메모: 'YYYYMMDD HHMMSS'
+    if m:
+        start = datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S")
+        return start, start + timedelta(seconds=dur)
+    m = re.match(r"음성 (\d{6})_(\d{6})", name)         # 갤럭시: '음성 YYMMDD_HHMMSS'
+    if m:
+        start = datetime.strptime("20" + m.group(1) + m.group(2), "%Y%m%d%H%M%S")
+        return start, start + timedelta(seconds=dur)
+    end = cdt or datetime.fromtimestamp(path.stat().st_mtime)  # 갤럭시 creation_time = 종료 시각 (2026-07-15 실측)
+    return end - timedelta(seconds=dur), end
+
+
+def overlap_ratio(a, b):
+    inter = (min(a["end"], b["end"]) - max(a["start"], b["start"])).total_seconds()
+    if inter <= 0:
+        return 0.0
+    return inter / min(a["dur"], b["dur"])
+
+
+def load_ledger():
+    entries = []
+    if LEDGER.exists():
+        for line in open(LEDGER, encoding="utf-8"):
+            try:
+                e = json.loads(line)
+                e["start"] = datetime.fromisoformat(e["start"])
+                e["end"] = datetime.fromisoformat(e["end"])
+                entries.append(e)
+            except Exception:
+                continue
+    return entries
+
+
+def append_ledger(e):
+    e = dict(e)
+    e["start"] = e["start"].isoformat(timespec="seconds")
+    e["end"] = e["end"].isoformat(timespec="seconds")
+    with open(LEDGER, "a", encoding="utf-8") as f:
+        f.write(json.dumps(e, ensure_ascii=False) + "\n")
+
+
+def scan_files():
+    found = []
+    for d, device in ((VM_DIR, "mac"), (INBOX, "galaxy")):
+        try:
+            for p in sorted(d.glob("*.m4a")):
+                found.append((p, device))
+        except PermissionError:
+            log(f"PERMISSION DENIED: {d} — launchd 실행 바이너리에 전체 디스크 접근 권한 필요")
+            notify("voice-watch 권한 오류", "전체 디스크 접근 권한이 필요합니다 (watch.log 참조)")
+        except FileNotFoundError:
+            pass
+    return found
+
+
+def stable(path):
+    s1 = path.stat().st_size
+    time.sleep(STABLE_SECS)
+    try:
+        return path.stat().st_size == s1
+    except FileNotFoundError:
+        return False
+
+
+def transcribe_primary(cand):
+    date_dir = ARCHIVE / cand["start"].strftime("%Y-%m-%d")
+    date_dir.mkdir(parents=True, exist_ok=True)
+    dest = date_dir / cand["path"].name
+    if cand["device"] == "mac":
+        if not dest.exists():
+            subprocess.run(["/bin/cp", "-p", str(cand["path"]), str(dest)], check=True)
+    else:
+        if not dest.exists():
+            cand["path"].rename(dest)
+    r = subprocess.run([str(VOICE2TEXT), str(dest), str(date_dir)],
+                       capture_output=True, text=True, timeout=7200)
+    status = "OK" if "상태: OK" in r.stdout else ("SUSPECT" if "SUSPECT" in r.stdout else f"exit={r.returncode}")
+    txt = date_dir / f"transcript-{dest.stem}.txt"
+    if not txt.exists():
+        status = "전사 실패"
+    (date_dir / ".pending-review").open("a", encoding="utf-8").write(dest.name + "\n")
+    return dest, status
+
+
+def archive_backup(cand, twin_entry):
+    date_dir = ARCHIVE / cand["start"].strftime("%Y-%m-%d")
+    date_dir.mkdir(parents=True, exist_ok=True)
+    dest = date_dir / cand["path"].name
+    if not dest.exists():
+        if cand["device"] == "mac":
+            subprocess.run(["/bin/cp", "-p", str(cand["path"]), str(dest)], check=True)
+        else:
+            cand["path"].rename(dest)
+    return dest
+
+
+def main():
+    STATE.mkdir(parents=True, exist_ok=True)
+    lock = open(LOCK, "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return  # 이미 다른 인스턴스가 처리 중
+
+    bootstrap = not LEDGER.exists()
+    ledger = load_ledger()
+    seen = {e["src"] for e in ledger}
+
+    for path, device in scan_files():
+        if str(path) in seen:
+            continue
+        dur, cdt = probe(path)
+        start, end = infer_span(path, dur, cdt)
+        cand = {"path": path, "device": device, "dur": dur, "start": start, "end": end}
+
+        if bootstrap:
+            append_ledger({"src": str(path), "device": device, "role": "preexisting",
+                           "start": start, "end": end, "dur": dur})
+            continue
+        if dur < MIN_SECS:
+            append_ledger({"src": str(path), "device": device, "role": "ignored-short",
+                           "start": start, "end": end, "dur": dur})
+            log(f"짧은 녹음 무시({int(dur)}s): {path.name}")
+            continue
+        if not stable(path):
+            log(f"아직 쓰는 중, 다음 런에 처리: {path.name}")
+            continue
+
+        twin = next((e for e in ledger if e.get("role") == "primary" and e.get("device") != device
+                     and overlap_ratio(cand, e) >= OVERLAP_MIN), None)
+        if twin:
+            dest = archive_backup(cand, twin)
+            append_ledger({"src": str(path), "device": device, "role": "backup",
+                           "paired_with": twin["src"], "archived": str(dest),
+                           "start": start, "end": end, "dur": dur})
+            log(f"백업 보관(쌍둥이: {Path(twin['src']).name}): {path.name}")
+            notify("녹음 백업 보관", f"{path.name} — 본전사본과 짝지어 보관만 했습니다")
+            continue
+
+        dest, status = transcribe_primary(cand)
+        entry = {"src": str(path), "device": device, "role": "primary",
+                 "archived": str(dest), "status": status,
+                 "start": start, "end": end, "dur": dur}
+        append_ledger(entry)
+        ledger.append({**entry})
+        log(f"본전사 완료[{status}]: {path.name} ({int(dur/60)}분) → {dest.parent}")
+        notify("녹음 전사 완료", f"{path.name} · {int(dur/60)}분 · {status} — 정리본은 Claude 세션에서")
+
+    if bootstrap:
+        log(f"부트스트랩: 기존 파일 원장 등록 완료 (처리 안 함)")
+
+
+if __name__ == "__main__":
+    main()
