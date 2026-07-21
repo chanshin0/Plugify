@@ -12,14 +12,14 @@ export const meta = {
 }
 
 // ── 입력 ──────────────────────────────────────────────
-// 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 spec-building canary 실증) → 객체로 정규화.
+// 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 spec-building 첫 실전 관찰 실증) → 객체로 정규화.
 const A = (typeof args === 'string') ? (() => { try { return JSON.parse(args) } catch { return null } })() : (args ?? null)
 log(`args 수신(정규화 후): ${JSON.stringify(A)}`)
 
 // ── 타깃·질문 해석 — 조용한 기본값 금지 ─────────────────
-// args 는 하니스에 따라 미전달(2026-06-11 spec-building canary 사고) → 정본 채널 = 포인터 파일
+// args 는 하니스에 따라 미전달(2026-06-11 spec-building 첫 실전 관찰 사고) → 정본 채널 = 포인터 파일
 // /tmp/tech-deciding.target (메인이 Workflow 호출 직전 JSON 1줄 기록: {"question","projectRoot","adrPath"?}).
-// args 는 보조 채널. placeholder question·'.' 폴백으로 비싼 조사(researcher fan-out)를 낭비하지 않는다.
+// args 는 보조 채널. placeholder question·'.' 폴백으로 비싼 조사(researcher 병렬 위임)를 낭비하지 않는다.
 const argQuestion = (typeof A?.question === 'string' && A.question.trim()) ? A.question.trim() : null
 const argRoot     = (typeof A?.projectRoot === 'string' && A.projectRoot.trim()) ? A.projectRoot.trim() : null
 const probe = await agent(
@@ -92,7 +92,7 @@ const define = await agent(
 )
 log(`정의 완료 — 조사 축 ${define.axes.length}개: ${define.axes.map(a => a.key).join(', ')}`)
 
-// ── P2 조사 (축별 격리 fan-out, researcher 에이전트) ──
+// ── P2 조사 (축별 격리 병렬 위임, researcher 에이전트) ──
 phase('Research')
 const research = await parallel(
   define.axes.map(axis => () =>

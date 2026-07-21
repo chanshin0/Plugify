@@ -25,7 +25,7 @@ const CONCURRENCY = 4          // wave 내 동시 dispatch 상한
 const INTEGRATION_FIX_CAP = 1  // 통합 게이트 실패 시 원인 수정 재투입 상한(초과 = 에스컬레이션)
 
 // ── 입력 ──────────────────────────────────────────────
-// 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 canary 실증) → 객체로 정규화.
+// 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 첫 실전 관찰 실증) → 객체로 정규화.
 const A = (typeof args === 'string') ? (() => { try { return JSON.parse(args) } catch { return null } })() : (args ?? null)
 const MAX_TASK_ATTEMPTS = A?.maxAttempts ?? 3
 log(`args 수신(정규화 후): ${JSON.stringify(A)}`)

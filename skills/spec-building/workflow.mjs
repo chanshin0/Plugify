@@ -11,7 +11,7 @@ export const meta = {
 }
 
 // ── 입력 ──────────────────────────────────────────────
-// 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 canary 실증: args 수신 로그가 "{\"projectRoot\"...}" 문자열) → 객체로 정규화.
+// 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 첫 실전 관찰 실증: args 수신 로그가 "{\"projectRoot\"...}" 문자열) → 객체로 정규화.
 const A = (typeof args === 'string') ? (() => { try { return JSON.parse(args) } catch { return null } })() : (args ?? null)
 const task        = A?.task ?? '.planning/STATE.md 의 "## 다음 task" 의 ### 목표 를, 같은 task 의 ### 게이트 항목이 전부 통과하도록 구현하라.'
 const acceptance  = A?.acceptance ?? '수용 기준 = .planning/STATE.md 해당 task 의 "### 게이트" 항목 전부 — auto: 는 명시된 명령/테스트/라이브 프로브로 실증, human: 은 사람이 닫는다. 이것을 SSOT 로 따르라.'
@@ -20,7 +20,7 @@ const doCommit    = A?.commit !== false
 const MAX         = A?.maxAttempts ?? 3
 
 // ── 타깃 해석 — 조용한 기본값 금지 ─────────────────────
-// 2026-06-11 canary 사고: 이 하니스에서 args 가 전달되지 않는데 `?? '.'` 폴백이
+// 2026-06-11 첫 실전 관찰 사고: 이 하니스에서 args 가 전달되지 않는데 `?? '.'` 폴백이
 // 시험을 엉뚱한 레포에서 실행시킴. 정본 채널 = 포인터 파일 /tmp/spec-building.target
 // (메인이 Workflow 호출 직전에 절대경로 1줄 기록). args 는 보조 채널.
 log(`args 수신(정규화 후): ${JSON.stringify(A)}`)

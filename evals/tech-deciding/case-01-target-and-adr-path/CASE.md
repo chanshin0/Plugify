@@ -3,7 +3,7 @@
 ## 무엇을 시험하나
 2026-06-11 이식된 타깃픽스 3종의 회귀 케이스:
 - **args JSON-문자열 정규화** — 하니스가 args 를 문자열로 전달해도 question/projectRoot 가 살아야 함
-- **타깃/질문 해석 fail-fast** — args·포인터 둘 다 없으면 조사(researcher fan-out) 진입 전 즉시 실패. placeholder question·`'.'` 폴백으로 비싼 실행 낭비 금지 (spec-building 2026-06-11 canary 사고 계열)
+- **타깃/질문 해석 fail-fast** — args·포인터 둘 다 없으면 조사(researcher 병렬 위임) 진입 전 즉시 실패. placeholder question·`'.'` 폴백으로 비싼 실행 낭비 금지 (spec-building 2026-06-11 첫 실전 관찰 사고 계열)
 - **ADR 절대경로 기록** — adrPath 상대경로가 projectRoot 기준으로 정규화되어 타깃 레포에만 생성 (2026-06-05 M2: 상대경로 Write → 엉뚱한 디렉토리 위험)
 
 ## 실행 절차 (메인이 수행)

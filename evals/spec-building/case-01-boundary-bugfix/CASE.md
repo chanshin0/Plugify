@@ -8,7 +8,7 @@ spec-building 워크플로우의 풀사이클: STATE "다음 task" 읽기 → im
 
 ## 실행 절차 (메인이 수행)
 1. `bash setup.sh` → 출력 마지막 줄의 `RUN_DIR` 확보 (테스트 2건 실패 상태 확인 포함)
-2. **타깃 포인터 기록**: `echo "<RUN_DIR>" > /tmp/spec-building.target` (args 는 하니스에 따라 미전달 — 2026-06-11 canary 사고로 실증된 정본 채널)
+2. **타깃 포인터 기록**: `echo "<RUN_DIR>" > /tmp/spec-building.target` (args 는 하니스에 따라 미전달 — 2026-06-11 첫 실전 관찰 사고로 실증된 정본 채널)
 3. `Workflow({ scriptPath: "<plugify>/skills/spec-building/workflow.mjs", args: { projectRoot: "<RUN_DIR>" } })`
 4. 완료 후 **ANSWER.md 채점표로 채점** — 워크플로우 반환·에이전트 보고를 믿지 말고 RUN_DIR 의 git·테스트 실상태로.
 5. 채점 결과(합격/실패 + 항목별)를 본사 사이클 기록에 남기고 RUN_DIR 과 `/tmp/spec-building.target` 정리.

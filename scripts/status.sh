@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # plugify status — 시스템 한눈에 보기 (★2-P0 현황판, SYSTEM.md §6 ★2)
-# 흩어진 상태(본사 evals·canary·백로그 + 각 지점 STATE·git)를 한 화면으로 모은다.
+# 흩어진 상태(본사 evals·첫 실전 관찰·백로그 + 각 지점 STATE·git)를 한 화면으로 모은다.
 # "살아 움직이는 시스템"의 토대: 먼저 *보여야* 루프(피드백·자기시계)를 건다.
 # 사용: bash scripts/status.sh
 set -uo pipefail
@@ -31,10 +31,10 @@ for skill in "$HQ"/evals/*/; do
   [ "$n" -gt 0 ] && echo "      $(basename "$skill"): ${n}케이스"
 done
 
-# canary (정본 = SYSTEM.md §3.1 불릿 — 2026-07-03 레지스트리 격하) — 닫기 = 사람(줄 제거)
-echo "  · canary (닫기=사람, 정본=SYSTEM.md §3.1):"
-awk '/^### 3\.1 canary/{f=1;next} f&&/^#/{exit} f&&/^- /' "$HQ/SYSTEM.md" 2>/dev/null | sed 's/^- /    ⏳ /'
-[ -z "$(awk '/^### 3\.1 canary/{f=1;next} f&&/^#/{exit} f&&/^- /' "$HQ/SYSTEM.md" 2>/dev/null)" ] && echo "    (열린 canary 없음)"
+# 첫 실전 관찰 (정본 = SYSTEM.md §3.1 불릿 — 2026-07-03 레지스트리 격하) — 닫기 = 사람(줄 제거)
+echo "  · 첫 실전 관찰 (닫기=사람, 정본=SYSTEM.md §3.1):"
+awk '/^### 3\.1 첫 실전 관찰/{f=1;next} f&&/^#/{exit} f&&/^- /' "$HQ/SYSTEM.md" 2>/dev/null | sed 's/^- /    ⏳ /'
+[ -z "$(awk '/^### 3\.1 첫 실전 관찰/{f=1;next} f&&/^#/{exit} f&&/^- /' "$HQ/SYSTEM.md" 2>/dev/null)" ] && echo "    (열린 첫 실전 관찰 없음)"
 
 # 박동(heartbeat) — 자기 시계 마지막 실행 + launchd 등록 여부 (★2-P2)
 hb="$HQ/telemetry/heartbeat.json"

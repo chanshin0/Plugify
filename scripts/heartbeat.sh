@@ -37,7 +37,7 @@ hdr="$(grep -m1 '관찰.*지점.*건너뜀' "$digest" 2>/dev/null || true)"
 collected="$(printf '%s' "$hdr" | sed -nE 's/.*관찰 ([0-9]+)지점.*/\1/p')"; collected="${collected:-0}"
 skipped="$(printf '%s' "$hdr" | sed -nE 's/.*건너뜀 ([0-9]+)지점.*/\1/p')"; skipped="${skipped:-0}"
 
-# (canary 점검 배선은 2026-07-03 레지스트리 격하와 함께 제거 — canary 정본 = SYSTEM.md §3.1)
+# (첫 실전 관찰 점검 배선은 2026-07-03 레지스트리 격하와 함께 제거 — 첫 실전 관찰 정본 = SYSTEM.md §3.1)
 
 # 박동 기록 — 현황판이 읽는 단일 포인터(멱등 덮어쓰기).
 cat > "$RECORD" <<JSON
