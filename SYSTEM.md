@@ -1,7 +1,7 @@
 # SYSTEM — 개발 루프 시스템 구조 (이어가기 앵커)
 
 > 새 세션에서 시스템 개선을 이어갈 때 이 문서부터 읽는다. 규칙의 정본은 각 SKILL/AGENTS — 이 문서는 **지도 + 현재 위치 + 열린 개선**만 담는다(중복 금지).
-> 마지막 갱신: 2026-07-22 네 번째 사이클 완료 (**스캐폴드 3부작 — AX 해커톤 방법론 이식**, 사용자 지시. ① 1단계 `skills/scaffold/` 신설(일회성 병렬 위임 착지 규약: 틀=저금통/run=증거 2층, P0 골격→P4 승격 점검. eval case-01 초안 — 출제 confirm 대기) ② 3단계 빈 껍데기 먼저 원칙(AGENTS.md+spec-building 선행 조건) ③ 2단계 착지 어댑터: perf-review(분석가→슬롯 Write·judge 파일 직읽 — 메인 raw 운반 구조적 제거)+tech-deciding(기록 단계 신설 — 인스턴스 프롬프트·조사 원문을 `.planning/runs/` 정착). eval 재실행 2건 합격: perf-review case-01(정탐 3/3·함정 기각·환각 0 + **하니스가 서브에이전트 보고서 파일 Write 차단 발견** → judge 반환/메인 정착으로 계약 수정, §4) · tech-deciding case-01(**1차 B3 불합격 — 여섯째 사례**: ADR 출처 1개로 붕괴, run 기록 원문 대조로 유실 지점이 ADR 아닌 **synthesize** 로 판별(조사 39 URL→종합 0) → 종합 출처 보존 의무+ADR run 회수 백스톱 픽스 후 재시험 28 URL 합격). +용어 전수 교체(canary→첫 실전 관찰·fan-out→병렬 위임, status.sh 동기). 잔여 = §6-10 ⓒ audience-judge 틀 후보.)
+> 마지막 갱신: 2026-07-22 네 번째 사이클 완료 (**스캐폴드 3부작 — AX 해커톤 방법론 이식**, 사용자 지시. ① 1단계 `skills/scaffold/` 신설(일회성 병렬 위임 착지 규약: 틀=저금통/run=증거 2층, P0 골격→P4 승격 점검. eval case-01 초안 — 출제 confirm 대기) ② 3단계 빈 껍데기 먼저 원칙(AGENTS.md+spec-building 선행 조건) ③ 2단계 착지 어댑터: perf-review(분석가→슬롯 Write·judge 파일 직읽 — 메인 raw 운반 구조적 제거)+tech-deciding(기록 단계 신설 — 인스턴스 프롬프트·조사 원문을 `.planning/runs/` 정착). eval 재실행 2건 합격: perf-review case-01(정탐 3/3·함정 기각·환각 0 + **하니스가 서브에이전트 보고서 파일 Write 차단 발견** → judge 반환/메인 정착으로 계약 수정, §4) · tech-deciding case-01(**1차 B3 불합격 — 여섯째 사례**: ADR 출처 1개로 붕괴, run 기록 원문 대조로 유실 지점이 ADR 아닌 **synthesize** 로 판별(조사 39 URL→종합 0) → 종합 출처 보존 의무+ADR run 회수 백스톱 픽스 후 재시험 28 URL 합격). +용어 전수 교체(canary→첫 실전 관찰·fan-out→병렬 위임, status.sh 동기). +audience-judge 틀 추가(07-22, ⓒ ✅). 잔여 = scaffold eval case-01 출제 confirm(사람).)
 > 이전 갱신: 2026-07-06 세 번째 사이클 (**★1 Phase D 출하 — 그래프 병렬 실행** + dryforge(fn-opt) 하네스 심층 리뷰에서 채굴한 개선 일괄 반영: ① `graph-workflow.mjs` 신설(JSON 그래프 결정적 검증→wave→worktree 병렬→merge-gate·통합게이트 코드 판정) ② implementer 구조화 계약(status 4값·concerns) + concernDispositions 1:1 코드 대조 = **조용한 기각 금지** ③ 재시도 마지막 시도 opus 자동 상향(MAX>1 한정) ④ 접지 스캔(SKILL 지시문 — assumed 결정은 사용자 확정 후 투입) ⑤ 지점 노트 규약(`.planning/notes.md`, 정본=live-verify SKILL §지점 노트) ⑥ **평가 불능 체크 = 실패** 명문화(spec-building 게이트 룰·프로브·live-verify P3). eval: case-01·02·03 + live-verify case-01 재실행 전부 합격(회귀 무결), case-04 신설 — **② 첫 시험이 실결함을 잡음(다섯째 사례)**: 계측 에이전트가 id 를 브랜치명으로 반환, 판정 조인이 task id 로 조회해 miss → merge-gate·merge 오판. `findByTaskId` 4개 사이트 이중 방어(코드 양쪽 수용+프롬프트 명시) 후 클린 재실행 ② 합격(2 wave·T2 가 T1 산출물 실경로 소비·통합게이트 exit0). case-05(조용한 기각 금지 회귀) 초안 신설. 잔여 = **case-04·05 출제 confirm(사람)** + 첫 실전 관찰 §3.1.)
 
 ## 1. 2층 구조 — 본사/지점
@@ -58,7 +58,7 @@ service-planning → tech-deciding → spec-building ────────→
 - 빈 껍데기 먼저 원칙(2026-07-21 출하): 다음 "새 산출물 유형/새 지점" task 1회에서 내용 구현 전에 골격 task(치명 조건 빈 껍데기 실증)가 먼저 태워지는지
 - perf-review 착지 어댑터(2026-07-22 출하): 다음 실전 지점 리뷰 1회가 골격 생성→슬롯 착지→judge 파일 직읽→메인 REPORT.md 정착으로 닫히는지 (eval 은 픽스처 — 실전 레포 규모에서 확인)
 - tech-deciding 기록 단계(2026-07-22 출하): 다음 실전 결정 1회가 `.planning/runs/<날짜>-tech-deciding/` 에 프롬프트·조사 원문을 정착시키고 ADR 출처 ≥3 URL 을 유지하는지
-- scaffold 스킬(2026-07-21 출하): 다음 일회성 병렬 위임 실전 1회가 골격 선행(P0)→확인 게이트(P1)→슬롯 착지+빈 슬롯 메인 직접확인(P3)→승격 점검 제안(P4)으로 닫히고, run 디렉토리에 프롬프트 인스턴스·산출물이 실재하는지
+- scaffold 스킬(2026-07-21 출하): 다음 일회성 병렬 위임 실전 1회가 골격 선행(P0)→확인 게이트(P1)→슬롯 착지+빈 슬롯 메인 직접확인(P3)→승격 점검 제안(P4)으로 닫히고, run 디렉토리에 프롬프트 인스턴스·산출물이 실재하는지 (+audience-judge 2026-07-22 추가: 전달성 산출물 첫 1회에서 블라인드 심사 레인이 행동 모델·거절 시나리오·개선 순위를 반환하는지)
 - 접지 스캔·지점 노트·평가불능=실패(2026-07-06 출하): 다음 실전 사이클에서 메인이 접지 스캔을 수행하고, 종결 시 `.planning/notes.md` append 여부를 판단하며, 판정 불능 프로브를 실패로 처리하는지 — **← 2026-07-07 같은 런이 실증**(접지 확정 2건·notes.md 신설 4건+양방향 정정 1건). 닫기 판단은 사람
 
 ## 4. 하니스 사실 (실증된 것 — 추측 아님)
@@ -111,7 +111,7 @@ service-planning → tech-deciding → spec-building ────────→
 7. **comprehension debt** — 에이전트 작성 코드를 사람이 안 읽는 구조. 주요 모듈 "코드 투어" 체크포인트 운영 검토.
 8. plugins/ 번들화(`dev-loop`) — 외부 배포 필요 시.
 9. **spec-building 정제 후보(비차단 — 2026-07-06 적대 리뷰 advisory 기록, 조용한 드랍 금지)**: ⓐ concern 개수 불일치 시 피드백이 implementer 로 재투입됨(실은 리뷰어 판정 누락 — 재구현 불필요할 수 있음, 확률적 자기교정 의존) ⓑ graph 병렬 에이전트의 worktree 고정이 프롬프트 cd-pin 의존(commit-fail·merge-gate 가 backstop — 저위험) ⓒ "평가불능=실패" 문구가 3곳 분산(spec-building 게이트룰·프로브 프롬프트·live-verify P3 — 모순 없음, 표현 통합 여지) ⓓ case-03 ANSWER #4 "항목 2개" 문구 결함(사람 게이트).
-10. **scaffold 3부작** — ⓐ 2단계 어댑터 ✅(2026-07-22: perf-review 착지+tech-deciding 기록 단계, evals 2건 재실행 합격 — 상세는 갱신 헤더) ⓑ 3단계 빈 껍데기 먼저 ✅(2026-07-21, AGENTS.md+spec-building) ⓒ **잔여**: 평가자 역설계 심사자 틀(audience-judge — 산출물을 실제로 받아볼 외부인의 행동 모델로 블라인드 채점, 이사장 문서·지원서·기획서 승인자에 적용)을 `skills/scaffold/templates/` 에 추가 + scaffold eval case-01 출제 confirm(사람).
+10. **scaffold 3부작** — ⓐ 2단계 어댑터 ✅(2026-07-22: perf-review 착지+tech-deciding 기록 단계, evals 2건 재실행 합격 — 상세는 갱신 헤더) ⓑ 3단계 빈 껍데기 먼저 ✅(2026-07-21, AGENTS.md+spec-building) ⓒ audience-judge 틀 ✅(2026-07-22 — 외부인 행동 모델 역설계·블라인드 채점, 전달성 산출물에 심사 레인. 이사장 문서·지원서·기획서 승인자에 적용) ⓓ **잔여**: scaffold eval case-01 출제 confirm(사람 — 자기 시험 자기 승인 금지).
 
 ## 7. 참고 계보
 
