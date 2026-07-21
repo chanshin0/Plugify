@@ -22,7 +22,7 @@ Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs",
 ```
 - 워크플로우는 question·projectRoot 를 해석·검증하고, 무효면 **조용한 폴백 없이 즉시 실패**한다(placeholder question 으로 비싼 조사 낭비 금지·엉뚱한 레포 실행 차단).
 - `adrPath` 상대경로는 projectRoot 기준 **절대경로로 정규화**되어 ADR 이 항상 타깃 레포에 기록된다(2026-06-05 M2: 상대경로 Write 가 엉뚱한 디렉토리로 갈 위험).
-- 진행: define(sonnet 난제 매핑) → researcher(sonnet) **축별 병렬** 조사 → synthesize(opus) → critique(opus 적대검증) → ADR(haiku Write).
+- 진행: define(sonnet 난제 매핑) → researcher(sonnet) **축별 병렬** 조사 → 기록(haiku — 인스턴스 프롬프트·조사 원문을 `<타깃>/.planning/runs/<날짜>-tech-deciding/` 에 정착, 증거·비파괴) → synthesize(opus, 출처 URL 보존 의무) → critique(opus 적대검증) → ADR(haiku Write, 출처 부족 시 run 조사 원문에서 회수).
 - 에이전트(`agents/researcher.md`)는 plugify 전역등록되어 `agentType: researcher` 로 호출된다(모델·규칙은 `.md` SSOT).
 - 산출: 선정안 + 적대 검증 + ADR 파일.
 

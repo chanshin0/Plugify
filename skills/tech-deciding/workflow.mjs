@@ -5,6 +5,7 @@ export const meta = {
   phases: [
     { title: 'Define', detail: '기획에서 기능→기술난제 매핑, 조사 축 도출(sonnet)' },
     { title: 'Research', detail: '난제 축별 격리 researcher 병렬(web·cited)' },
+    { title: 'Archive', detail: 'run 디렉토리에 조사 프롬프트·산출물 정착 — 증거(haiku)' },
     { title: 'Synthesize', detail: '후보 비교 + 선정 초안(opus)' },
     { title: 'Critique', detail: '적대 검증 — 빠진 축·과투자·되돌리기비용(opus)' },
     { title: 'ADR', detail: 'decisions/NNN-*.md 기록(haiku)' },
@@ -105,11 +106,44 @@ const research = await parallel(
 const researchBlock = research.filter(Boolean)
   .map(r => `## 축: ${r.title} (${r.key})\n${r.findings}`).join('\n\n---\n\n')
 
+// ── P2.5 기록 — run 디렉토리에 인스턴스 프롬프트·조사 산출물 정착 ──
+// 증거·레인 재실행·프롬프트 개선의 기반(scaffold 규약과 동형). 기록 실패는
+// 파이프라인을 멈추지 않는다 — 증거 계층이지 게이트가 아니다.
+phase('Archive')
+const archivePayload = research.filter(Boolean).map(r => {
+  const axis = define.axes.find(a => a.key === r.key)
+  const prompt = `결정 축 조사: ${r.title}\n\n조사 질문:\n${axis?.questions ?? '(원문 미보존)'}\n\n프로젝트 제약:\n${define.constraints}`
+  return `===AXIS ${r.key}===\n---PROMPT---\n${prompt}\n---OUTPUT---\n${r.findings}`
+}).join('\n\n')
+const archived = await agent(
+  `기록 작업만 수행하라(조사·코드 수정 아님). 대상 레포: ${projectRoot}\n` +
+  `run 디렉토리를 만들어라: <ROOT>/.planning/ 이 실재하면 <ROOT>/.planning/runs/<오늘 YYYY-MM-DD>-tech-deciding/, 없으면 <ROOT>/runs/<오늘 YYYY-MM-DD>-tech-deciding/ (이하 <RUN>).\n` +
+  `아래 페이로드를 마커(===AXIS <key>=== / ---PROMPT--- / ---OUTPUT---)로 분해해 Write 하라:\n` +
+  `1) <RUN>/BRIEF.md — 결정 질문("${question}")과 축 목록·제약 요약\n` +
+  `2) 축마다 <RUN>/prompts/<key>.md — PROMPT 원문 그대로\n` +
+  `3) 축마다 <RUN>/outputs/<key>.md — OUTPUT 원문 그대로(요약·수정 금지)\n` +
+  `이 파일들 외 어떤 파일도 만들지·수정하지 마라.\n\n페이로드:\n${archivePayload}`,
+  {
+    phase: 'Archive', label: 'run 기록', model: 'haiku',
+    schema: {
+      type: 'object',
+      properties: {
+        runDir:  { type: 'string', description: '생성한 run 디렉토리 절대경로' },
+        written: { type: 'number', description: 'Write 한 파일 수' },
+      },
+      required: ['runDir', 'written'],
+    },
+  }
+).catch(() => null)
+if (archived?.runDir) log(`run 기록: ${archived.runDir} (${archived.written}개 파일)`)
+else log('경고: run 기록 실패 — 증거 미정착(파이프라인은 계속)')
+
 // ── P3 종합 ───────────────────────────────────────────
 phase('Synthesize')
 const synthesis = await agent(
   `다음은 "${question}" 결정을 위한 축별 웹조사 결과다. 이를 종합해 단일 스택/결정을 선정하라.\n` +
-  `요구: (1) 기능→난제→선정 매핑표, (2) 각 축 추천+근거, (3) 탈락안과 이유, (4) 비용, (5) 뒤집을 조건.\n\n` +
+  `요구: (1) 기능→난제→선정 매핑표, (2) 각 축 추천+근거, (3) 탈락안과 이유, (4) 비용, (5) 뒤집을 조건.\n` +
+  `출처 보존 의무: 추천·주장·탈락 사유의 근거가 되는 조사 결과의 **출처 URL 을 본문에 그대로 보존**하라 — 요약하면서 URL 을 유실하지 마라. 하류(ADR)가 이 문서에서 출처를 승계한다(2026-07-22 eval: 종합이 URL 을 떨궈 ADR 출처가 1개로 붕괴한 실결함).\n\n` +
   `제약:\n${define.constraints}\n\n조사 결과:\n${researchBlock}`,
   { phase: 'Synthesize', model: 'opus' }
 )
@@ -129,11 +163,14 @@ if (adrPath) {
     `다음 결정을 ADR 형식으로 **정확히 이 절대경로**에 Write 하라: ${adrPath}\n` +
     `(상대경로·현재 디렉토리 기준 Write 금지 — 위 절대경로 외 다른 위치에 파일을 만들지 마라. 이미 있으면 덮어쓰기 전 Read.)\n` +
     `형식 섹션: 상태/날짜/방법 · 컨텍스트(기능→난제) · 결정 · 근거(+출처) · 대안(왜 탈락) · 뒤집을 조건.\n` +
-    `근거의 출처는 아래 선정안·적대 검증에 있는 **URL 을 그대로 보존**해 기록하라(요약하면서 URL 유실 금지 — ADR 은 다음 단계의 SSOT 라 출처가 끊기면 검증 불가). 출처가 정말 없는 주장만 '출처 없음'으로 표기.\n\n` +
+    `근거의 출처는 아래 선정안·적대 검증에 있는 **URL 을 그대로 보존**해 기록하라(요약하면서 URL 유실 금지 — ADR 은 다음 단계의 SSOT 라 출처가 끊기면 검증 불가). 출처가 정말 없는 주장만 '출처 없음'으로 표기.\n` +
+    (archived?.runDir
+      ? `선정안·적대 검증에 남은 URL 이 3개 미만이면 조사 원문에서 회수하라: ${archived.runDir}/outputs/ 의 파일들을 Read 해 결정 근거에 해당하는 출처 URL 을 ADR 근거·출처 섹션에 기록한다(상류 유실 백스톱).\n\n`
+      : `\n`) +
     `결정 질문: ${question}\n\n선정안:\n${synthesis}\n\n적대적 검증(반영할 것):\n${critique}`,
     { phase: 'ADR', model: 'haiku' }
   )
   log(`ADR 기록: ${adrPath}`)
 }
 
-return { question, projectRoot, axes: define.axes.map(a => a.key), synthesis, critique, adrPath }
+return { question, projectRoot, axes: define.axes.map(a => a.key), synthesis, critique, adrPath, runDir: archived?.runDir ?? null }
