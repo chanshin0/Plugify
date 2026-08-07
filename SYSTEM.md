@@ -72,7 +72,6 @@
 - tech-deciding 사람 결정권(2026-08-06 출하 대기): 다음 실전 결정이 최종 ADR을 자동 확정하지 않고 `.proposed`+`pending-human`으로 멈춘 뒤 사람 승인 흐름으로 이어지는지
 - live-verify 배포 식별(2026-08-06 출하 대기): 다음 실전에서 대상 배포를 식별하지 못하면 시간 경과를 증거로 삼지 않고 `deployment-not-observed`로 멈추는지
 - run 격리·블라인드 심사(2026-08-06 출하 대기): 다음 run 생성형 스킬이 `.planning/runs/`를 Git 추적에서 제외하고, self-review/service-planning 최초 독립 심사에 작성자 결론이 노출되지 않는지
-- Plugify SessionStart SSOT 결속(2026-08-07 출하): Codex에서 변경된 hook을 사람이 `/hooks`로 신뢰한 뒤 여는 첫 새 세션이 `/Users/admin/Projects/Plugify/scripts/sync-agents.py --ensure`를 실행하고, `plan-writer`·`reviewer` 생성본이 정본과 일치한 채 유지되는지
 
 ## 4. 하니스 사실 (실증된 것 — 추측 아님)
 
@@ -81,7 +80,7 @@
 | Workflow args 는 **JSON 문자열로 도착** | 첫 실전 관찰 로그 `args 수신: "{\"projectRoot\"...}"` → workflow.mjs 가 JSON.parse 정규화. 포인터 파일이 정본 채널(이중화) |
 | agentType 레지스트리는 세션 시작에 고정 | 신규 에이전트는 재시작 후 유효. 미등록 세션 폴백 = general-purpose + .md 본문 인라인 + model 파라미터 |
 | SessionStart 훅은 메인 세션만 | 서브에이전트에 wiki/컨텍스트 자동 주입 없음 — spawn 프롬프트에 명시 전달 |
-| SessionStart 에이전트 sync는 **설치한 현재 Plugify 정본에 결속**해야 함 | 2026-08-07 실제 설정이 오래된 Claude marketplace clone(`4ef2ebe`)을 가리켜 최신 정본(`ff6002e`)의 `plan-writer`·`reviewer`를 되돌릴 수 있음을 바이트 비교로 재현. `install.sh`가 Claude·Codex 훅을 현재 레포로 갱신하도록 수정하고 `evals/install/case-01-session-hook-follows-ssot`로 회귀 고정. Codex hook trust는 자동 승인하지 않음 |
+| SessionStart 에이전트 sync는 **설치한 현재 Plugify 정본에 결속**해야 함 | 2026-08-07 실제 설정이 오래된 Claude marketplace clone(`4ef2ebe`)을 가리켜 최신 정본(`ff6002e`)의 `plan-writer`·`reviewer`를 되돌릴 수 있음을 바이트 비교로 재현. `install.sh`가 Claude·Codex 훅을 현재 레포로 갱신하도록 수정하고 `evals/install/case-01-session-hook-follows-ssot`로 회귀 고정. Codex hook trust는 자동 승인하지 않음. 첫 실전에서 해당 명령을 신뢰·활성화한 뒤 `plan-writer.toml`에 넣은 표식 해시가 첫 프롬프트의 모델 요청 전에 `267018…`→정본 `01ad49…`로 자동 복구됐고, fresh reviewer가 `plan-writer`·`reviewer` 바이트 일치와 잔여 표식·프로세스 없음까지 독립 확인해 PASS |
 | 커밋 실재는 git 상태로만 판정 | committed 오보고 사고(2026-06-11) → workflow.mjs 가 headLog+porcelain 으로 판정, 메인도 push 전 git 직접 확인 |
 | node --test 디렉토리 인자 미동작(v22.22) | 글롭(`src/*.test.js`) 사용 |
 | macOS 기본 `timeout` 부재 | telemetry-digest 는 계약 hang 방어를 `perl -e 'alarm'` 로 이식(coreutils 비의존). 스키마 검증은 `jq` |
