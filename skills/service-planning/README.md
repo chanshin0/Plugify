@@ -65,7 +65,7 @@
 | lo-fi 와이어프레임 (선택) | **P6** `wireframe-builder` 단일 에이전트 | `wireframes.html` |
 | v1 데이터 모델 (선택) | **P7** `data-model-builder` 단일 에이전트 | `data-model.md` |
 
-파이프라인 P0~P7 전체와 게이트는 `SKILL.md` §C 참고.
+파이프라인 P0~P7 전체와 인터뷰·승인 경계는 `SKILL.md` §C 참고.
 
 ---
 
@@ -96,10 +96,10 @@ P3에서 씨앗에 돌리는 체크리스트 (상세: `references/completeness-r
   - `deep`: 화면별 상태 상세 + 에이전트 + P6 와이어프레임 + P7 데이터모델 + 선택 `/self-review`.
 - **와이어프레임(P6)·데이터모델(P7)**: deep 기본 / standard에선 "와이어프레임 그려줘" · "데이터 모델 짜줘" 요청 시. 각각 단일 `wireframe-builder`·`data-model-builder` 에이전트가 `wireframes.html`·`data-model.md` 생성(함대 금지, 산출물 1개당 1에이전트).
 - **산출물**: `~/Documents/service-planning/{날짜}-{slug}/기획서.md` (+ `gaps.md`, + `wireframes.html`, + `data-model.md`).
-- **내가 결정하는 곳 (게이트 2개, 위임모드)**:
-  - **게이트 1 (P3)**: 빈칸 맵 보고 — "이 빈칸 맞아 / 이건 v1 불필요 / 이게 빠졌어".
-  - **게이트 2 (P5)**: 채운 결정 + v1 스코프 확인.
-  - 그 외 흔한 처리는 도구가 알아서 정하고 `[추정]`만 표시 → 내가 뒤집으면 됨.
+- **사람이 개입하는 곳**:
+  - 조사로 알 수 없고 결과를 크게 바꾸는 의도·우선순위가 있을 때만 P3에서 1~3개 집중 인터뷰를 받는다.
+  - 외부 전송·유료 호출·파괴·비가역 행동은 실제 실행 직전에 승인한다.
+  - 빈칸 발견, 흔한 처리, v1 스코프 초안, completeness 확인은 도구가 증거와 가정을 남기며 진행한다. 사용자는 routine 체크리스트의 승인자가 아니다.
 
 ---
 

@@ -41,7 +41,7 @@
 skills/ 는 평면이지만 성격이 두 갈래다:
 
 - **개발 루프 시스템** (서로 배선된 파이프라인 — 지점 레포가 소비):
-  `service-planning`(기획) → `tech-deciding`(결정/ADR) → `spec-building`(격리 구현·적대리뷰·커밋) → `live-verify`(배포 후 라이브 닫기)
+  `task-orchestrating`(요구 조사·인터뷰·분해·재계획) → 필요 레인 `service-planning`(기획) / `tech-deciding`(결정·ADR) / `spec-building`(격리 구현·블라인드 리뷰·커밋) → `live-verify`(배포 후 라이브 닫기)
   - 위성: `perf-review`(성능 진단) · `debugger`/`design-explorer`(agents/)
   - 메타(본사 루프): `incident-protocol`(사고→자산 반영) + `evals/`(문제집 — 출하 조건)
 - **독립 유틸** (단발 도구, 배선 없음): `presentation_slides` · `improve-token-efficiency` · `ai-readiness-cartography` · `self-review`
@@ -105,6 +105,7 @@ plugins/<bundle-name>/
 
 | 이름 | 설명 |
 |---|---|
+| `task-orchestrating` | 자연어 요구를 조사·필요 인터뷰·증거가 있는 실행 그래프로 바꾸고 끝까지 운전 |
 | `ai-readiness-cartography` | repo AI-readiness 스코어링 + HTML 대시보드 |
 | `improve-token-efficiency` | Claude Code 세션 토큰/비용 효율 분석 리포트 |
 | `presentation_slides` | YouTube 영상용 다크 테마 HTML 슬라이드 자동 생성 |

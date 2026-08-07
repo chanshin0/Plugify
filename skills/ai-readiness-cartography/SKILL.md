@@ -7,6 +7,8 @@ description: Audits any repository against the v2 AI-Ready rubric (100 pts · 7 
 
 이 스킬은 임의 레포지토리를 **AI-Ready 코드베이스 v2 루브릭** (100점 · 7 카테고리 A-G) 으로 감사합니다. 산출물은 한 장의 전문 기술 대시보드 HTML + 자동 채점 JSON + ROI 순으로 정렬된 actionable 액션 리스트입니다. 이름은 "cartography" 지만 톤은 의사결정용 계기판 — 판타지 양피지 / 컴퍼스 로즈 같은 장식은 절대 쓰지 않습니다.
 
+> **해석 안전선**: 총점은 탐색용 proxy이지 에이전트 task 성공률이나 "AI Native"의 증명이 아니다. 누락 evidence를 평균값·추정 성공으로 채우지 말고 `not_observable`로 남긴다. 점수를 올리기 위한 문서 생성은 금지하고, 액션은 실제 실패 eval·온보딩 시간·재개입 감소 중 하나와 연결될 때만 추천한다. 같은 감사 주체가 manual 항목을 근거 없이 가점하지 않으며, 전후 비교는 동일 task set의 성공 결과와 함께 본다.
+
 ## When to use
 
 - "AI-readiness 지도 / 시각화 / 점수 매겨줘"

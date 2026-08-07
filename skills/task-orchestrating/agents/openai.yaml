@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task Orchestrating"
+  short_description: "요구를 조사·인터뷰·작업 그래프로 바꿔 끝까지 실행"
+  default_prompt: "Use $task-orchestrating to turn this request into an evidence-backed execution graph and carry it through."

@@ -6,6 +6,32 @@
 set -uo pipefail
 
 HQ="$(cd "$(dirname "$0")/.." && pwd)"
+CONFIRMED_EVALS="$HQ/evals/confirmed-cases.txt"
+registry_available=1
+registry_entries=0
+registry_invalid=0
+
+if [ ! -f "$CONFIRMED_EVALS" ] || [ ! -r "$CONFIRMED_EVALS" ]; then
+  registry_available=0
+  registry_invalid=1
+else
+  while IFS= read -r rel || [ -n "$rel" ]; do
+    case "$rel" in
+      ""|\#*) continue ;;
+    esac
+    registry_entries=$((registry_entries+1))
+    if ! printf '%s\n' "$rel" | grep -Eq '^[A-Za-z0-9._-]+/case-[A-Za-z0-9._-]+$'; then
+      registry_invalid=$((registry_invalid+1))
+      continue
+    fi
+    case_dir="$HQ/evals/$rel"
+    if [ ! -d "$case_dir" ] || [ ! -r "$case_dir/CASE.md" ] || [ ! -r "$case_dir/ANSWER.md" ]; then
+      registry_invalid=$((registry_invalid+1))
+    elif head -n 5 "$case_dir/CASE.md" | grep -Eq '초안|confirm.*(대기|전)'; then
+      registry_invalid=$((registry_invalid+1))
+    fi
+  done < "$CONFIRMED_EVALS"
+fi
 
 # <repo> → "브랜치 @해시 (clean|dirty N)"
 git_line() {
@@ -25,14 +51,38 @@ echo ""
 echo "■ 본사 (plugify) — $(git_line "$HQ")"
 
 echo "  · 문제집(evals):"
+if [ "$registry_available" -eq 1 ]; then
+  echo "      confirmed 레지스트리: entries ${registry_entries} · invalid ${registry_invalid}"
+else
+  echo "      confirmed 레지스트리: 읽기 실패 · invalid ${registry_invalid}"
+fi
 for skill in "$HQ"/evals/*/; do
   [ -d "$skill" ] || continue
-  n=$(find "$skill" -maxdepth 1 -type d -name 'case-*' 2>/dev/null | wc -l | tr -d ' ')
-  [ "$n" -gt 0 ] && echo "      $(basename "$skill"): ${n}케이스"
+  confirmed=0 draft=0 invalid=0
+  for case_dir in "$skill"/case-*/; do
+    [ -d "$case_dir" ] || continue
+    rel="$(basename "$skill")/$(basename "$case_dir")"
+    if [ ! -r "$case_dir/CASE.md" ] || [ ! -r "$case_dir/ANSWER.md" ]; then
+      invalid=$((invalid+1))
+    elif [ "$registry_available" -ne 1 ]; then
+      invalid=$((invalid+1))
+    elif grep -Fqx -- "$rel" "$CONFIRMED_EVALS" 2>/dev/null; then
+      if head -n 5 "$case_dir/CASE.md" | grep -Eq '초안|confirm.*(대기|전)'; then
+        invalid=$((invalid+1))
+      else
+        confirmed=$((confirmed+1))
+      fi
+    else
+      draft=$((draft+1))
+    fi
+  done
+  total=$((confirmed+draft+invalid))
+  [ "$total" -gt 0 ] && echo "      $(basename "$skill"): confirmed ${confirmed} · draft ${draft} · invalid ${invalid} (통과 여부는 실행 증거 별도)"
 done
 
-# 첫 실전 관찰 (정본 = SYSTEM.md §3.1 불릿 — 2026-07-03 레지스트리 격하) — 닫기 = 사람(줄 제거)
-echo "  · 첫 실전 관찰 (닫기=사람, 정본=SYSTEM.md §3.1):"
+# 첫 실전 관찰 (정본 = SYSTEM.md §3.1 불릿 — 2026-07-03 레지스트리 격하)
+# 닫기 = 에이전트가 실제 증거 대조 + fresh/blind review 뒤 줄 제거. 사람 routine 체크 없음.
+echo "  · 첫 실전 관찰 (닫기=증거+fresh review, 정본=SYSTEM.md §3.1):"
 awk '/^### 3\.1 첫 실전 관찰/{f=1;next} f&&/^#/{exit} f&&/^- /' "$HQ/SYSTEM.md" 2>/dev/null | sed 's/^- /    ⏳ /'
 [ -z "$(awk '/^### 3\.1 첫 실전 관찰/{f=1;next} f&&/^#/{exit} f&&/^- /' "$HQ/SYSTEM.md" 2>/dev/null)" ] && echo "    (열린 첫 실전 관찰 없음)"
 

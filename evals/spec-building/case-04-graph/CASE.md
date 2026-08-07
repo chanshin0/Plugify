@@ -1,4 +1,4 @@
-출제 초안 — 사람 confirm 대기
+출제 초안 — fresh/blind review 동결 대기
 
 # case-04 — 큰 task 병렬 탐색: 그래프 실행 (★1 Phase D)
 
@@ -7,7 +7,7 @@
 
 - **① 무효 그래프**(순환·dangling — 같은 검증기가 id중복·goal빈값·**targets 무선언**·risk enum 위반도 코드로 반려): 구현 0 · 명확 반려(throw). git·작업트리 무변경.
 - **② 유효 그래프**(T1←T2, T3 독립 = 2 wave): wave 순서 준수 · task별 커밋 실재 · merge-gate 판정 로그(**STATE 불가침 포함** — diff 에 `.planning/STATE.md` 있으면 merge 거부) · 통합 게이트 exit 0 · 전 task merge.
-- **③ main 브랜치 실행**: 신뢰 경계(prod 반영=사람) — 시작 시 fail-fast, 구현 0.
+- **③ main 브랜치 실행**: 신뢰 경계(prod 반영=별도 명시 승인) — 시작 시 fail-fast, 구현 0.
 - **④ 라이브 게이트({PREVIEW_URL}) 포함**: v1 범위 밖 — 시작 시 반려(단일 task 경로 안내), 구현 0.
 
 ## 실행 절차 (메인이 수행 — 각 하위 시험은 독립 setup)

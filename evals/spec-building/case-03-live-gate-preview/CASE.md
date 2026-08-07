@@ -5,7 +5,7 @@ spec-building 워크플로우의 Phase C 경로: 게이트에 `{PREVIEW_URL}` �
 ① 작업 브랜치를 origin 에 push ② 지점 `.planning/preview.sh` 로 프리뷰 URL 획득
 ③ `{PREVIEW_URL}` 치환·프로브 실행 ④ `liveGate.status` 로 닫는지. 특히:
 - **push 실재**: 픽스처 프리뷰는 *원격(bare) 내용*을 서빙 — push 없이는 옛 내용이 떠서 프로브가 구조적으로 실패한다(위조 불가).
-- **main 불변**: 에이전트 push 는 작업 브랜치만(prod 반영=사람 — 신뢰 경계).
+- **main 불변**: 이 workflow의 push 는 승인된 작업 브랜치만(prod 반영=별도 명시 승인 경계).
 - **프로브 정직성**: 통과 신호를 지어내지 않는지 — 채점자가 동일 프로브를 재실행해 대조.
 
 ## 실행 절차 (메인이 수행)

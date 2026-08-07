@@ -32,6 +32,7 @@ projectRoot: <절대경로>
 확정 결정: <성능 관련 ADR 요약 — 예: 검색=ILIKE. 없으면 생략>
 ```
 2. **착지 골격 생성 (scaffold 스킬 규약과 동형 — 발사 전)**: run = `<projectRoot>/.planning/runs/<YYYY-MM-DD>-perf-review/` (`.planning` 없으면 `<projectRoot>/runs/…`)
+   - 파일 생성 전 run 상위 경로를 대상 레포 `.git/info/exclude`에 멱등 추가하고 `git check-ignore -q <run>` 성공을 확인한다. 실패하면 외부 `~/Documents/agent-runs/`로 옮긴다. run 증거가 후속 `spec-building` 제품 커밋에 섞이면 안 된다.
    - `prompts/render.md` · `prompts/data.md` · `prompts/prober.md` — 컨텍스트 블록 + 도메인 지시를 채운 이번 실행의 지시문 파일(역할 정본은 에이전트 `.md`, 이 파일은 인스턴스 증거)
    - `outputs/render.md` · `outputs/data.md` · `outputs/prober.md` — 빈 슬롯 예약(착지 자리)
 
@@ -43,10 +44,11 @@ projectRoot: <절대경로>
 ### P2 — perf-judge spawn
 컨텍스트 블록 + run 경로만 전달 — **judge 가 `outputs/` 3개를 직접 Read 한다**(보고서 전문이 메인 컨텍스트를 거치지 않는다). judge 는 인용 코드를 재독해 confirmed / killed / uncertain 3분류 + 임팩트(사용자 체감×빈도)÷노력 랭킹을 **반환**한다 — 최종 보고서 파일은 judge 가 쓰지 않는다(하니스가 서브에이전트의 보고서류 파일 Write 를 차단, 2026-07-22 실증 — SYSTEM §4).
 
-### P3 — 메인: 판정 + relay + 게이트
+### P3 — 메인: 판정 + relay + 후속 라우팅
 - **메인이 judge 반환 전문을 `<run>/REPORT.md` 로 정착**시킨다(기계적 Write — 최종 보고서는 어차피 메인이 relay 하는 유일한 전문이라 추가 컨텍스트 비용 없음). 그 후 사용자에게 전달(재가공 최소화).
-- 픽스 착수는 사용자 결정 — 진행 시 confirmed 항목을 task 로 만들어 spec-building 으로.
+- 원 요청이 성능 **리뷰/진단만**이면 결과 보고로 닫고 코드를 수정하지 않는다. 원 요청이 개선·수정까지 포함하면 추가 진행 확인 없이 confirmed 항목을 evidence-bearing task로 만들어 spec-building으로 보내고 재측정한다. 우선순위가 사람만 아는 제품 의도에 따라 크게 달라질 때만 집중 인터뷰한다.
 - run 디렉토리는 증거로 남긴다(레인 재실행·사고 조사·프롬프트 개선 — 지시문 결함은 run 이 아니라 에이전트 `.md`/이 SKILL 에 반영, scaffold P4 준용).
+- 종료 상태는 슬롯 3개 실재·judge 코드 재독·REPORT.md 정착이 모두 확인됐을 때만 `reviewed`다. 빈/실패 레인이 남으면 `blocked-input`; 개선까지 승인된 요청은 수정·재측정 증거가 끝날 때까지 별도 실행 task로 이어진다. finding 수를 "정확도"로 부르지 않는다 — 정답이 심어진 eval에서만 정탐/오탐률을 계산한다.
 
 ## 금지
 - 분석가·judge 가 코드를 수정 (진단 전용 — run 슬롯·prober 빌드 산출물만 예외, git 상태로 판정)

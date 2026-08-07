@@ -7,6 +7,13 @@ description: Claude Code 세션 JSONL 로그를 파싱하여 토큰/컨텍스트
 
 Claude Code 가 `~/.claude/projects/<encoded-repo-path>/*.jsonl` 에 남기는 세션 로그를 파싱해서, 레포 단위로 **토큰 사용·캐시 효율·비용·점수**를 집계하고 개선안을 제시하는 HTML 대시보드를 만든다.
 
+## 해석·프라이버시 안전선
+
+- JSONL은 프롬프트·파일 경로·도구 인자·도구 결과 등 민감 내용을 포함할 수 있다. 분석은 로컬 스크립트로만 수행하고 원문 JSONL·도구 결과·프롬프트를 외부 모델이나 대시보드에 싣지 않는다. 외부 공유 전에는 집계 JSON/HTML에 경로·세션 ID가 필요한지 확인하고 마스킹한다.
+- 0–100/A–F는 **휴리스틱 효율 proxy**이지 task 성공률·자율성·코드 품질·사람 생산성 점수가 아니다. 캐시 적중률, 출력 비율, 툴 호출 수를 목표로 최적화하지 않는다. 동일 task·동일 성공 조건의 전후 비교에서 원시 비용/토큰과 함께 참고할 때만 의미가 있다.
+- 반복 Read는 파일이 중간에 바뀌었거나 검증을 위해 재독한 경우 정당할 수 있고, 툴 호출 수는 live evidence가 필요한 task에서 높아질 수 있다. 개별 세션 감점은 원문 과업 맥락 확인 전 자동 개선 task로 승격하지 않는다.
+- 하드코딩 가격은 추정치다. 보고 시 가격 기준일·알 수 없는 모델 여부를 함께 적고, 최신 공식 가격을 확인하지 못했으면 정확한 비용 대신 `estimated`로 표시한다.
+
 왜 JSONL을 직접 파싱하는가: Anthropic CLI가 세션당 모든 assistant 메시지의 `usage` 필드를 기록해 둔다. 여기에 `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`, 그리고 `cache_creation.ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` 이 다 들어있다. 그래서 별도 API 호출 없이 레포 하나의 전체 비용 구조를 재구성할 수 있다.
 
 ## 동작 흐름

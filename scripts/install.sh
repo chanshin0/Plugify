@@ -61,7 +61,9 @@ relpath() {
 link_one() {
   local target="$1" link="$2" label="$3"
   if [ -L "$link" ]; then
-    if [ "$(resolve_link "$link")" = "$target" ]; then
+    # macOS 기본 APFS 는 대소문자를 보존하지만 보통 비교는 비민감하다. 문자열 경로가
+    # Plugify/plugify 로 달라도 같은 inode 를 가리키면 올바른 링크다(-ef = 실체 동일).
+    if { [ -e "$link" ] && [ "$link" -ef "$target" ]; } || [ "$(resolve_link "$link")" = "$target" ]; then
       echo "  ok    $label"; skipped=$((skipped+1)); return
     fi
     echo "  WARN  $label — 기존 symlink 가 다른 곳을 가리킴: $(readlink "$link") (보존)"; warned=$((warned+1)); return
