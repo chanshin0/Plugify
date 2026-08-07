@@ -26,8 +26,9 @@ npx plugify --help
 3. `<repo>/scripts/install.sh` 실행 →
    - 스킬을 `~/.claude/skills` + `~/.codex/skills` 양쪽에 심링크
    - 에이전트를 `~/.claude/agents/*.md` + `~/.codex/agents/*.toml` 로 생성 (dual-block SSOT 에서)
+   - Claude `settings.json` + Codex `hooks.json`의 SessionStart 에이전트 동기화를 **이번 설치에 사용한 같은 정본 레포**로 갱신(다른 훅 보존·멱등)
 
-설치 후 **Claude/Codex 세션 재시작** 시 반영된다 (SessionStart 훅이 `sync-agents.py --ensure` 로 매 세션 self-heal).
+설치 후 **Claude/Codex 세션 재시작** 시 반영된다 (SessionStart 훅이 같은 정본의 `sync-agents.py --ensure` 로 매 세션 self-heal). Codex에서 훅 명령이 바뀌면 보안 경계상 `/hooks`에서 새 정의를 한 번 검토·신뢰해야 한다.
 
 ## 왜 한 파일이 아니라 "생성"인가
 
