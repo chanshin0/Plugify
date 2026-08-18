@@ -1,0 +1,8 @@
+# Frozen 2026-08-15 after fresh/blind reviewer CONFIRM.
+# Do not modify these files during the implementation that this eval grades.
+7589bd4202d2683420aa0f2cb8d2da7967f18708c2b8d5cc3cbe5298b6e00b85  CASE.md
+ba75fbdb69dd255a4c28bbc5119559922c79f23de0b138b9ee0bfac29e306c7f  ANSWER.md
+d9378c3e5f5240e736cb8ecac1c3849b81f24aff1b079841f9ad0cd9fddc9940  check-contract.mjs
+4745417089ca1b7cc0f977cff8cb953e9f2f9f8a2e42e66908aae845bff26288  pre-fix-result.txt
+c8e7d7c9a949aaff7886558f6b979dcb126d9cadf810069a00ff1f6ad1a69c77  fixture/confirmed-failure.md
+a8cd0f9656986309b11c228a7aedb3456ae75259f9f809e5278b94e712f4adf3  fixture/negative-contracts.json

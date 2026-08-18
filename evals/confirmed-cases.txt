@@ -9,3 +9,4 @@ spec-building/case-02-no-gate-rejected
 spec-building/case-03-live-gate-preview
 tech-deciding/case-01-target-and-adr-path
 telemetry-digest/case-01-contract-skip-idempotent
+visualize/case-02-safe-browser-verification

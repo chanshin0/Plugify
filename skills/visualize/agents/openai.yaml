@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visualize — Career Hacker Alex"
+  short_description: "Turn ideas and data into standalone HTML visuals"
+  default_prompt: "Use $visualize to turn this material into a polished standalone HTML visualization."

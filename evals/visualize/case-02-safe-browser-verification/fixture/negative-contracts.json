@@ -1,0 +1,51 @@
+[
+  {
+    "name": "keyword-stuffing-without-contract",
+    "noContract": true,
+    "keywordStuffing": "Run Chrome in the default sandbox. Do not use Safari. Supported browser tool first is optional. Use --user-data-dir and Promise.all. Retry after SIGABRT, then pkill Chrome.",
+    "mustFail": [
+      "sandbox-direct-gui-ban",
+      "supported-browser-tool-first",
+      "first-cli-escalated-no-probe",
+      "isolated-profile-flags",
+      "sequential-no-parallel",
+      "abort-stop-fallback",
+      "user-chrome-profile-untouched"
+    ]
+  },
+  {
+    "name": "profile-flag-negated",
+    "overrides": {
+      "userDataDir": "forbidden",
+      "requiredCliFlags": [
+        "do-not-use---user-data-dir",
+        "--no-first-run",
+        "--no-default-browser-check"
+      ]
+    },
+    "mustFail": ["isolated-profile-flags"]
+  },
+  {
+    "name": "parallel-promise-all-allowed",
+    "overrides": {
+      "viewportRuns": "parallel",
+      "parallelBrowserProcesses": "allowed-via-Promise.all"
+    },
+    "mustFail": ["sequential-no-parallel"]
+  },
+  {
+    "name": "retry-after-abort",
+    "overrides": {
+      "onSandboxCrash": "retry-after-SIGABRT"
+    },
+    "mustFail": ["abort-stop-fallback"]
+  },
+  {
+    "name": "pkill-and-reuse-profile",
+    "overrides": {
+      "userChromeProcess": "pkill",
+      "userChromeProfile": "reuse"
+    },
+    "mustFail": ["user-chrome-profile-untouched"]
+  }
+]

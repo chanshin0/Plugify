@@ -1,0 +1,27 @@
+Captured before skills/visualize/SKILL.md safety-contract implementation.
+
+Checker self-test command:
+node evals/visualize/case-02-safe-browser-verification/check-contract.mjs --self-test
+
+Result (exit 0):
+PASS negative:keyword-stuffing-without-contract failed=[sandbox-direct-gui-ban,supported-browser-tool-first,first-cli-escalated-no-probe,isolated-profile-flags,sequential-no-parallel,abort-stop-fallback,user-chrome-profile-untouched]
+PASS negative:profile-flag-negated failed=[isolated-profile-flags]
+PASS negative:parallel-promise-all-allowed failed=[sequential-no-parallel]
+PASS negative:retry-after-abort failed=[abort-stop-fallback]
+PASS negative:pkill-and-reuse-profile failed=[user-chrome-profile-untouched]
+SELF_TEST 5/5
+
+Pre-fix skill command:
+node evals/visualize/case-02-safe-browser-verification/check-contract.mjs skills/visualize/SKILL.md
+
+Result (exit 1):
+FAIL sandbox-direct-gui-ban
+FAIL supported-browser-tool-first
+FAIL first-cli-escalated-no-probe
+FAIL isolated-profile-flags
+FAIL sequential-no-parallel
+FAIL abort-stop-fallback
+FAIL user-chrome-profile-untouched
+SUMMARY 0/7
+
+The deterministic contract failure is bound to the actual exit-134/SIGABRT evidence in fixture/confirmed-failure.md. The crash itself is not rerun.

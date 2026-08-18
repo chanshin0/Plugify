@@ -54,6 +54,7 @@
 
 ### 3.1 첫 실전 관찰 목록 (고친 뒤 첫 실전 1회를 증거로 재검증하는 항목)
 
+- visualize(2026-08-15 출하): 다음 실전 시각화 1회가 답변 내부 표면이 아닌 독립 HTML 파일로 생성되고, 지원되는 안전한 브라우저 경로로 데스크톱→375px을 순차 검증해 실제 콘텐츠·명암 테마·형식별 상호작용·콘솔 무오류를 충족하며 Chrome exit 134나 사용자-visible crash dialog를 만들지 않는지 산출물·실행 로그·브라우저 증거를 fresh review가 대조
 - task-orchestrating/graph contract 2.0(2026-08-06 출하 대기): 모호한 구현 요청 1회가 조사 가능한 사실을 스스로 찾고, 필요한 사람 맥락만 인터뷰한 뒤 `why·evidence·assumptions·replanWhen` 그래프로 spec-building에 연결되며 추가 진행 승인 없이 닫히는지
 
 - tech-deciding(2026-06-12 출하): 다음 실전 1회가 포인터 JSON 채널·ADR 절대경로·출처 URL 보존을 실증
