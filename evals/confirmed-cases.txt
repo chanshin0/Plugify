@@ -2,6 +2,7 @@
 # 경로는 evals/ 기준 상대경로이며, CASE.md 문구 변경이나 작성자의 green만으로 confirmed가 되지 않는다.
 live-verify/case-01-push-not-real-stop
 install/case-01-session-hook-follows-ssot
+illustrated-story-slides/case-01-narrative-not-presentation
 perf-review/case-01-planted-perf-bugs
 service-planning/case-01-planted-gaps-and-pruned
 spec-building/case-01-boundary-bugfix

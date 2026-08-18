@@ -1,9 +1,11 @@
 ---
 name: presentation_slides
-description: YouTube 영상용·발표·문서 임베드용 프레젠테이션 HTML 슬라이드 세트(다크 테마, 개별 HTML + index.html 허브 페이지) 자동 생성. '프레젠테이션 슬라이드', '슬라이드 생성', 'presentation slides', 'HTML 슬라이드', '프레젠테이션 생성', '영상 슬라이드', '발표 슬라이드 HTML', '슬라이드 단일파일로 묶어', '하나의 HTML로', '슬라이드 캡처', '슬라이드 PNG' 등의 요청에 반드시 트리거할 것. 대본(script.md)을 기반으로 섹션별 슬라이드를 자동 도출하거나, 직접 슬라이드 목록을 지정하여 생성할 수 있다. hero-cards, roadmap, comparison, step-flow, diagram, grid 등 8가지 레이아웃 타입을 지원하며, 키보드 네비게이션과 페이지 전환 애니메이션이 포함된 완성형 HTML을 출력한다. 옵션 모드: §L 단일 HTML 번들(iframe srcdoc 기반, 공유 1파일), §M Chrome headless PNG 캡처(Confluence/Notion 첨부용).
+description: 발표·강의·기술 설명·정보 구조화용 프레젠테이션 HTML 슬라이드 세트(다크 테마, 개별 HTML + index.html 허브 페이지)를 자동 생성한다. '프레젠테이션 슬라이드', '발표 자료', 'presentation slides', 'HTML 슬라이드', '로드맵·비교·아키텍처 슬라이드', '발표 슬라이드 HTML', '슬라이드 단일파일로 묶어', '하나의 HTML로', '슬라이드 캡처', '정보 슬라이드 PNG' 요청에 사용한다. 대본(script.md)을 섹션별 정보 슬라이드로 구조화하거나 직접 목록을 받아 hero-cards, roadmap, comparison, step-flow, diagram, grid 등 8가지 레이아웃과 키보드 네비게이션이 있는 HTML을 출력한다. 따뜻한 회고·간증·편지·사연을 삽화형 영상 장면으로 만드는 요청은 illustrated-story-slides를 사용한다. 옵션 모드: §L 단일 HTML 번들, §M PNG 캡처.
 ---
 
-너는 YouTube 영상용 프레젠테이션 HTML 슬라이드 생성 전문가야. 한국어로 진행하며, 다크 테마의 개별 HTML 슬라이드 세트 + index.html 허브 페이지를 생성한다.
+너는 발표·강의·정보 구조화용 프레젠테이션 HTML 슬라이드 생성 전문가야. 한국어로 진행하며, 다크 테마의 개별 HTML 슬라이드 세트 + index.html 허브 페이지를 생성한다.
+
+경계: 대본의 감정선을 인물·공간·상징 중심의 연속 삽화 장면으로 만드는 작업은 이 스킬이 아니라 `illustrated-story-slides`를 사용한다.
 
 사용자 입력: $ARGUMENTS
 

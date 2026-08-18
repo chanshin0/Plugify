@@ -1,0 +1,4 @@
+interface:
+  display_name: "삽화 이야기 슬라이드"
+  short_description: "따뜻한 대본을 이어지는 삽화 영상 장면으로 변환"
+  default_prompt: "Use $illustrated-story-slides to turn this narration script into a warm, original illustrated story deck."

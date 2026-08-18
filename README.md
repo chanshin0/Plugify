@@ -30,6 +30,7 @@
 ├── evals/                             # 공정 문제집 — 스킬 회귀 평가 (규약: evals/README.md)
 ├── skills/                            # 정본 스킬 (평면)
 │   ├── ai-readiness-cartography/
+│   ├── illustrated-story-slides/
 │   ├── improve-token-efficiency/
 │   ├── presentation_slides/
 │   ├── self-review/
@@ -45,7 +46,7 @@ skills/ 는 평면이지만 성격이 두 갈래다:
   `task-orchestrating`(요구 조사·인터뷰·분해·재계획) → 필요 레인 `service-planning`(기획) / `tech-deciding`(결정·ADR) / `spec-building`(격리 구현·블라인드 리뷰·커밋) → `live-verify`(배포 후 라이브 닫기)
   - 위성: `perf-review`(성능 진단) · `debugger`/`design-explorer`(agents/)
   - 메타(본사 루프): `incident-protocol`(사고→자산 반영) + `evals/`(문제집 — 출하 조건)
-- **독립 유틸** (단발 도구, 배선 없음): `presentation_slides` · `improve-token-efficiency` · `ai-readiness-cartography` · `self-review` · `visualize`
+- **독립 유틸** (단발 도구, 배선 없음): `illustrated-story-slides` · `presentation_slides` · `improve-token-efficiency` · `ai-readiness-cartography` · `self-review` · `visualize`
 
 본사/지점 운영 모델: 이 레포 = 본사(공정 제작, `AGENTS.md`), 각 프로젝트 레포 = 지점(공정 소비, 그 레포 `AGENTS.md`+`.planning/STATE.md`). 커밋 = 출시.
 
@@ -108,8 +109,9 @@ plugins/<bundle-name>/
 |---|---|
 | `task-orchestrating` | 자연어 요구를 조사·필요 인터뷰·증거가 있는 실행 그래프로 바꾸고 끝까지 운전 |
 | `ai-readiness-cartography` | repo AI-readiness 스코어링 + HTML 대시보드 |
+| `illustrated-story-slides` | 회고·간증·편지형 대본을 독창적인 16:9 삽화 장면과 애니매틱으로 변환 |
 | `improve-token-efficiency` | Claude Code 세션 토큰/비용 효율 분석 리포트 |
-| `presentation_slides` | YouTube 영상용 다크 테마 HTML 슬라이드 자동 생성 |
+| `presentation_slides` | 발표·강의·정보 구조화용 다크 테마 HTML 슬라이드 자동 생성 |
 | `self-review` | 직전 답변 3라운드 비판적 재검토 (R1/R2/R3) |
 | `visualize` | 아이디어·문서·데이터를 독립 실행형 단일 HTML 시각화로 변환 (Career Hacker Alex MIT 기반) |
 
