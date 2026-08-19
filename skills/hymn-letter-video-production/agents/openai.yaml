@@ -1,0 +1,4 @@
+interface:
+  display_name: "고도원 찬송편지 영상 제작"
+  short_description: "고도원 찬송편지 26편의 제작·검수·전달을 안전하게 관리"
+  default_prompt: "Use $hymn-letter-video-production to validate and safely produce, review, package, and deliver one video in the Godowon Hymn Letter 26-video series."

@@ -1,0 +1,16 @@
+Observed before Plugify workflow implementation on 2026-08-19.
+
+Command:
+python3 check-boundary.py --self-test --ffmpeg /mnt/c/work/godowon-office/output/찬송편지_시작영상_개선작업본_2026-08-18/.tools/ffmpeg/bin/ffmpeg
+
+Result:
+PASS legacy incident reproduced: {722: 'background', 723: 'background', 724: 'caption', 767: 'caption'}
+PASS reference boundary exact: {722: 'background', 723: 'caption', 724: 'caption', 767: 'caption'}
+SELF_TEST 2/2
+
+Pre-implementation candidate command:
+python3 check-boundary.py --candidate skills/hymn-letter-video-production/scripts/hymn_video_flow.py --ffmpeg /mnt/c/work/godowon-office/output/찬송편지_시작영상_개선작업본_2026-08-18/.tools/ffmpeg/bin/ffmpeg
+
+Result:
+FAIL candidate not found: /mnt/c/Work/Plugify/skills/hymn-letter-video-production/scripts/hymn_video_flow.py
+exit=2

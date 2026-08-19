@@ -1,0 +1,25 @@
+{
+  "schema": "plugify.hymn-letter.episode-inventory/1",
+  "project_id": "godowon-hymn-letter-26",
+  "selection_status": "partial-current-evidence-2026-08-19",
+  "episodes": [
+    {
+      "id": "start",
+      "kind": "start",
+      "profile": "start-hybrid/v1",
+      "hymn_number": null
+    },
+    {
+      "id": "hymn-491-testimony",
+      "kind": "testimony_intro",
+      "profile": "testimony-static/v1",
+      "hymn_number": 491
+    },
+    {
+      "id": "hymn-370-testimony",
+      "kind": "testimony_intro",
+      "profile": "testimony-static/v1",
+      "hymn_number": 370
+    }
+  ]
+}

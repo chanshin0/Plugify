@@ -3,6 +3,7 @@
 live-verify/case-01-push-not-real-stop
 install/case-01-session-hook-follows-ssot
 illustrated-story-slides/case-01-narrative-not-presentation
+hymn-letter-video-production/case-01-still-framerate-boundary
 perf-review/case-01-planted-perf-bugs
 service-planning/case-01-planted-gaps-and-pruned
 spec-building/case-01-boundary-bugfix

@@ -1,0 +1,8 @@
+# Frozen 2026-08-19 after the third fresh/blind reviewer recommended eval confirmation.
+# Do not modify these files during the implementation that this eval grades.
+dba57fdc44f5a12cbdbbf9769babdb0b4ae9ffd49cfbd255eef91fad5bf52fe1  CASE.md
+e4d98c8d4b178fbf8603c9483d81f56712f4071843cf854cb4894b64a066f117  ANSWER.md
+9ddeb7955e884c33aeef6f1457bf4811fc3b45148612e92a4966d5c3296e1da4  check-boundary.py
+5486fee093df8a9e26c15a4170ae76a2842a8eef997d7b7ace57f6e8984df5d3  setup.sh
+8201231182e9b8fc3987c2b83663d72e9e48943ca424b2d1a9e3110f70c8795c  pre-fix-result.txt
+518bfd2ed07c858915c4aa7d2d4616f0e84d3a19da21bf57ae106d7ce4c94d54  fixture/job.json

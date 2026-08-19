@@ -1,0 +1,488 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plugify.local/schemas/hymn-letter-video-job-v1.json",
+  "title": "Godowon Hymn Letter 26-video production job",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "project_id",
+    "episode",
+    "inputs",
+    "visual_template",
+    "output",
+    "delivery_intent"
+  ],
+  "properties": {
+    "schema": {
+      "const": "plugify.hymn-letter.video-job/1"
+    },
+    "project_id": {
+      "const": "godowon-hymn-letter-26"
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "profile"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96,
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "kind": {
+          "enum": [
+            "start",
+            "testimony_intro",
+            "hymn_lyrics",
+            "playlist"
+          ]
+        },
+        "profile": {
+          "enum": [
+            "start-hybrid/v1",
+            "testimony-static/v1",
+            "hymn-lyrics/v1",
+            "playlist/v1"
+          ]
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/inputAsset"
+      }
+    },
+    "visual_template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module_path",
+        "module_sha256",
+        "bundle_path",
+        "lock_sha256",
+        "version"
+      ],
+      "properties": {
+        "module_path": {
+          "const": "/mnt/c/work/godowon-office/godo-hymns/tools/hymn_letter_visual_template.py"
+        },
+        "module_sha256": {
+          "const": "0634d97c6eaa0a79f667108b551a7f65b0985bf810bd7e6ce9f950daab52cf80"
+        },
+        "bundle_path": {
+          "$ref": "#/$defs/absolutePath"
+        },
+        "lock_sha256": {
+          "const": "915c84bcb6d91b3d51fac77662baf10de9e6f51aed63784ab6a860f2a174698e"
+        },
+        "version": {
+          "const": "hymn-letter-visual-v2"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_root",
+        "filename",
+        "overwrite"
+      ],
+      "properties": {
+        "run_root": {
+          "$ref": "#/$defs/absolutePath"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 180,
+          "pattern": "^[^/\\\\]+\\.mp4$"
+        },
+        "overwrite": {
+          "const": false
+        }
+      }
+    },
+    "delivery_intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "render",
+        "drive_upload",
+        "youtube_private_stage",
+        "youtube_publish",
+        "bot_notify"
+      ],
+      "properties": {
+        "render": {
+          "type": "boolean"
+        },
+        "drive_upload": {
+          "type": "boolean"
+        },
+        "youtube_private_stage": {
+          "type": "boolean"
+        },
+        "youtube_publish": {
+          "type": "boolean"
+        },
+        "bot_notify": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "absolutePath": {
+      "type": "string",
+      "minLength": 2,
+      "pattern": "^/"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "inputAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "program_video",
+            "approved_audio",
+            "approved_script",
+            "captions",
+            "reviewed_ass",
+            "edit_manifest",
+            "reference_layout",
+            "lyrics",
+            "lyric_timing",
+            "golden_fixture",
+            "track_manifest",
+            "playlist_timing",
+            "thumbnail",
+            "publishing_metadata",
+            "package_manifest"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/absolutePath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "programVideoRole": {
+      "properties": {
+        "role": {
+          "const": "program_video"
+        }
+      },
+      "required": [
+        "role"
+      ]
+    },
+    "approvedAudioRole": {
+      "properties": {
+        "role": {
+          "const": "approved_audio"
+        }
+      },
+      "required": [
+        "role"
+      ]
+    },
+    "captionsRole": {
+      "properties": {
+        "role": {
+          "const": "captions"
+        }
+      },
+      "required": [
+        "role"
+      ]
+    },
+    "unsupportedContentRole": {
+      "properties": {
+        "role": {
+          "enum": [
+            "lyrics",
+            "lyric_timing",
+            "track_manifest",
+            "playlist_timing",
+            "package_manifest"
+          ]
+        }
+      },
+      "required": [
+        "role"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "kind": {
+                "const": "start"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "profile": {
+                "const": "start-hybrid/v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "kind": {
+                "const": "testimony_intro"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "profile": {
+                "const": "testimony-static/v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "kind": {
+                "const": "hymn_lyrics"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "profile": {
+                "const": "hymn-lyrics/v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "kind": {
+                "const": "playlist"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "profile": {
+                "const": "playlist/v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "profile": {
+                "const": "start-hybrid/v1"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "id": {
+                "const": "start"
+              }
+            }
+          },
+          "inputs": {
+            "allOf": [
+              {
+                "contains": {
+                  "$ref": "#/$defs/programVideoRole"
+                },
+                "minContains": 1,
+                "maxContains": 1
+              },
+              {
+                "contains": {
+                  "$ref": "#/$defs/approvedAudioRole"
+                },
+                "minContains": 1,
+                "maxContains": 1
+              },
+              {
+                "contains": {
+                  "$ref": "#/$defs/captionsRole"
+                },
+                "minContains": 1,
+                "maxContains": 1
+              },
+              {
+                "not": {
+                  "contains": {
+                    "$ref": "#/$defs/unsupportedContentRole"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "profile": {
+                "const": "testimony-static/v1"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "episode": {
+            "properties": {
+              "id": {
+                "enum": [
+                  "hymn-491-testimony",
+                  "hymn-370-testimony"
+                ]
+              }
+            }
+          },
+          "inputs": {
+            "allOf": [
+              {
+                "contains": {
+                  "$ref": "#/$defs/approvedAudioRole"
+                },
+                "minContains": 1,
+                "maxContains": 1
+              },
+              {
+                "contains": {
+                  "$ref": "#/$defs/captionsRole"
+                },
+                "minContains": 1,
+                "maxContains": 1
+              },
+              {
+                "not": {
+                  "contains": {
+                    "$ref": "#/$defs/unsupportedContentRole"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "delivery_intent": {
+            "properties": {
+              "youtube_publish": {
+                "const": true
+              }
+            },
+            "required": [
+              "youtube_publish"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "delivery_intent": {
+            "properties": {
+              "youtube_private_stage": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

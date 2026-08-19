@@ -1,0 +1,16 @@
+{
+  "schema": "plugify.hymn-letter.still-timeline/1",
+  "fps": 30,
+  "expected_frames": 768,
+  "intervals": [
+    {
+      "file": "background.ppm",
+      "frames": 723
+    },
+    {
+      "file": "caption.ppm",
+      "frames": 45
+    }
+  ]
+}
+
