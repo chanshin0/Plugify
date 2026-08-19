@@ -18,11 +18,12 @@ description: 세션을 넘기기 전 컨텍스트 정리 — 대화에만 존재
 | 프로젝트 진행 상태·다음 task·사람 게이트 | 그 레포의 이어가기 앵커(`.planning/STATE.md` 등 — 레포 규약 따름) |
 | 공정(시스템) 변화·첫 실전 관찰 실증 | plugify `SYSTEM.md` — 에이전트가 실제 실행 증거를 대조하고 fresh review 뒤 상태 갱신 |
 | 레포 종속 환경 함정·비자명 사실 | 지점 `.planning/notes.md` (규약 정본 = live-verify SKILL §지점 노트 — 기록 기준 3종·양방향 정정) |
-| 사용자의 생각·개인 사실·개인 결정 | 개인 브레인 `/Users/admin/Projects/second_brain` — 그 레포 `POLICY.md`를 따르고 `bin/idea quick/link/code/attach`로만 캡처. `sources/*.md` 직접 생성 금지 |
-| 고도원 이사장 수행 업무·회의·과제·인물·찬송가 | 업무 브레인 `/Users/admin/Projects/godowon-office` — 첫 접근 전 `POLICY.md`, 기록도 그 정책의 정본 경로·도구를 따름 |
-| 두 브레인의 위치·조회/쓰기 계약·안정적 전역 작업 규칙 | `/Users/admin/AGENTS.md` 라우터. 개인 본문·업무 본문을 전역 지침에 복사하지 않음 |
+| 사용자의 생각·개인 사실·개인 결정 | 개인 브레인 — `SECOND_BRAIN_HOME`이 있으면 그 절대경로, 없으면 이 스킬을 소유한 활성 Plugify 체크아웃의 형제 `second_brain`. 그 레포 `POLICY.md`를 따르고 `bin/idea quick/link/code/attach`로만 캡처. `sources/*.md` 직접 생성 금지 |
+| 고도원 이사장 수행 업무·회의·과제·인물·찬송가 | 업무 브레인 — `GODOWON_OFFICE_HOME`이 있으면 그 절대경로, 없으면 이 스킬을 소유한 활성 Plugify 체크아웃의 형제 `godowon-office`. 첫 접근 전 `POLICY.md`, 기록도 그 정책의 정본 경로·도구를 따름 |
+| 두 브레인의 위치·조회/쓰기 계약·안정적 전역 작업 규칙 | 작업공간 루트의 로컬 `AGENTS.md` 라우터(정본 템플릿·검증은 Plugify `docs/WORKSPACE_MIGRATION.md`). 개인 본문·업무 본문을 전역 지침에 복사하지 않음 |
 | 도구·세션에만 유효한 임시 상태 | 이어가기 요약에만 명시. `~/.claude/.../memory`·모델 내장 기억을 정본으로 승격하지 않음 |
 - 커밋은 각 레포 규율대로: 본사=커밋(출시), 지점=로컬 커밋까지. push는 사람이 직접 하는 고정 역할이 아니라 원 요청에 포함됐거나 별도로 기록된 외부 전송·원격 변경 승인 경계다. `--no-verify`/`--force` 금지. 문서-only 정리는 trivial 우회로(직접 편집+커밋).
+- 브레인 경로는 위 환경 변수가 명시되었으면 먼저 쓰고, 없으면 이 지시문/해소 코드를 소유한 활성 Plugify 체크아웃의 작업공간 부모 아래 이름이 같은 **형제 저장소**를 쓴다. 현재 제품 cwd를 anchor로 쓰지 않는다. 기대한 Git 저장소가 아니거나 없으면 중단하고 보고하며 다른 홈 경로를 추측하지 않는다. 실제 해소는 그 Plugify 체크아웃의 `scripts/workspace-migrate.py --resolve second_brain|godowon-office`를 호출해 검증한다.
 
 ## P3 — 이어가기 요약 출력 (새 세션 첫 화면용, 사람의 언어로)
 1. **저장 내역**: 무엇을 어디에 내렸나 — 레포별 커밋 해시 포함, 트리 클린 여부 명시.

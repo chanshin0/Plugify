@@ -11,12 +11,14 @@
 #    → 여기서 PATH 를 보정하지 않으면 telemetry-digest 가 "jq 필요" 로 조용히 죽는다.
 #
 # 규율: 박동은 트리거·관찰만 — 합격판정·승격·push 는 안 한다(P1 불변식 그대로 상속).
-# 사용: bash scripts/heartbeat.sh [PROJECTS_DIR]   (기본 ~/Projects)
+# 사용: bash scripts/heartbeat.sh [PROJECTS_DIR]
+# 제품 지점 스캔 경로 우선순위: 인자 > PLUGIFY_PROJECTS_DIR > $HOME/Projects.
+# 이 경로는 3-repo 개인 작업공간과 별개다.
 set -uo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${PATH:-}"
 
 HQ="$(cd "$(dirname "$0")/.." && pwd)"
-PROJECTS_DIR="${1:-$HOME/Projects}"
+PROJECTS_DIR="${1:-${PLUGIFY_PROJECTS_DIR:-$HOME/Projects}}"
 DIGEST_DIR="${PLUGIFY_TELEMETRY_DIR:-$HQ/telemetry}"
 WEEK="$(date +%G-W%V)"
 NOW_ISO="$(date '+%Y-%m-%dT%H:%M:%S%z')"   # BSD date 이식(-Iseconds 는 GNU 전용)

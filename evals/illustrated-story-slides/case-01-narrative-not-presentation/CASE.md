@@ -6,7 +6,7 @@
 
 ## 실행 과제
 
-1. `/Users/admin/Projects/Plugify/skills/illustrated-story-slides/SKILL.md`를 읽는다.
+1. 현재 checkout의 `<plugify-root>/skills/illustrated-story-slides/SKILL.md`를 읽는다.
 2. `fixture/raincoat-script.md`를 입력으로 `supporting-slides` 모드의 3~5장 삽화 서사 프로젝트를 격리된 임시 디렉토리에 만든다.
 3. 생성 가능한 이미지 도구가 있으면 독창적 16:9 PNG 프레임을 실제로 만들고, 없으면 스토리보드까지만 만든 뒤 `visuals-pending`으로 정직하게 끝낸다. 무관한 스톡·방송 스틸·플레이스홀더를 완성 프레임으로 쓰지 않는다.
 4. `deck.json`을 정본으로 `storyboard.md`, `captions.vtt`, `preview.html`, `sources.md`를 만든다.

@@ -2,10 +2,13 @@
 # plugify status — 시스템 한눈에 보기 (★2-P0 현황판, SYSTEM.md §6 ★2)
 # 흩어진 상태(본사 evals·첫 실전 관찰·백로그 + 각 지점 STATE·git)를 한 화면으로 모은다.
 # "살아 움직이는 시스템"의 토대: 먼저 *보여야* 루프(피드백·자기시계)를 건다.
-# 사용: bash scripts/status.sh
+# 사용: bash scripts/status.sh [PROJECTS_DIR]
+# 제품 지점 스캔 경로 우선순위: 인자 > PLUGIFY_PROJECTS_DIR > $HOME/Projects.
+# 이 경로는 3-repo 개인 작업공간과 별개이며, .planning/STATE.md 제품만 찾는다.
 set -uo pipefail
 
 HQ="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECTS_DIR="${1:-${PLUGIFY_PROJECTS_DIR:-$HOME/Projects}}"
 CONFIRMED_EVALS="$HQ/evals/confirmed-cases.txt"
 registry_available=1
 registry_entries=0
@@ -106,9 +109,9 @@ grep -E "^★" "$HQ/SYSTEM.md" 2>/dev/null | sed -E 's/\*\*//g; s/^/      /'
 
 # ── 지점 ────────────────────────────────────────────────
 echo ""
-echo "■ 지점 (제품 레포 — ~/Projects/*/.planning/STATE.md)"
+echo "■ 지점 (선택적 제품 레포 — $PROJECTS_DIR/*/.planning/STATE.md)"
 found=0
-for state in "$HOME"/Projects/*/.planning/STATE.md; do
+for state in "$PROJECTS_DIR"/*/.planning/STATE.md; do
   [ -f "$state" ] || continue
   found=1
   repo="$(cd "$(dirname "$state")/.." && pwd)"

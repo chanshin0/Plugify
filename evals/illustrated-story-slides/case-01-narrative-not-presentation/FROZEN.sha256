@@ -1,6 +1,6 @@
 # Frozen 2026-08-18 after fresh/blind reviewer ACCEPT.
 # Do not modify these files during the implementation that this eval grades.
-66576f395c53eab8b7a27627dfe558ad9bb388098f9d93fb30cb4b48768844b1  CASE.md
+b35724356d555590b4bd2a2a560d00e759af717ba31464546e6f450b6bdf8015  CASE.md
 817c2c06715033e883290f93fd5493d0337fc371544457e64a66d5cf293a33b8  ANSWER.md
 0a645376efe0ae97f11a8674409bf324d5b264078789139f46f2d07f2e4700aa  check-contract.mjs
 8656d4923a3736a23f8d8e2d3abbde75368f4993ba6f61f5af5c536d721ceaa3  smoke-test.py

@@ -63,6 +63,10 @@ bash scripts/install.sh --dry-run  # 무엇을 할지 미리보기
 - 실디렉토리/딴 곳 링크가 점유한 이름은 건드리지 않고 WARN.
 - **세션 재시작 후 실효**(특히 agentType 레지스트리는 세션 시작에 고정).
 
+노트북·데스크탑·Mac에서 `Plugify`·`second_brain`·`godowon-office`를 서로 독립된
+형제 Git 저장소로 재현하는 계약과 안전한 dry-run/apply 도구는
+[`docs/WORKSPACE_MIGRATION.md`](docs/WORKSPACE_MIGRATION.md)를 따른다.
+
 ## 사용 — 마켓플레이스 install (현재 비어있음)
 
 `plugins/` 가 비어있어 현재 install 대상 번들이 없다. 추후 새 번들이 추가되면 다음 방식 가능:

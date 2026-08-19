@@ -13,12 +13,14 @@
 # STATE "## 다음 task" 는 절대 건드리지 않는다. HQ 는 지점 repo 를 커밋하지 않는다
 # (관찰만 떨구고 지점 세션이 검토·커밋). P2 cron 이 재호출하므로 **멱등**(ISO주 키 가드).
 #
-# 사용: bash scripts/telemetry-digest.sh [PROJECTS_DIR]   (기본 ~/Projects)
+# 사용: bash scripts/telemetry-digest.sh [PROJECTS_DIR]
+# 제품 지점 스캔 경로 우선순위: 인자 > PLUGIFY_PROJECTS_DIR > $HOME/Projects.
+# 이 경로는 3-repo 개인 작업공간과 별개다.
 #       eval 은 격리 디렉토리를 인자로 넘겨 실지점을 안 건드린다.
 set -uo pipefail
 
 HQ="$(cd "$(dirname "$0")/.." && pwd)"
-PROJECTS_DIR="${1:-$HOME/Projects}"
+PROJECTS_DIR="${1:-${PLUGIFY_PROJECTS_DIR:-$HOME/Projects}}"
 WEEK="$(date +%G-W%V)"            # ISO 연-주 (멱등 가드 키)
 NOW="$(date '+%Y-%m-%d %H:%M')"
 DIGEST_DIR="${PLUGIFY_TELEMETRY_DIR:-$HQ/telemetry}"   # eval 은 격리 디렉토리로 오버라이드
