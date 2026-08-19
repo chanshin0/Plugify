@@ -6,10 +6,10 @@ Plugify 스킬은 현재 정본 레포를 심링크로 읽지만, Claude·Codex�
 
 설치 공정은 실행된 **현재 Plugify 레포**를 에이전트 SSOT로 고정해야 한다.
 
-1. Claude `settings.json`과 Codex `hooks.json`의 기존 Plugify `sync-agents.py --ensure` 훅을 현재 레포의 절대경로를 실제 실행하는 단일 고정 명령으로 교체한다. 주석·선행 no-op 같은 비실행 문자열 포함으로 통과할 수 없다.
+1. Claude `settings.json`과 Codex `hooks.json`의 기존 Plugify 훅을 현재 레포의 절대경로를 실제 실행하는 두 고정 명령으로 교체한다. `startup|resume`은 `workspace-session-start.py`, `clear|compact`는 `sync-agents.py --ensure`이며, 주석·선행 no-op 같은 비실행 문자열 포함으로 통과할 수 없다.
 2. 두 설정의 Plugify와 무관한 키·훅은 보존한다.
-3. Plugify 훅이 없으면 `SessionStart`에 정확히 하나 추가한다.
-4. 반복 실행해도 파일 바이트와 훅 개수가 변하지 않는다.
+3. Plugify 훅이 없으면 `SessionStart`에 목적별 훅을 정확히 하나씩 추가하고, `.plugify` compatibility 경로를 포함한 구훅·중복은 제거한다.
+4. 반복 실행해도 파일 바이트와 목적별 훅 개수가 변하지 않는다.
 5. `--dry-run`은 구경로→현재 정본 경로의 필요한 변경을 보고하되 파일을 쓰지 않는다.
 6. `scripts/install.sh`의 정상 실행이 Claude·Codex 양쪽 에이전트 생성과 훅 갱신을 함께 수행한다.
 7. Codex의 hook trust hash를 코드가 위조·자동 승인하지 않는다. 변경된 훅의 신뢰는 Codex `/hooks` 검토 경계를 유지한다.
@@ -25,5 +25,5 @@ node scripts/test-install-contracts.mjs
 ## 합격선
 
 - 6개 테스트가 모두 `ok`이고 프로세스 종료 코드가 0이다.
-- 기존 설정 보존, 정확히 1개인 Plugify 훅, 현재 정본 결속, dry-run 무변경, 반복 멱등 중 하나라도 빠지면 실패다.
+- 기존 설정 보존, 목적별 정확히 1개인 두 Plugify 훅, 현재 정본 결속, dry-run 무변경, 반복 멱등 중 하나라도 빠지면 실패다.
 - 테스트 수·assertion 완화는 사람 승인 없이는 금지한다.

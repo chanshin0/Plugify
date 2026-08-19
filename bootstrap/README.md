@@ -26,9 +26,20 @@ npx plugify --help
 3. `<repo>/scripts/install.sh` 실행 →
    - 스킬을 `~/.claude/skills` + `~/.codex/skills` 양쪽에 심링크
    - 에이전트를 `~/.claude/agents/*.md` + `~/.codex/agents/*.toml` 로 생성 (dual-block SSOT 에서)
-   - Claude `settings.json` + Codex `hooks.json`의 SessionStart 에이전트 동기화를 **이번 설치에 사용한 같은 정본 레포**로 갱신(다른 훅 보존·멱등)
+   - Claude `settings.json` + Codex `hooks.json`의 관리형 SessionStart 두 묶음을 **이번 설치에 사용한 같은 정본 레포**로 갱신(다른 훅 보존·멱등)
 
-설치 후 **Claude/Codex 세션 재시작** 시 반영된다 (SessionStart 훅이 같은 정본의 `sync-agents.py --ensure` 로 매 세션 self-heal). Codex에서 훅 명령이 바뀌면 보안 경계상 `/hooks`에서 새 정의를 한 번 검토·신뢰해야 한다.
+설치 후 **Claude/Codex 세션 재시작** 시 반영된다. 관리된 3-repo 형제
+workspace에서는 `startup|resume`이 세 Git을 검증·fast-forward한 뒤 최신
+자산을 재생성하고, `clear|compact`는 로컬 `sync-agents.py --ensure`만 실행한다.
+이 단일-repo `npx` 설치처럼 workspace manifest와 두 brain이 없는 배치는
+네트워크 갱신 없이 로컬 agent self-heal만 유지한다. Codex에서 훅 명령이
+바뀌면 보안 경계상 `/hooks`에서 새 정의를 한 번 검토·신뢰해야 한다.
+
+`Plugify`·`second_brain`·`godowon-office` 전체를 새 기기에 구성하려면 이
+단일-repo 편의 도구가 아니라 정본의
+[`docs/WORKSPACE_MIGRATION.md`](../docs/WORKSPACE_MIGRATION.md) 절차로 기기당
+한 번 bootstrap한다. 계정 로그인은 clone·설정·Git 인증·hook trust를
+다른 기기에 복제하지 않는다.
 
 ## 왜 한 파일이 아니라 "생성"인가
 
@@ -44,7 +55,8 @@ Claude 에이전트는 `.md`(frontmatter+본문), Codex 에이전트는 `.toml`(
 
 ## 요구사항
 
-`git`, `bash`, `python3`, Node.js 18+. (install.sh·sync-agents.py 가 bash/python3 사용 — macOS/Linux.)
+`git`, `bash`, `python3`, Node.js 18+. (macOS/Linux 또는 Windows WSL;
+네이티브 Windows hook command는 현재 생성하지 않는다.)
 
 ## License
 

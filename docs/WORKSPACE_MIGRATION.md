@@ -4,6 +4,10 @@
 > each device; `Plugify`, `second_brain`, and `godowon-office` remain three
 > independent Git repositories; sibling placement is the default; the three
 > `*_HOME` variables are used only for intentional non-sibling placement.
+>
+> Operation record — 2026-08-20: after one local bootstrap per device, Codex
+> and Claude Code use the same managed SessionStart updater. Account sign-in is
+> not treated as dotfile, checkout, credential, or hook-trust deployment.
 
 This document is the canonical layout and migration record for the personal
 agent workspace. The workspace contains three **independent Git repositories**;
@@ -77,6 +81,64 @@ root `AGENTS.md`, and writes `.plugify-workspace.json`. `--install` is separate
 and explicit because it updates the current user's Claude/Codex integration.
 Restart those applications after installation so their registries reload.
 
+## Automatic refresh after bootstrap
+
+`--install` writes two managed user-level SessionStart groups for both local
+tools:
+
+| SessionStart source | Action |
+|---|---|
+| `startup`, `resume` | one locked `workspace-session-start.py` run: validate all three repository identities, fetch and safely fast-forward eligible `origin/main` branches, then regenerate assets from the updated Plugify checkout |
+| `clear`, `compact` | local `sync-agents.py --ensure` only; no network or checkout update |
+
+Codex and Claude can start at the same time. An atomic workspace lock makes one
+process the updater and lets the follower reuse that run instead of racing it.
+Updates run in the order `second_brain` → `godowon-office` → `Plugify`; after
+Plugify moves, its newly checked-out `sync-agents.py` is launched as a fresh
+process. If Plugify changed, its current idempotent installer is also rerun so
+new skills and managed hook wiring reach the local tools.
+
+The updater never resets, rebases, stashes, cleans, switches branches, creates a
+merge commit, pushes, or resolves a conflict. It applies only an exact
+fast-forward when the checkout is on `main`, tracks `origin/main`, has no tracked
+change or Git operation in progress, and the local head is an ancestor of the
+fetched head. Ahead, diverged, feature, detached, dirty, offline, authentication,
+and timeout states leave the checkout untouched and let the coding session open
+with a sanitized attention line. Untracked/ignored local output is preserved;
+the fast-forward is skipped when any incoming path would collide with it.
+Filenames, local paths, remote URLs, Git stderr, and credentials are not emitted
+into SessionStart context.
+
+Run the same entry point manually to verify a device without opening a new
+session:
+
+```bash
+python3 "$workspace_root/Plugify/scripts/workspace-session-start.py"
+```
+
+This is a per-device installation, not an account-sync feature. A new laptop,
+desktop, or Mac still needs, once: the bootstrap above, access to the private Git
+repositories, local GitHub authentication, and review/trust of the changed Codex
+hook in `/hooks`. Claude's `~/.claude/settings.json`, Codex's local state,
+checkout paths, credentials, symlinks, and trust decisions are not copied by
+personal account login. Claude cloud sessions likewise do not inherit local
+user settings. The behavior follows the local user scopes documented by
+[Codex hooks](https://learn.chatgpt.com/docs/hooks) and
+[Claude Code hooks](https://code.claude.com/docs/en/hooks).
+
+Codex exposes SessionStart, not an application-open event. Therefore opening the
+desktop app without starting/resuming a session performs no refresh; the first
+session is the correctness trigger. An OS-login/AppStart warmer would be a
+separate machine-local Windows Task Scheduler or macOS LaunchAgent and is not
+installed here. The current installer supports macOS, Linux, and Windows through
+WSL; native Windows hook commands are not generated.
+
+Fast-forwarding a shared checkout can be observed by an already-running editor
+or agent session, and no hook can detect an unsaved IDE buffer. Keep important
+work committed or otherwise reviewed before relying on automatic updates. The
+security trust boundary is also explicit: a fast-forwarded private Plugify
+revision is subsequently executed to regenerate/install its local assets.
+
 In Codex desktop, perform one local step per device: open/save the **container
 folder** as the workspace/session root, rather than opening one child as the
 root. The generated root `AGENTS.md` then acts as the session-start router and
@@ -129,9 +191,11 @@ python3 "$workspace_root/Plugify/scripts/workspace-migrate.py" --root "$workspac
 python3 "$workspace_root/Plugify/scripts/workspace-migrate.py" --root "$workspace_root" --verify
 ```
 
-The migration tool never updates an existing branch. When updates are wanted,
-run `git pull --ff-only` separately inside each clean repository so that a branch
-or authentication problem cannot be confused with workspace migration.
+The migration command itself never updates an existing branch. Before the first
+`--install`, update reviewed clean checkouts manually if necessary. After the
+managed SessionStart hooks are installed, the automatic updater above owns only
+the narrowly validated fast-forward path; migration dry-run/apply remains a
+separate layout operation.
 
 ## Safety and idempotence
 
@@ -160,7 +224,7 @@ or authentication problem cannot be confused with workspace migration.
 |---|---|
 | This document, migration tool, and router template | Container absolute path |
 | Repository names, roles, and default origins | `.plugify-workspace.json` generated at the container root |
-| Environment variable names and sibling fallback | Claude/Codex config, caches, credentials, and hook trust |
+| Environment variable names, sibling fallback, updater, and hook installer | Claude/Codex config, caches, credentials, and hook trust |
 | Each repository's own policy | Compatibility symlinks and local validation artifacts |
 
 Absolute device paths belong only in local config. Shared instructions must use

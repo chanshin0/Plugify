@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
-"""Bind Claude/Codex SessionStart agent sync hooks to the active Plugify SSOT."""
+"""Bind Claude/Codex SessionStart workspace hooks to the active Plugify SSOT."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
-import re
+import shlex
 import tempfile
 from pathlib import Path
 from typing import Any
 
 
-PYTHON_COMMAND = r"(?:(?:/\S*)?/python3|python3|/usr/bin/env python3)"
-SCRIPT_ARGUMENT = r'(?P<script>"[^"]*/scripts/sync-agents\.py"|\S*/scripts/sync-agents\.py)'
-MANAGED_COMMAND = re.compile(rf"^{PYTHON_COMMAND}\s+{SCRIPT_ARGUMENT}\s+--ensure$")
+MANAGED_SCRIPTS = {
+    "sync-agents.py": "agents",
+    "workspace-session-start.py": "workspace",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -41,25 +42,45 @@ def load_json(path: Path) -> dict[str, Any]:
     return data
 
 
-def managed_script_path(command: object) -> str | None:
+def managed_script(command: object) -> tuple[str, str] | None:
     if not isinstance(command, str):
         return None
-    match = MANAGED_COMMAND.fullmatch(command)
-    if not match:
+    try:
+        tokens = shlex.split(command, posix=True)
+    except ValueError:
         return None
-    script = match.group("script").strip('"')
-    if "plugify" not in {part.casefold() for part in Path(script).parts}:
+    if len(tokens) >= 2 and Path(tokens[0]).name == "env" and tokens[1] == "python3":
+        tokens = tokens[2:]
+    elif tokens and Path(tokens[0]).name == "python3":
+        tokens = tokens[1:]
+    else:
         return None
-    return script
+    if not tokens:
+        return None
+    script = tokens[0]
+    kind = MANAGED_SCRIPTS.get(Path(script).name)
+    if kind == "agents" and tokens[1:] != ["--ensure"]:
+        return None
+    if kind == "workspace" and tokens[1:]:
+        return None
+    if kind is None:
+        return None
+    parts = {part.casefold() for part in Path(script).parts}
+    if not ({"plugify", ".plugify"} & parts):
+        return None
+    return kind, script
 
 
-def desired_command(repo_root: Path) -> str:
-    script = repo_root / "scripts" / "sync-agents.py"
-    return f'/usr/bin/env python3 "{script}" --ensure'
+def desired_commands(repo_root: Path) -> dict[str, str]:
+    scripts = repo_root / "scripts"
+    return {
+        "workspace": f'/usr/bin/env python3 "{scripts / "workspace-session-start.py"}"',
+        "agents": f'/usr/bin/env python3 "{scripts / "sync-agents.py"}" --ensure',
+    }
 
 
 def update_document(
-    original: dict[str, Any], desired: str
+    original: dict[str, Any], desired: dict[str, str]
 ) -> tuple[dict[str, Any], bool, list[str]]:
     hooks = original.get("hooks")
     if hooks is None:
@@ -74,8 +95,6 @@ def update_document(
     if not isinstance(groups, list):
         raise SystemExit("expected 'hooks.SessionStart' to be a JSON array; refusing to overwrite")
 
-    found = False
-    changed = False
     old_paths: list[str] = []
     kept_groups: list[Any] = []
 
@@ -93,55 +112,47 @@ def update_document(
             if not isinstance(handler, dict):
                 kept_handlers.append(handler)
                 continue
-            old_script = managed_script_path(handler.get("command"))
-            if old_script is None:
+            managed = managed_script(handler.get("command"))
+            if managed is None:
                 kept_handlers.append(handler)
                 continue
-
+            _, old_script = managed
             old_paths.append(old_script)
-            if not found:
-                found = True
-                updated = dict(handler)
-                if updated.get("command") != desired:
-                    updated["command"] = desired
-                    changed = True
-                kept_handlers.append(updated)
-            else:
-                changed = True
 
-        if kept_handlers:
-            if kept_handlers != handlers:
-                updated_group = dict(group)
-                updated_group["hooks"] = kept_handlers
-                kept_groups.append(updated_group)
-            else:
-                kept_groups.append(group)
-        elif handlers:
-            changed = True
-
-    if not found:
-        kept_groups.append(
+        if kept_handlers == handlers:
+            kept_groups.append(group)
+        elif kept_handlers:
+            updated_group = dict(group)
+            updated_group["hooks"] = kept_handlers
+            kept_groups.append(updated_group)
+    kept_groups.extend(
+        [
             {
-                "matcher": "startup|resume|clear|compact",
+                "matcher": "startup|resume",
                 "hooks": [
                     {
                         "type": "command",
-                        "command": desired,
+                        "command": desired["workspace"],
+                        "timeout": 180,
+                        "statusMessage": "plugify workspace sync",
+                    }
+                ],
+            },
+            {
+                "matcher": "clear|compact",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": desired["agents"],
                         "timeout": 60,
                         "statusMessage": "plugify agent sync",
                     }
                 ],
-            }
-        )
-        changed = True
-
-    if kept_groups != groups:
-        hooks["SessionStart"] = kept_groups
-        changed = True
-    elif "SessionStart" not in hooks:
-        hooks["SessionStart"] = kept_groups
-        changed = True
-
+            },
+        ]
+    )
+    changed = kept_groups != groups or "SessionStart" not in hooks
+    hooks["SessionStart"] = kept_groups
     return original, changed, old_paths
 
 
@@ -159,7 +170,7 @@ def atomic_write_json(path: Path, data: dict[str, Any]) -> None:
     os.replace(temp_path, path)
 
 
-def process(path: Path, desired: str, dry_run: bool) -> bool:
+def process(path: Path, desired: dict[str, str], dry_run: bool) -> bool:
     document = load_json(path)
     updated, changed, old_paths = update_document(document, desired)
     if not changed:
@@ -167,9 +178,12 @@ def process(path: Path, desired: str, dry_run: bool) -> bool:
         return False
 
     old_label = ", ".join(old_paths) if old_paths else "<missing>"
-    new_script = desired.split('"', 2)[1]
+    new_paths = [managed_script(desired[k]) for k in ("workspace", "agents")]
+    if any(item is None for item in new_paths):
+        raise SystemExit("internal error: desired managed hook command is invalid")
+    new_label = ", ".join(item[1] for item in new_paths if item is not None)
     prefix = "DRY-RUN update" if dry_run else "update"
-    print(f"{prefix} {path}: {old_label} -> {new_script}")
+    print(f"{prefix} {path}: {old_label} -> {new_label}")
     if not dry_run:
         atomic_write_json(path, updated)
     return True
@@ -178,14 +192,15 @@ def process(path: Path, desired: str, dry_run: bool) -> bool:
 def main() -> int:
     args = parse_args()
     repo_root = args.repo_root.expanduser().resolve()
-    sync_script = repo_root / "scripts" / "sync-agents.py"
-    if not sync_script.is_file():
-        raise SystemExit(f"Plugify sync script not found: {sync_script}")
+    for name in ("sync-agents.py", "workspace-session-start.py"):
+        script = repo_root / "scripts" / name
+        if not script.is_file():
+            raise SystemExit(f"Plugify managed hook script not found: {script}")
 
     home = Path.home()
     claude_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR", home / ".claude")).expanduser()
     codex_dir = Path(os.environ.get("CODEX_HOME", home / ".codex")).expanduser()
-    desired = desired_command(repo_root)
+    desired = desired_commands(repo_root)
 
     process(claude_dir / "settings.json", desired, args.dry_run)
     process(codex_dir / "hooks.json", desired, args.dry_run)

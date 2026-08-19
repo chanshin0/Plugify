@@ -10,7 +10,28 @@ import { fileURLToPath } from 'node:url'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const HELPER = join(ROOT, 'scripts', 'install-session-hooks.py')
 const INSTALL = join(ROOT, 'scripts', 'install.sh')
-const EXPECTED_COMMAND = `/usr/bin/env python3 "${ROOT}/scripts/sync-agents.py" --ensure`
+const EXPECTED_WORKSPACE_COMMAND = `/usr/bin/env python3 "${ROOT}/scripts/workspace-session-start.py"`
+const EXPECTED_AGENT_COMMAND = `/usr/bin/env python3 "${ROOT}/scripts/sync-agents.py" --ensure`
+const EXPECTED_GROUPS = [
+  {
+    matcher: 'startup|resume',
+    hooks: [{
+      type: 'command',
+      command: EXPECTED_WORKSPACE_COMMAND,
+      timeout: 180,
+      statusMessage: 'plugify workspace sync',
+    }],
+  },
+  {
+    matcher: 'clear|compact',
+    hooks: [{
+      type: 'command',
+      command: EXPECTED_AGENT_COMMAND,
+      timeout: 60,
+      statusMessage: 'plugify agent sync',
+    }],
+  },
+]
 
 function writeJson(path, value) {
   mkdirSync(dirname(path), { recursive: true })
@@ -59,9 +80,15 @@ function fixture({ withPlugifyHook = true } = {}) {
     session.push({
       matcher: 'resume',
       hooks: [{
+        type: 'command', command: `/opt/homebrew/bin/python3 "${stale}" --ensure`, timeout: 60,
+      }, {
         type: 'command',
-        command: `/opt/homebrew/bin/python3 "${stale}" --ensure`,
+        command: '/usr/bin/env python3 "/home/example/.plugify/scripts/sync-agents.py" --ensure',
         timeout: 60,
+      }, {
+        type: 'command',
+        command: '/usr/bin/env python3 "/home/example/.plugify/scripts/workspace-session-start.py"',
+        timeout: 90,
       }],
     })
   }
@@ -92,52 +119,48 @@ function runHelper(fx, ...args) {
   })
 }
 
-function syncHooks(doc) {
+function managedHooks(doc) {
   const groups = doc.hooks?.SessionStart ?? []
   return groups.flatMap((group) => group.hooks ?? []).filter((hook) =>
-    isManagedSyncCommand(hook.command))
+    isManagedCommand(hook.command))
 }
 
-function isManagedSyncCommand(command) {
+function isManagedCommand(command) {
   if (typeof command !== 'string') return false
-  return /^(?:(?:\/\S*)?\/python3|python3|\/usr\/bin\/env python3)\s+(?:"[^"]*\/scripts\/sync-agents\.py"|\S*\/scripts\/sync-agents\.py)\s+--ensure$/.test(command)
+  const match = command.match(/^(?:(?:\/\S*)?\/python3|python3|\/usr\/bin\/env python3)\s+(?:"([^"]*)"|(\S+))(?:\s+(--ensure))?$/)
+  if (!match) return false
+  const script = match[1] ?? match[2]
+  if (!/(?:^|\/)(?:\.?plugify)(?:\/|$)/i.test(script)) return false
+  if (script.endsWith('/scripts/sync-agents.py')) return match[3] === '--ensure'
+  if (script.endsWith('/scripts/workspace-session-start.py')) return match[3] === undefined
+  return false
 }
 
-function assertCurrentHook(doc) {
-  const hooks = syncHooks(doc)
-  assert.equal(hooks.length, 1)
-  assert.equal(hooks[0].command, EXPECTED_COMMAND)
+function assertCurrentHooks(doc) {
+  const hooks = managedHooks(doc)
+  assert.equal(hooks.length, 2)
+  assert.deepEqual(hooks.map((hook) => hook.command).sort(), [
+    EXPECTED_AGENT_COMMAND,
+    EXPECTED_WORKSPACE_COMMAND,
+  ].sort())
+  const groups = doc.hooks.SessionStart.filter((group) =>
+    (group.hooks ?? []).some((hook) => isManagedCommand(hook.command)))
+  assert.deepEqual(groups, EXPECTED_GROUPS)
 }
 
 function expectedUpdated(input) {
   const doc = structuredClone(input)
   const groups = doc.hooks?.SessionStart ?? []
-  let survivor = null
   const keptGroups = []
   for (const group of groups) {
     const keptHooks = []
     for (const hook of group.hooks ?? []) {
-      const isSync = isManagedSyncCommand(hook.command)
-      if (!isSync) {
-        keptHooks.push(hook)
-      } else if (!survivor) {
-        survivor = { ...hook, command: EXPECTED_COMMAND }
-        keptHooks.push(survivor)
-      }
+      if (!isManagedCommand(hook.command)) keptHooks.push(hook)
     }
-    if (keptHooks.length) keptGroups.push({ ...group, hooks: keptHooks })
+    if (keptHooks.length === (group.hooks ?? []).length) keptGroups.push(group)
+    else if (keptHooks.length) keptGroups.push({ ...group, hooks: keptHooks })
   }
-  if (!survivor) {
-    keptGroups.push({
-      matcher: 'startup|resume|clear|compact',
-      hooks: [{
-        type: 'command',
-        command: EXPECTED_COMMAND,
-        timeout: 60,
-        statusMessage: 'plugify agent sync',
-      }],
-    })
-  }
+  keptGroups.push(...structuredClone(EXPECTED_GROUPS))
   doc.hooks ??= {}
   doc.hooks.SessionStart = keptGroups
   return doc
@@ -153,8 +176,8 @@ test('testReplacesStaleHooksAndPreservesUnrelatedConfig', () => {
   runHelper(fx)
   const claude = readJson(join(fx.claude, 'settings.json'))
   const codex = readJson(join(fx.codex, 'hooks.json'))
-  assertCurrentHook(claude)
-  assertCurrentHook(codex)
+  assertCurrentHooks(claude)
+  assertCurrentHooks(codex)
   assert.deepEqual(claude, expectedUpdated(beforeClaude))
   assert.deepEqual(codex, expectedUpdated(beforeCodex))
 })
@@ -163,8 +186,8 @@ test('testAddsMissingHooksExactlyOnce', () => {
   const fx = fixture({ withPlugifyHook: false })
   runHelper(fx)
   runHelper(fx)
-  assertCurrentHook(readJson(join(fx.claude, 'settings.json')))
-  assertCurrentHook(readJson(join(fx.codex, 'hooks.json')))
+  assertCurrentHooks(readJson(join(fx.claude, 'settings.json')))
+  assertCurrentHooks(readJson(join(fx.codex, 'hooks.json')))
 })
 
 test('testRepeatedRunIsByteIdempotent', () => {
@@ -188,6 +211,7 @@ test('testDryRunDoesNotWrite', () => {
   assert.match(output, /settings\.json/)
   assert.match(output, /hooks\.json/)
   assert.match(output, /stale-marketplace/)
+  assert.ok(output.includes(`${ROOT}/scripts/workspace-session-start.py`))
   assert.ok(output.includes(`${ROOT}/scripts/sync-agents.py`))
   assert.match(output, /update/)
 })
@@ -225,8 +249,8 @@ test('testInstallScriptWiresCurrentRepo', () => {
     },
     stdio: 'pipe',
   })
-  assertCurrentHook(readJson(join(fx.claude, 'settings.json')))
-  assertCurrentHook(readJson(join(fx.codex, 'hooks.json')))
+  assertCurrentHooks(readJson(join(fx.claude, 'settings.json')))
+  assertCurrentHooks(readJson(join(fx.codex, 'hooks.json')))
   assertGeneratedAgents(join(fx.claude, 'agents'), join(expectedClaude, 'agents'), '.md')
   assertGeneratedAgents(join(fx.codex, 'agents'), join(expectedCodex, 'agents'), '.toml')
 })

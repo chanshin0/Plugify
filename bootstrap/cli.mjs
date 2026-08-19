@@ -128,7 +128,7 @@ function setup() {
   log("");
   log(`${c.green}✓${c.reset} plugify 설치 완료 — 스킬·에이전트가 Claude(~/.claude) + Codex(~/.codex) 양쪽에 노출됨.`);
   log(`${c.dim}⚠ Claude/Codex 세션을 재시작해야 agentType 레지스트리에 반영됩니다.${c.reset}`);
-  log(`${c.dim}  (SessionStart 훅이 sync-agents.py --ensure 로 매 세션 self-heal)${c.reset}`);
+  log(`${c.dim}  (SessionStart: 관리된 3-repo workspace는 안전 최신화, 단일 repo는 로컬 agent self-heal)${c.reset}`);
 }
 
 // --- Claude marketplace registration (opt-in) ----------------------------

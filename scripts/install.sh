@@ -15,8 +15,9 @@
 #             ~/.claude/agents/<n>.md  +  ~/.codex/agents/<n>.toml 을 "생성"한다.
 #             (Codex 는 에이전트 심링크를 따라가지 않으므로 실파일 생성;
 #             openai/codex#15345. 또 .md↔.toml 포맷이 달라 한 파일 공유 불가.)
-#   [hooks]   Claude/Codex SessionStart 의 sync-agents.py --ensure 명령을 이 설치를
-#             실행한 현재 Plugify 레포에 결속한다. Codex hook trust 자동 승인은 하지 않는다.
+#   [hooks]   Claude/Codex SessionStart 를 이 설치의 현재 Plugify 레포에 결속한다.
+#             startup|resume 은 세 형제 Git 안전 갱신→agent sync, clear|compact 는
+#             네트워크 없는 agent sync. Codex hook trust 자동 승인은 하지 않는다.
 #
 # 멱등 · no-clobber. 이미 올바른 symlink → skip. 실파일/딴 링크 점유 → 보존하고 WARN.
 #
@@ -25,7 +26,7 @@
 #   bash scripts/install.sh --dry-run  # 무엇을 할지 출력만
 #
 # ⚠ 적용은 "세션 재시작 후" 실효한다. 특히 agentType 레지스트리는 세션 시작에 고정된다.
-#   (SessionStart 훅이 sync-agents.py --ensure 를 호출하도록 wiring 돼 있으면 자동 self-heal)
+#   (SessionStart 훅이 현재 Plugify 정본을 호출하도록 wiring 돼 있으면 자동 self-heal)
 #
 set -euo pipefail
 
@@ -109,7 +110,7 @@ else
   CLAUDE_CONFIG_DIR="$CLAUDE_DIR" CODEX_HOME="$CODEX_DIR" python3 "$SCRIPT_DIR/sync-agents.py"
 fi
 
-echo "[hooks]   (SessionStart agent sync → 현재 Plugify SSOT)"
+echo "[hooks]   (SessionStart workspace+agent sync → 현재 Plugify SSOT)"
 if [ "$DRY_RUN" = 1 ]; then
   CLAUDE_CONFIG_DIR="$CLAUDE_DIR" CODEX_HOME="$CODEX_DIR" \
     python3 "$SCRIPT_DIR/install-session-hooks.py" --repo-root "$REPO" --dry-run

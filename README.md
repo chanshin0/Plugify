@@ -62,6 +62,10 @@ bash scripts/install.sh --dry-run  # 무엇을 할지 미리보기
 - 스킬뿐 아니라 **`skills/*/agents/*.md`(name: frontmatter 보유)도 `~/.claude/agents/` 로 등록**한다 — agentType 호출 스킬(tech-deciding·spec-building·service-planning)에 필수. 수동 `ln -s` 로 스킬만 걸면 agentType 이 미등록돼 워크플로우가 죽는다.
 - 실디렉토리/딴 곳 링크가 점유한 이름은 건드리지 않고 WARN.
 - **세션 재시작 후 실효**(특히 agentType 레지스트리는 세션 시작에 고정).
+- 설치 뒤 Codex·Claude의 `startup|resume`은 세 형제 Git을 검증된
+  fast-forward로 최신화하고, `clear|compact`는 네트워크 없이 에이전트만
+  재생성한다. 계정 로그인 자체는 이 로컬 설정을 다른 기기에 복제하지
+  않으므로 기기마다 bootstrap·Git 인증·Codex 훅 신뢰가 한 번 필요하다.
 
 노트북·데스크탑·Mac에서 `Plugify`·`second_brain`·`godowon-office`를 서로 독립된
 형제 Git 저장소로 재현하는 계약과 안전한 dry-run/apply 도구는
