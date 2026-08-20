@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import os
 import shutil
 import subprocess
@@ -13,6 +15,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from types import ModuleType
 from unittest import mock
 
 
@@ -53,6 +56,20 @@ def run(command: list[str], *, cwd: Path | None = None, env: dict[str, str] | No
 
 def git(repo: Path, *arguments: str) -> str:
     return run(["git", "-C", str(repo), *arguments]).strip()
+
+
+@contextlib.contextmanager
+def unsafe_helper(module: ModuleType):
+    with tempfile.TemporaryDirectory(prefix="plugify-session-askpass-unsafe-") as temp:
+        helper = Path(temp) / "no-askpass.py"
+        helper.write_text("#!/usr/bin/env python3\nraise SystemExit(1)\n", encoding="utf-8")
+        helper.chmod(0o644)
+        original = module.NO_ASKPASS
+        module.NO_ASKPASS = helper
+        try:
+            yield helper
+        finally:
+            module.NO_ASKPASS = original
 
 
 class WorkspaceFixture:
@@ -338,6 +355,36 @@ class SessionSyncTest(unittest.TestCase):
         self.assert_success(result)
         self.assertEqual(git(checkout, "rev-parse", "origin/main"), old_remote)
         self.assertEqual(result.stdout, "Plugify workspace sync attention: workspace-validation\n")
+
+    def test_non_executable_helper_fails_closed_before_git_or_asset_refresh(self) -> None:
+        fake_home = self.fx.temp / "unsafe-helper-home"
+        fake_home.mkdir()
+        output = io.StringIO()
+        isolated_env = {
+            "HOME": str(fake_home),
+            "CODEX_HOME": str(fake_home / ".codex"),
+            "CLAUDE_CONFIG_DIR": str(fake_home / ".claude"),
+        }
+        with (
+            unsafe_helper(MIGRATION),
+            mock.patch.object(
+                SESSION, "git_command", side_effect=AssertionError("session Git must not start")
+            ) as git_command,
+            mock.patch.object(SESSION, "run_asset_refresh") as asset_refresh,
+            mock.patch.object(
+                sys, "argv", [str(SESSION_SCRIPT), "--repo-root", str(self.fx.clone["plugify"])]
+            ),
+            mock.patch.dict(os.environ, isolated_env),
+            contextlib.redirect_stdout(output),
+        ):
+            result = SESSION.main()
+        self.assertEqual(result, 0)
+        self.assertEqual(git_command.call_count, 0)
+        self.assertEqual(asset_refresh.call_count, 0)
+        self.assertEqual(
+            output.getvalue(),
+            "Plugify workspace sync attention: workspace-validation\n",
+        )
 
     def test_standalone_plugify_keeps_local_agent_self_heal_without_network(self) -> None:
         manifest = self.fx.root / MIGRATION.MANIFEST_NAME

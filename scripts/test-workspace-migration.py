@@ -3,12 +3,17 @@
 
 from __future__ import annotations
 
+import contextlib
+import importlib.util
+import io
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import ModuleType
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -24,6 +29,19 @@ CANONICAL = {
     "second_brain": "https://github.com/chanshin0/second_brain.git",
     "godowon-office": "https://github.com/chanshin0/godowon-office.git",
 }
+
+
+def load_migration_module() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("plugify_workspace_migrate_test", MIGRATE)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load workspace-migrate.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+MIGRATION = load_migration_module()
 
 
 def command(
@@ -50,6 +68,20 @@ def command(
 
 def git(repo: Path, *arguments: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return command("git", "-C", str(repo), *arguments, check=check)
+
+
+@contextlib.contextmanager
+def unsafe_helper(module: ModuleType):
+    with tempfile.TemporaryDirectory(prefix="plugify-unsafe-askpass-") as temp:
+        helper = Path(temp) / "no-askpass.py"
+        helper.write_text("#!/usr/bin/env python3\nraise SystemExit(1)\n", encoding="utf-8")
+        helper.chmod(0o644)
+        original = module.NO_ASKPASS
+        module.NO_ASKPASS = helper
+        try:
+            yield helper
+        finally:
+            module.NO_ASKPASS = original
 
 
 class WorkspaceMigrationTests(unittest.TestCase):
@@ -82,6 +114,9 @@ class WorkspaceMigrationTests(unittest.TestCase):
         for name in REPO_NAMES:
             args.extend(("--repo-url", f"{name}={self.remote_paths[name]}"))
         return args
+
+    def expected_origins(self) -> dict[str, str]:
+        return {name: str(self.remote_paths[name]) for name in REPO_NAMES}
 
     def run_migration(
         self,
@@ -236,6 +271,42 @@ class WorkspaceMigrationTests(unittest.TestCase):
                     self.assertEqual(index.read_bytes(), before_bytes)
                     self.assertEqual(index.stat().st_mtime_ns, before_mtime)
                 self.assertFalse(fsmonitor_marker.exists())
+
+    def test_preflight_rejects_non_executable_helper_before_plan_output(self) -> None:
+        workspace = self.base / "unsafe-helper-preflight"
+        applied = self.run_migration(workspace, "--apply")
+        self.assertEqual(applied.returncode, 0, applied.stderr)
+        output = io.StringIO()
+        with unsafe_helper(MIGRATION):
+            with self.assertRaisesRegex(
+                MIGRATION.WorkspaceError,
+                r"^noninteractive askpass helper is missing or unsafe:",
+            ):
+                with contextlib.redirect_stdout(output):
+                    MIGRATION.preflight(
+                        workspace,
+                        self.expected_origins(),
+                        allow_dirty=False,
+                    )
+        self.assertEqual(output.getvalue(), "")
+
+    def test_strict_verify_rejects_non_executable_helper_before_repository_checks(self) -> None:
+        workspace = self.base / "unsafe-helper-verify"
+        applied = self.run_migration(workspace, "--apply")
+        self.assertEqual(applied.returncode, 0, applied.stderr)
+        output = io.StringIO()
+        with unsafe_helper(MIGRATION):
+            with self.assertRaisesRegex(
+                MIGRATION.WorkspaceError,
+                r"^noninteractive askpass helper is missing or unsafe:",
+            ):
+                with contextlib.redirect_stdout(output):
+                    MIGRATION.strict_verify(
+                        workspace,
+                        self.expected_origins(),
+                        allow_dirty=False,
+                    )
+        self.assertEqual(output.getvalue(), "")
 
     def test_custom_root_router_is_never_overwritten(self) -> None:
         workspace = self.base / "custom-router-workspace"

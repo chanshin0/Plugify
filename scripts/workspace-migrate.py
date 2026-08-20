@@ -166,6 +166,13 @@ def clean_git_environment(overrides: dict[str, str] | None = None) -> dict[str, 
     return env
 
 
+def validate_noninteractive_askpass_helper() -> Path:
+    helper = NO_ASKPASS
+    if helper.is_symlink() or not helper.is_file() or not os.access(helper, os.X_OK):
+        raise WorkspaceError(f"noninteractive askpass helper is missing or unsafe: {helper}")
+    return helper
+
+
 def git(repo: Path, *arguments: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return run(
         ["git", "-C", str(repo), *arguments],
@@ -631,6 +638,7 @@ def preflight(
     *,
     allow_dirty: bool,
 ) -> tuple[list[RepoSpec], str, str]:
+    validate_noninteractive_askpass_helper()
     if root.exists() and not root.is_dir():
         raise WorkspaceError(f"workspace root is not a directory: {root}")
     validate_workspace_container(root)
@@ -682,12 +690,7 @@ def preflight(
 
 
 def clone_missing(root: Path, missing: list[RepoSpec], origins: dict[str, str]) -> None:
-    if missing and (
-        NO_ASKPASS.is_symlink()
-        or not NO_ASKPASS.is_file()
-        or not os.access(NO_ASKPASS, os.X_OK)
-    ):
-        raise WorkspaceError(f"noninteractive askpass helper is missing or unsafe: {NO_ASKPASS}")
+    helper = validate_noninteractive_askpass_helper() if missing else None
     staged: list[tuple[RepoSpec, Path]] = []
     try:
         with tempfile.TemporaryDirectory(prefix="plugify-empty-git-template-") as template:
@@ -722,8 +725,8 @@ def clone_missing(root: Path, missing: list[RepoSpec], origins: dict[str, str]) 
                     env=clean_git_environment(
                         {
                             "GIT_TERMINAL_PROMPT": "0",
-                            "GIT_ASKPASS": str(NO_ASKPASS),
-                            "SSH_ASKPASS": str(NO_ASKPASS),
+                            "GIT_ASKPASS": str(helper),
+                            "SSH_ASKPASS": str(helper),
                             "SSH_ASKPASS_REQUIRE": "never",
                             "GCM_INTERACTIVE": "Never",
                             "GIT_SSH_COMMAND": "ssh -oBatchMode=yes -oStrictHostKeyChecking=yes",
@@ -781,6 +784,7 @@ def write_managed_file(path: Path, desired: str, kind: str) -> None:
 
 
 def strict_verify(root: Path, origins: dict[str, str], *, allow_dirty: bool) -> None:
+    validate_noninteractive_askpass_helper()
     if not root.is_dir():
         raise WorkspaceError(f"workspace root missing: {root}")
     validate_workspace_container(root)

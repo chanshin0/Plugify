@@ -161,9 +161,7 @@ def bounded_run(
 
 
 def git_environment() -> dict[str, str]:
-    no_askpass = MIGRATION.NO_ASKPASS
-    if no_askpass.is_symlink() or not no_askpass.is_file() or not os.access(no_askpass, os.X_OK):
-        raise RuntimeError("noninteractive Git helper unavailable")
+    no_askpass = MIGRATION.validate_noninteractive_askpass_helper()
     return MIGRATION.clean_git_environment(
         {
             "GIT_TERMINAL_PROMPT": "0",
@@ -575,9 +573,11 @@ def main() -> int:
     args = parse_args()
     warnings: list[RepoResult] = []
     updated: list[str] = []
+    workspace_validation = False
     repo_root = args.repo_root.expanduser()
     try:
         root, origins, repositories = validate_workspace(repo_root)
+        MIGRATION.validate_noninteractive_askpass_helper()
     except (OSError, RuntimeError, MIGRATION.WorkspaceError):
         if refresh_standalone_plugify(
             repo_root, timeout=args.git_timeout, lock_timeout=args.lock_timeout
@@ -632,6 +632,8 @@ def main() -> int:
                 )
                 if asset_error is not None:
                     warnings.append(RepoResult("plugify", asset_error))
+        except MIGRATION.WorkspaceError:
+            workspace_validation = True
         except BaseException:
             # SessionStart is best-effort. Do not expose exception text, command
             # stderr, paths, URLs, or filenames to the agent context.
@@ -639,7 +641,9 @@ def main() -> int:
 
     if updated:
         print(f"Plugify workspace sync: updated {','.join(updated)}")
-    if warnings:
+    if workspace_validation:
+        print("Plugify workspace sync attention: workspace-validation")
+    elif warnings:
         summary = ",".join(f"{item.name}:{item.state}" for item in warnings)
         print(f"Plugify workspace sync attention: {summary}")
     return 0
