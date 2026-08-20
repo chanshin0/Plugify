@@ -25,6 +25,25 @@
 - human-context: <질문 필요 여부>
 - approval: <행동 직전 승인 경계>
 
+## Research brief
+- status: required | not_applicable
+- skipReason: <not_applicable일 때만 이유>
+- items:
+  - question: <그래프를 바꿀 조사 질문>
+    decisionUse: <답을 사용할 계약·결정 지점>
+    priorEvidence: [<재사용한 경로·URL>]
+    findings:
+      - status: observed | inferred | unknown
+        claim: <확인하거나 추론한 내용>
+        source: <URL·파일 경로>
+        observedAt: <YYYY-MM-DD 또는 not_applicable>
+    implication: <채택·기각 결정과 적용 조건·한계>
+    affects: [constraint, task:T1]
+    recheckWhen: <최신성·가정을 뒤집을 관측 조건>
+
+`not_applicable`이면 `items: []`로 두고 `skipReason`에 해당 요청이 atomic·기계적이거나 정본에 완전히 규정됐다는 구체적 근거를 쓴다. `required`이면 `skipReason`을 빈 값으로 둔다.
+`findings`에는 계약이나 그래프 결정을 바꾼 항목만 남긴다. 원문 보고서·일반 배경·출처별 반복 요약은 이 기록으로 복사하지 않는다.
+
 ## Interview ledger
 - question: <질문>
   answer: <사람의 답을 요약>
@@ -65,7 +84,7 @@
 
 ## Events
 - at: <ISO-8601>
-  phase: orient | interview | shape | execute | verify | replan | finalize
+  phase: orient | research | interview | shape | execute | verify | replan | finalize
   transition: <의미 있는 상태 전환>
   actorType: human | orchestrator | implementer | reviewer | probe
   triggerSource: user | workflow | gate | evidence | retry | escalation
@@ -85,6 +104,8 @@
 5. `replanWhen`은 실패 횟수, 계약 충돌, 새 외부 사실처럼 관찰 가능하게 쓴다.
 6. 같은 파일을 병렬 task가 겹쳐 수정하면 합치거나 명시적으로 직렬화한다.
 7. 질문 답변이 task를 바꾸면 원래 질문을 반복하지 말고 ledger와 graph를 함께 갱신한다.
+8. Research brief의 각 item은 조사 질문·출처·결정 용도·영향 대상을 함께 가진다. 조사 결과를 반영해 task가 바뀌면 `affects`의 `task:<id>`와 실제 graph ID가 일치해야 하며, URL·파일 경로는 합성 중 유실하지 않는다.
+9. 조사 위임은 서로 독립적인 결정 질문에만 사용하고, 제품·출처 수를 task나 에이전트 수로 바꾸지 않는다. 반환된 raw research를 반복하지 말고 결정에 영향을 준 finding만 brief로 압축한다.
 
 ## 전환 요약
 
