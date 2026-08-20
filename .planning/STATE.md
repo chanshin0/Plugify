@@ -35,3 +35,28 @@
 - 기존 저장소의 tracked 변경·detached/feature branch·ahead/diverged 상태에서 자동 갱신이 필요하다는 새 요구가 생김.
 - Codex 또는 Claude의 공식 훅 계약이 현재 SessionStart matcher·동시 실행 동작과 다름이 실증됨.
 - 기존 install/eval 계약을 보존하면서 managed-hook 분리가 불가능함.
+
+## 다음 task — 2026-08-20 macOS askpass 실행권한 회귀
+
+### 목표
+
+새 checkout에서도 `scripts/no-askpass.py`가 실제로 실행 가능하고, workspace 검증이 이 배포 불변식을 사전에 잡으며, 이 Mac의 실제 SessionStart가 주의 신호 없이 완료된다.
+
+### 게이트
+
+- auto: 동결된 install 회귀 케이스가 수정 전 실패하고 수정 후 exit 0과 고정 PASS 신호를 낸다.
+- auto: `PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 scripts/test-workspace-session-start.py`가 전부 통과한다.
+- auto: `PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 scripts/test-workspace-migration.py`가 전부 통과한다.
+- auto: `node scripts/test-install-contracts.mjs`가 전부 통과한다.
+- auto: `python3 scripts/workspace-migrate.py --root /Users/admin/Projects --verify`가 exit 0이다.
+- auto: `python3 scripts/workspace-session-start.py`가 exit 0이며 `attention`을 출력하지 않는다.
+- auto: `git status --short`가 비어 있다.
+
+### 비가역 표면
+
+- Plugify `main` commit/push는 사용자가 명시 승인했다.
+- Codex 훅 신뢰 승인은 사용자가 직접 수행하며 자동 승인하지 않는다.
+
+### 첫 실전 관찰
+
+- 수정·push 후 이 Mac의 실제 `workspace-session-start.py` 실행을 첫 실전으로 관찰하고, 세 저장소가 clean·`main`·`origin/main` 일치인지 재검증한다.

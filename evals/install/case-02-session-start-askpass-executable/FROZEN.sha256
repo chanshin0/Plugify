@@ -1,0 +1,7 @@
+# Frozen 2026-08-20 after the third fresh/blind reviewer returned CONFIRM.
+# Do not modify these files during the implementation that this eval grades.
+777c7a0250fdc289cba2fd3405423ab2e8d0dbffd259bd89e95b77625fce93d3  ANSWER.md
+d1b4aed6566cf1948d81a92b2417375fe4560a8627fbdeb9ca132cb2b0880856  CASE.md
+aab265dab6b5adefff257c12ddc16da1724eb0a914da0e146f41d87b86af446e  check-boundary.py
+9b7bcc8149ee69fdde7553a38d0c4d24ff1c5ae1937d4f8f39ab0ac6ae82070f  pre-fix-result.txt
+c2d6c8712474d7bcafc596ecee2378ba2391fee589ca6a39e80cdda7753f5e51  setup.sh

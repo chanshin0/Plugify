@@ -1,0 +1,9 @@
+command: PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 evals/install/case-02-session-start-askpass-executable/check-boundary.py
+exit: 1
+
+not ok - testGitIndexModeIsExecutable: AssertionError: helper git index mode is not 100755
+not ok - testFilesystemHelperIsExecutable: AssertionError: helper is not executable
+not ok - testPreflightRejectsUnsafeHelperBeforePlan: AssertionError: preflight did not reject unsafe helper
+not ok - testStrictVerifyRejectsUnsafeHelperBeforeRepositoryChecks: AssertionError: strict verify checked repositories before helper
+not ok - testSessionStartSanitizesUnsafeHelperBeforeGit: AssertionError: SessionStart attempted askpass-bound Git before validation
+0/5 askpass executable boundary checks passed
