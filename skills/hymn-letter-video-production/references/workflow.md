@@ -147,9 +147,15 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow.py" verify-package --pac
 
 ## 3. Render와 로컬 QC
 
+### 승인 전 음성 마스터
+
+편간 음량이나 한 편 안의 말소리 편차를 고쳐야 할 때는 episode renderer에서 오디오 필터를 쓰지 않는다. 원본 녹음은 그대로 두고, tracked `godo-hymns/tools/hymn_letter_speech_master.py`로 새 음성 마스터 후보와 QC JSON을 만든다. `hymn-letter-speech-master-v1`의 기준은 1편의 청감 레벨을 따른다: stereo 48kHz AAC-LC, integrated `-18.0 LUFS`, true peak `<= -2.0 dBTP`, LRA `<= 6.3 LU`, 무음 제외 3초 short-term loudness `P90-P10 <= 6.0 LU`. mono 원본은 stereo 양 채널에 같은 신호로 명시적으로 복제해 player별 mono gain 차이를 없앤다.
+
+후보 report가 source SHA 불변, no-overwrite, 출력 규격·길이, loudness gate를 모두 통과하고 사람이 **그 후보의 정확한 SHA**를 승인한 뒤에만 새 video job의 `approved_audio`가 된다. 승인 전 후보를 기존 `approved_audio`와 바꾸거나 final이라고 부르지 않는다. 공통 visual template lock에는 음량 값을 넣지 않는다.
+
 1. exact job lock과 `render.execute` 승인을 확인한다.
 2. 새 run root의 candidate 경로에만 렌더한다. source와 기존 final은 읽기 전용이다.
-3. 승인 오디오는 filter 없이 stream copy한다.
+3. 새로 승인된 음성 마스터를 포함한 승인 오디오는 filter 없이 stream copy한다.
 4. 최종 muxed MP4에서 [qc-contract.md](qc-contract.md)의 자막·오디오·전체 decode·spec 검사를 실행한다.
 5. **최종 H.264를 decode한 실제 cue 경계 검사**가 PASS해야 한다. 생성 PNG나 layout manifest만 검사해서는 안 된다.
 6. 자동 QC와 별도 사람 review receipt가 모두 있은 뒤에만 candidate를 final로 atomic promote한다.

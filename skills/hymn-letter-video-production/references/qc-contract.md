@@ -51,6 +51,10 @@
 
 ### 5. 오디오 보존
 
+- 음량 보정이 필요하면 renderer 밖의 승인 전 단계에서 tracked `godo-hymns/tools/hymn_letter_speech_master.py`로 새 후보를 만든다. `hymn-letter-speech-master-v1` report는 source SHA 전후 일치, 새 출력/no-overwrite, stereo 48kHz AAC-LC, `-18.0 LUFS ±0.3`, true peak `<= -2.0 dBTP`, LRA `<= 6.3 LU`, 무음 제외 3초 short-term `P90-P10 <= 6.0 LU`, 원본 대비 길이 차 `<= 1 AAC frame`을 모두 증명해야 한다.
+- mono 원본은 master 단계에서 명시적으로 dual-channel stereo로 복제하고, 그 뒤의 loudness 측정은 stereo 출력 기준으로 한다. source recording은 수정하지 않는다.
+- 사람 review receipt에는 master 후보 SHA, reviewer, decision, timestamp가 있어야 한다. 그 승인이 생기기 전에는 후보를 manifest의 `approved_audio`로 잠그거나 final로 승격하지 않는다.
+- 같은 시리즈의 speech master batch는 각 후보의 post-encode integrated loudness를 교차 비교해 최대 차이가 `0.5 LU` 이하여야 한다. 기준 1편을 다시 인코딩하지 않으며, 현재 잠금 기준은 `-18.01 LUFS`다. 개별 후보 PASS만 있고 편간 비교 보고가 없으면 batch QC는 미완료다.
 - 승인 오디오는 filter 없이 stream copy한다. FFmpeg 계획에 audio filter나 audio re-encode가 있으면 실패한다.
 - 최종 muxed MP4에서 source/output의 stream SHA와 container-independent payload SHA, packet 수, duration/time base, packet timestamp fingerprint를 비교한다.
 - codec, sample rate, channel layout도 승인 입력과 같아야 한다.
