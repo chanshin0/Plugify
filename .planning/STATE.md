@@ -36,21 +36,25 @@
 - Codex 또는 Claude의 공식 훅 계약이 현재 SessionStart matcher·동시 실행 동작과 다름이 실증됨.
 - 기존 install/eval 계약을 보존하면서 managed-hook 분리가 불가능함.
 
-## 다음 task — 2026-08-20 macOS askpass 실행권한 회귀
+## 최근 완료 — 2026-08-20 macOS askpass 실행권한 회귀
 
-### 목표
+### 결과
 
 새 checkout에서도 `scripts/no-askpass.py`가 실제로 실행 가능하고, workspace 검증이 이 배포 불변식을 사전에 잡으며, 이 Mac의 실제 SessionStart가 주의 신호 없이 완료된다.
 
-### 게이트
+원인은 helper가 Git mode `100644`로 출하된 반면 SessionStart가 직접 실행 가능한 파일을 요구한 것이었다. mode를 `100755`로 고치고, migration dry-run·strict verify·clone 직전과 SessionStart가 같은 production validator를 재사용하도록 반영했다.
 
-- auto: 동결된 install 회귀 케이스가 수정 전 실패하고 수정 후 exit 0과 고정 PASS 신호를 낸다.
-- auto: `PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 scripts/test-workspace-session-start.py`가 전부 통과한다.
-- auto: `PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 scripts/test-workspace-migration.py`가 전부 통과한다.
-- auto: `node scripts/test-install-contracts.mjs`가 전부 통과한다.
-- auto: `python3 scripts/workspace-migrate.py --root /Users/admin/Projects --verify`가 exit 0이다.
-- auto: `python3 scripts/workspace-session-start.py`가 exit 0이며 `attention`을 출력하지 않는다.
-- auto: `git status --short`가 비어 있다.
+### 완료 증거
+
+- confirmed install 회귀 `case-02-session-start-askpass-executable`은 수정 전 0/5 실패, 수정 후 5/5 PASS이며 `FROZEN.sha256`가 일치한다.
+- `PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 scripts/test-workspace-session-start.py`: 22/22 PASS.
+- `PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 scripts/test-workspace-migration.py`: 32개 PASS, case-insensitive filesystem 전용 1개 기존 skip.
+- `node scripts/test-install-contracts.mjs`: 6/6 green.
+- fresh/blind production reviewer와 Codex 교차검증: issues·advisories 0.
+- 실제 `python3 scripts/workspace-migrate.py --root /Users/admin/Projects --verify`: exit 0.
+- 실제 첫 SessionStart: attention 없이 `second_brain`, `godowon-office`를 safe fast-forward. 두 번째 실행: exit 0, 출력 0 byte.
+- 세 저장소 모두 `main`, clean, `HEAD...origin/main=0/0`.
+- eval·수정·동시 원격 문서를 보존한 merge `4399dcc`를 `origin/main`에 push하고 원격 SHA 일치를 확인했다.
 
 ### 비가역 표면
 
@@ -59,4 +63,5 @@
 
 ### 첫 실전 관찰
 
-- 수정·push 후 이 Mac의 실제 `workspace-session-start.py` 실행을 첫 실전으로 관찰하고, 세 저장소가 clean·`main`·`origin/main` 일치인지 재검증한다.
+- 이 Mac의 실제 `workspace-session-start.py`를 첫 실전으로 관찰해 safe fast-forward와 이후 quiet no-op을 모두 확인했다.
+- Codex 훅 신뢰는 사용자가 `/hooks`에서 직접 검토·승인하며 자동 승인하지 않았다.
