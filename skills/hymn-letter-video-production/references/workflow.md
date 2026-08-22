@@ -1,6 +1,6 @@
 # 고도원 찬송편지 26편 제작 워크플로우
 
-> 2026-08-22 현재 portable v3 정본은 `godowon-office/godo-hymns/releases/hymn-letter-caption-v3-20260822/`의 office-native release/job/source-bundle lock이다. Plugify의 `hymn_video_flow_v3.py`는 그 tracked JSON을 **변환 없이 그대로** 검증하고 office renderer/QC에 위임한다. 아래 `hymn_video_flow.py` 문단은 역사적 v1 primitive 설명이다.
+> 2026-08-23 현재 portable v3 정본은 `godowon-office/godo-hymns/releases/hymn-letter-caption-v3-gapless-aac-20260822/`의 office-native release/job/source-bundle lock이다. Plugify의 `hymn_video_flow_v3.py`는 그 tracked JSON을 **변환 없이 그대로** 검증하고 office renderer/QC/package에 위임한 뒤 독립 검증한다. 아래 `hymn_video_flow.py` 문단은 역사적 v1 primitive 설명이다.
 
 ## 범위와 완성 구조
 
@@ -21,6 +21,8 @@
 | `testimony_intro` | `testimony-static/v1` | v17 491·370으로 증거 있음. 승인 audio + captions 필요 |
 | `hymn_lyrics` | `hymn-lyrics/v1` | v3 release에 잠긴 04·06만 지원 |
 | `playlist` | `playlist/v1` | 수정된 제목 순서와 golden이 잠긴 02만 지원 |
+
+현재 여섯 output은 모두 MP4 + AAC-LC다. 01·03·05는 승인 AAC-LC를 stream-copy하고, 04·06은 승인 standalone MP3를 filter 없이 AAC-LC 256k/44.1kHz/stereo로 변환한다. 02는 승인 standalone MP3 12개를 순서대로 각각 gapless decode해 continuous PCM으로 이어 붙인 뒤 같은 AAC-LC 규격으로 한 번만 encode한다. MOV+MP3 output은 금지한다.
 
 inventory 밖 profile/episode를 유사한 지원 항목으로 바꾸어 실행하지 않는다. 필요한 authoritative source와 승인만 요청하고 멈춘다.
 
@@ -47,6 +49,8 @@ portable v3 manifest는 office-native tracked JSON을 그대로 쓴다.
 - EDL, reviewed ASS, reference layout, thumbnail, publishing metadata가 있으면 각각 별도 role과 SHA로 잠근다.
 - 사람이 정해야 하는 가사, timing, cut, 곡 순서, gap, 공개 대상은 추측하지 않는다.
 
+02 job은 `tracks[12]`의 exact 순서와 각 `audio`, `captions`, decoded sample 수, PCM SHA-256, 누적 `start_sample`, `ceil(start_sample*30/44100)`인 `start_frame`을 잠근다. `caption_timing_contract`는 267 lyric cue + 12 title cue = 279 cue, half-up sample→millisecond offset, `"{sequence}. {hymn_number}장  {title}"`의 두 칸 직렬화, 첫 title/직전 곡 outro의 다음 title 배치를 잠근다. 표시용 `expected_titles`는 `"{hymn_number}장 {title}"` 한 칸 문자열이다.
+
 아래 문단은 **역사적 v1 manifest에만** 적용한다. v3 job에 이 shape를 섞지 않는다. v1 manifest는 [job-manifest.schema.json](job-manifest.schema.json)의 정확한 7개 top-level key만 사용한다.
 
 ```text
@@ -70,6 +74,9 @@ portable v3 CLI 정본은 `scripts/hymn_video_flow_v3.py`이고, 역사적 v1 pr
 ```bash
 HYMN_LETTER_SKILL_DIR="/absolute/path/to/Plugify/skills/hymn-letter-video-production"
 HYMN_LETTER_RUNTIME_PYTHON="/absolute/path/to/locked/python-with-Pillow-and-numpy"
+export LANG=C
+export LC_ALL=C
+export LC_CTYPE=C
 JOB_MANIFEST="/absolute/path/job.json"
 TIMELINE_SPEC="/absolute/path/timeline-spec.json"
 TIMELINE_OUTPUT="/absolute/new/path/timeline.ffconcat"
@@ -77,6 +84,8 @@ PACKAGE_DIR="/absolute/path/package"
 SUMS_FILE="$PACKAGE_DIR/SHA256SUMS.txt"
 python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow.py" --help
 ```
+
+이 세 locale export는 portable v3 전체 명령의 preflight다. successor environment lock은 `LANG=C`, `LC_ALL=C`, `LC_CTYPE=C`, runtime locale `C`, filesystem encoding `utf-8`을 요구한다. macOS에 없는 `C.UTF-8`로 바꾸거나 현재 shell locale을 묵시적으로 상속하지 않는다. 같은 export를 유지한 shell에서 validate → render → QC → package를 실행한다. render/QC/package는 release에 SHA로 잠긴 environment probe를 선택한 Python에서 실행하여 OS/machine, Python binary/version/SHA/implementation/compiler/filesystem encoding, Pillow·numpy, FreeType/libjpeg/zlib, `PATH` ffmpeg/ffprobe identity/version을 lock 전체와 exact-match한다. upload/package의 명시적 `ffprobe`도 basename·SHA가 같아야 한다. `validate-job`과 `verify-source-bundle`은 media toolchain을 실행하지 않는 read-only 구조/hash 검사다.
 
 ### `validate-job`
 
@@ -110,7 +119,63 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" qc \
   --run-root /absolute/path/run-root \
   --gate semantic-equivalent \
   --runtime-python "$HYMN_LETTER_RUNTIME_PYTHON"
+
+python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" verify-upload-ready \
+  --manifest /absolute/path/upload-ready.json \
+  --authority-lock /absolute/path/authority-lock.json \
+  --ffprobe /absolute/path/ffprobe \
+  --release /absolute/path/release.lock.json \
+  --approval-receipt /absolute/path/human-approval.json
+
+python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" package \
+  --plan /absolute/path/package-plan.json \
+  --release /absolute/path/release.lock.json \
+  --source-root /absolute/path/SOURCE_ROOT \
+  --office-root /absolute/path/godowon-office \
+  --ffprobe /absolute/path/ffprobe \
+  --runtime-python "$HYMN_LETTER_RUNTIME_PYTHON" \
+  --approval-receipt /absolute/path/human-approval.json \
+  --package-dir /absolute/new/path/package
+
+python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" verify-package \
+  --package-dir /absolute/path/package \
+  --sums SHA256SUMS.txt \
+  --release /absolute/path/release.lock.json \
+  --approval-receipt /absolute/path/human-approval.json
 ```
+
+#### Package plan receipt contract
+
+The public `render` and `qc` commands each write a Plugify wrapper receipt with schema `plugify.hymn-letter.run-receipt/1`; their JSON result's top-level `receipt` is the path to that wrapper. The office delegate's producer receipt is a different file nested in the wrapper payload:
+
+- render wrapper → `delegate_payload.render_receipt` → `godowon.hymn-letter.v3-render-receipt/1`
+- QC wrapper → `delegate_payload.qc_receipt` → `godowon.hymn-letter.v3-qc-receipt/1`
+
+The package plan must use those two nested office-native absolute paths for every sequence, never the wrapper `receipt` path. The QC file must be the native receipt whose semantic, upload-ready, and reference-bit gates are all `PASS`. [run-receipt.schema.json](run-receipt.schema.json) validates only the Plugify wrapper, while the release-pinned office package contract and the independent Plugify verifier validate the two native receipt schemas and their release/job/render/output hash chain.
+
+The exact plan contract has only `schema`, `release`, `source_root`, and `episodes` at top level. `schema` is `godowon.hymn-letter.upload-ready-package-plan/1`; `release` and `source_root` must equal the corresponding CLI anchors. `episodes` contains exactly six unique sequences 1–6, and each row has only `sequence`, `job`, `render_receipt`, and `qc_receipt`. Every file path is an existing absolute regular non-symlink path, and each `job` must be the exact release-registered job. A minimal exact plan is:
+
+```json
+{
+  "schema": "godowon.hymn-letter.upload-ready-package-plan/1",
+  "release": "/absolute/path/release.lock.json",
+  "source_root": "/absolute/path/SOURCE_ROOT",
+  "episodes": [
+    {"sequence": 1, "job": "/absolute/path/jobs/01_start.json", "render_receipt": "/absolute/path/run-01/render_receipt.json", "qc_receipt": "/absolute/path/run-01/qc_reference_bit_exact.json"},
+    {"sequence": 2, "job": "/absolute/path/jobs/02_playlist.json", "render_receipt": "/absolute/path/run-02/render_receipt.json", "qc_receipt": "/absolute/path/run-02/qc_reference_bit_exact.json"},
+    {"sequence": 3, "job": "/absolute/path/jobs/03_491_testimony.json", "render_receipt": "/absolute/path/run-03/render_receipt.json", "qc_receipt": "/absolute/path/run-03/qc_reference_bit_exact.json"},
+    {"sequence": 4, "job": "/absolute/path/jobs/04_491_hymn.json", "render_receipt": "/absolute/path/run-04/render_receipt.json", "qc_receipt": "/absolute/path/run-04/qc_reference_bit_exact.json"},
+    {"sequence": 5, "job": "/absolute/path/jobs/05_370_testimony.json", "render_receipt": "/absolute/path/run-05/render_receipt.json", "qc_receipt": "/absolute/path/run-05/qc_reference_bit_exact.json"},
+    {"sequence": 6, "job": "/absolute/path/jobs/06_370_hymn.json", "render_receipt": "/absolute/path/run-06/render_receipt.json", "qc_receipt": "/absolute/path/run-06/qc_reference_bit_exact.json"}
+  ]
+}
+```
+
+`package --plan`은 successor의 유일한 public package builder다. release에 SHA로 잠긴 office package module을 새 임시 경로에서 실행한 뒤, Plugify가 upload-ready graph와 실제 probe를 다시 검증하고 sibling staging에서 최종 package를 만든 후 검증된 디렉터리만 원자적으로 승격한다. plan의 release/source/job 경로는 CLI trust anchor와 exact-bind한다. 위임 전에 6편 × render/QC의 exact 12 office-native receipt bytes를 stable-read snapshot하고, office stage의 receipt 사본이 각 snapshot과 byte-equal인지 확인하며, 절대경로가 없는 canonical `delegation-inputs.lock.json`에 release/source/package-module/human-approval/job/receipt SHA를 잠근다. 기존 경로 overwrite, source/release/code/run root 안의 output, 입력/package 안의 `.DS_Store`를 거부한다. `SHA256SUMS.txt`는 final newline을 포함한 UTF-8 LF, 두 칸 구분, relative path 오름차순 exact bytes이며 checksum 파일을 제외한 exact regular-file set과 일치해야 한다.
+
+최종 package에는 01–06 MP4·thumbnail, upload authority/receipt, 별도 human approval receipt, release lock·6 jobs·environment/golden/source-bundle lock, release가 참조하는 모든 content-addressed object, SHA로 잠긴 office renderer/QC/package 8 modules, Plugify wrapper/validator/schema/docs snapshot, canonical delegation-input lock, snapshot과 byte-equal한 12 office-native producer receipt가 들어간다. 절대경로·locale·mtime은 manifest bytes에 기록하지 않는다. fresh machine은 같은 repo commit의 외부 trusted release/approval receipt와 package의 `00_재현자료/source_bundle`만으로 source bytes를 복원하고 exact-set을 검증할 수 있어야 한다. 외부 서명/attestation이 없으므로 historical office delegate origin은 `UNATTESTED`로 보고하며, artifact/evidence integrity PASS나 human approval과 혼동하지 않는다.
+
+renderer module SHA가 하나라도 64-zero sentinel이면 모든 render/QC/upload/package 실행을 막는다. 모든 module pin이 nonzero인 상태에서 golden lock이 `BOOTSTRAP_REQUIRED`이거나 `reference_output_sha256`가 `null`이거나 output SHA가 64-zero이면 첫 render와 semantic QC만 가능하고, reference-bit-exact QC·upload-ready promotion·package는 막는다. 현재 production trust anchor는 measured golden을 포함한 release SHA `4ac954e40cfc7b6b8b5dc3ffd6ac0b47edea674c59a7422c3126cfa45507daba`이며 golden SHA는 `4bd574c850fecd5f4d98ecf2110132f58c00f86435074a63ab86012aa19a3c6f`다. 사용자가 실제 오디오를 듣지 못한 run은 기술 QC가 PASS해도 local 검토본·`promotion_pending`이며 사람 승인 receipt를 만들지 않는다.
 
 legacy v1 primitive:
 
@@ -189,7 +254,7 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow.py" verify-package --pac
 | `7` | unsafe path/symlink/overwrite 시도 |
 | `11` | package 구조·checksum set 오류 |
 
-portable v3 wrapper는 render/QC subcommand를 가진다. 다만 wrapper가 새 schema를 발명하지는 않는다. office release/job/source-bundle lock과 renderer module SHA를 검증하고, 그 exact JSON을 office renderer/QC에 넘긴 뒤 wrapper receipt만 추가한다.
+portable v3 wrapper는 render/QC/upload-ready/package subcommand를 가진다. office release/job/source-bundle lock과 transitive renderer/QC/package module 8개의 SHA를 검증한다. 별도 `upload_ready_validator.py`도 wrapper의 hard-coded SHA와 일치할 때만 로드한다.
 
 ## 3. Render와 로컬 QC
 
@@ -201,7 +266,7 @@ portable v3 wrapper는 render/QC subcommand를 가진다. 다만 wrapper가 새 
 
 1. exact job lock과 `render.execute` 승인을 확인한다.
 2. 새 run root의 candidate 경로에만 렌더한다. source와 기존 final은 읽기 전용이다.
-3. 새로 승인된 음성 마스터를 포함한 승인 오디오는 filter 없이 stream copy한다.
+3. 01·03·05의 새로 승인된 AAC-LC는 filter 없이 stream-copy한다. 04·06은 승인 MP3를 exact filter-free AAC-LC 256k command로 변환하고, 02는 12개 MP3의 per-track trim metadata를 적용한 PCM concat 뒤 한 번만 AAC-LC로 encode한다.
 4. 최종 muxed MP4에서 [qc-contract.md](qc-contract.md)의 자막·오디오·전체 decode·spec 검사를 실행한다.
 5. **최종 H.264를 decode한 실제 cue 경계 검사**가 PASS해야 한다. 생성 PNG나 layout manifest만 검사해서는 안 된다.
 6. 자동 QC와 별도 사람 review receipt가 모두 있은 뒤에만 candidate를 final로 atomic promote한다.
@@ -210,11 +275,18 @@ portable v3 wrapper는 render/QC subcommand를 가진다. 다만 wrapper가 새 
 
 ## 4. Package
 
-- QC PASS final, thumbnail, layout, QC, review receipt, renderer/job/template provenance를 모은다.
-- package manifest와 `SHA256SUMS.txt`를 생성한 뒤 `verify-package`를 실행한다.
+- 01–06 QC PASS final, thumbnail, layout, QC, review receipt, renderer/job/template/audio lineage provenance를 모은다.
+- `verify-upload-ready`가 실제 final/source를 모두 probe하고 승인 authority와 receipt에 exact-bind한 뒤에만 `package --plan`을 실행한다.
+- deterministic package manifest와 path-sorted `SHA256SUMS.txt`를 생성한 뒤 v3 `verify-package`로 exact set, source bundle object set, release/job/lock/module SHA를 다시 검사한다.
 - 아직 준비되지 않은 26편을 빈 파일이나 placeholder PASS로 채우지 않는다.
 - 전체 26편 release를 만들 때는 정확히 1+12+12+1 구조와 각 episode ID의 중복·누락을 별도로 검사한다.
-- template/module 사본은 감사 snapshot으로만 포함한다. runtime은 계속 tracked SSOT를 import한다.
+- package의 code snapshot과 완전한 source bundle은 독립 재현/감사용이다. 실행 시에는 package 안 release lock을 기준으로 package code/source root를 명시하거나 같은 commit의 tracked SSOT를 쓴다.
+
+17,327 all-zero samples prove a 0.392902-second noncanonical timeline defect; they are not the proven direct cause of the audible spike.
+
+Without QuickTime output capture, codec versus interleave/nearby H.264 keyframe contribution remains unresolved.
+
+The safe path removes both per-track MP3 trim metadata loss and MOV+MP3 playback risk.
 
 ## 5. Delivery
 

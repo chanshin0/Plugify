@@ -1,0 +1,1 @@
+kind=source sequence=02 track=11 container=mp3 major_brand=none codec=mp3 profile=unknown sample_rate=44100 channels=2 bit_rate=320000 audio_payload=0211021102110211021102110211021102110211021102110211021102110211 skip_samples=1105 discard_padding=17 decoded_pcm=d211d211d211d211d211d211d211d211d211d211d211d211d211d211d211d211

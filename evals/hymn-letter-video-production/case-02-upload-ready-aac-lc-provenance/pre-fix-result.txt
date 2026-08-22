@@ -1,0 +1,45 @@
+Observed through a fresh `setup.sh` clone of the unmodified Plugify hymn-letter-video-production snapshot on 2026-08-22.
+
+Self-test command:
+python3 check-upload-ready.py --self-test
+
+Self-test result:
+PASS reference six-profile MP4/AAC-LC bundle
+PASS MP3-in-MOV survives extension rename and is rejected by actual probe
+PASS independent approval/authority/composite matrix rejected (355 mutations)
+PASS prohibitive wording and exact incident uncertainty pass while causal overclaim fails
+PASS exact four-profile set rejects a missing playlist/hymn contract
+PASS 01/03/05 source probes require AAC-LC independently of payload tags
+PASS runner-owned authenticated broker rejects forged logs and zero-probe candidates
+PASS probing partial candidate is exposed by cross-sequence approval/QC/filter mutations
+PASS 02 exact 12-track gapless proof recomputes the fixed domain-separated PCM composite
+SELF_TEST 9/9
+exit=0
+
+Pre-fix candidate command:
+RUN_ROOT="$(bash setup.sh | tail -1)"
+python3 "$RUN_ROOT/case/check-upload-ready.py" --candidate "$RUN_ROOT/repo/skills/hymn-letter-video-production"
+
+Pre-fix result:
+FAIL PROFILE_CONTRACTS hymn-lyrics/v1 still permits mov+mp3
+FAIL PROFILE_CONTRACTS playlist/v1 still permits mov+mp3
+FAIL inventory 02-playlist still permits mov+mp3
+FAIL inventory 04-491-hymn still permits mov+mp3
+FAIL inventory 06-370-hymn still permits mov+mp3
+FAIL job schema does not lock output to .mp4/container mp4
+FAIL candidate documentation still allows MOV+MP3: - `playlist/v1`: sequence 02, MOV + MP3. | - `hymn-lyrics/v1`: sequences 04 and 06, MOV + MP3. | | `hymn-lyrics/v1` | center style, MOV+MP3, 모든 interval의 first/last endpoint와 cue boundary 비교 |
+FAIL candidate documentation lacks exact incident statement: 17,327 all-zero samples prove a 0.392902-second noncanonical timeline defect; they are not the proven direct cause of the audible spike.
+FAIL candidate documentation lacks exact incident statement: Without QuickTime output capture, codec versus interleave/nearby H.264 keyframe contribution remains unresolved.
+FAIL candidate documentation lacks exact incident statement: The safe path removes both per-track MP3 trim metadata loss and MOV+MP3 playback risk.
+FAIL verify-upload-ready baseline failed
+command=/Library/Developer/CommandLineTools/usr/bin/python3 <setup-clone>/repo/skills/hymn-letter-video-production/scripts/hymn_video_flow_v3.py verify-upload-ready --manifest <fixture> --authority-lock <authority> --ffprobe <authenticated-broker>
+exit=2
+authenticated_probe_count=0 fixture_mutated=False
+stdout:
+stderr:
+usage: hymn_video_flow_v3.py [-h]
+                             {validate-job,verify-source-bundle,render,qc} ...
+hymn_video_flow_v3.py: error: argument command: invalid choice: 'verify-upload-ready' (choose from 'validate-job', 'verify-source-bundle', 'render', 'qc')
+
+SUMMARY 0/1 candidate contract; failures=11
+exit=1

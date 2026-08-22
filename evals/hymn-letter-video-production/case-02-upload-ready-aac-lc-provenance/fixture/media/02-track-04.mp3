@@ -1,0 +1,1 @@
+kind=source sequence=02 track=04 container=mp3 major_brand=none codec=mp3 profile=unknown sample_rate=44100 channels=2 bit_rate=320000 audio_payload=0204020402040204020402040204020402040204020402040204020402040204 skip_samples=1105 discard_padding=29 decoded_pcm=d204d204d204d204d204d204d204d204d204d204d204d204d204d204d204d204

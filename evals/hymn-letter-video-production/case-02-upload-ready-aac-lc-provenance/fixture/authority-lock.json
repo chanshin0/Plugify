@@ -1,0 +1,92 @@
+{
+  "schema": "plugify.hymn-letter.upload-authority-lock/1",
+  "release_id": "hymn-letter-caption-v3-20260822",
+  "episodes": [
+    {
+      "sequence": 1,
+      "episode_id": "01-start",
+      "profile": "start-hybrid/v1",
+      "approval_authority": {"reviewer": "fixture-reviewer", "decision": "APPROVED", "reviewed_at": "2026-08-22T09:00:00+09:00"},
+      "approved_source_audio_sha256": "2aa52a765543c0af7270e8d493e31a906f1ddea02549c663331fa4aaa4ab5852",
+      "frame_count": 22369,
+      "captions_sha256": "b111111111111111111111111111111111111111111111111111111111111111",
+      "boundaries_sha256": "c111111111111111111111111111111111111111111111111111111111111111",
+      "chapters_sha256": null,
+      "video_stream_fingerprint_sha256": "a111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "sequence": 2,
+      "episode_id": "02-playlist",
+      "profile": "playlist/v1",
+      "approval_authority": {"reviewer": "fixture-reviewer", "decision": "APPROVED", "reviewed_at": "2026-08-22T09:02:00+09:00"},
+      "approved_source_tracks": [
+        {"track": 1, "sha256": "5dc59272566568ccecf095fb722e76a4e0026ad3807f651d1b0e0cf9f69d2548", "skip_samples": 1105, "discard_padding": 47, "decoded_pcm_sha256": "d201d201d201d201d201d201d201d201d201d201d201d201d201d201d201d201"},
+        {"track": 2, "sha256": "a76bce1387c7c5777db1b9345d0bc09daf62c9ab106578cfe37929673c0b0b99", "skip_samples": 1105, "discard_padding": 23, "decoded_pcm_sha256": "d202d202d202d202d202d202d202d202d202d202d202d202d202d202d202d202"},
+        {"track": 3, "sha256": "b119fffe6785616b34600ac140cb159e0a2a43c0d7f031acb0a13e5ae7562a34", "skip_samples": 1105, "discard_padding": 11, "decoded_pcm_sha256": "d203d203d203d203d203d203d203d203d203d203d203d203d203d203d203d203"},
+        {"track": 4, "sha256": "9965f142b423d5ed18f3db13b3c0166bb321064d95bd29cf837d470d12631ce3", "skip_samples": 1105, "discard_padding": 29, "decoded_pcm_sha256": "d204d204d204d204d204d204d204d204d204d204d204d204d204d204d204d204"},
+        {"track": 5, "sha256": "d88624b23683d6d72aae3ca9e3b958b576fcdfafb4f0a0fde1d067692226cf09", "skip_samples": 1105, "discard_padding": 7, "decoded_pcm_sha256": "d205d205d205d205d205d205d205d205d205d205d205d205d205d205d205d205"},
+        {"track": 6, "sha256": "4d43b0c2647d8be534c866055d0a45c7985d2c949912596e3aafb99d838ca8ff", "skip_samples": 1105, "discard_padding": 31, "decoded_pcm_sha256": "d206d206d206d206d206d206d206d206d206d206d206d206d206d206d206d206"},
+        {"track": 7, "sha256": "4a0feb9a7d930ed1ed3173aca824da94a2d5c2eda02c787a5d55641c573a4ded", "skip_samples": 1105, "discard_padding": 13, "decoded_pcm_sha256": "d207d207d207d207d207d207d207d207d207d207d207d207d207d207d207d207"},
+        {"track": 8, "sha256": "0f041d3ba6bc1dd1c3d843c1392e8bfdd17b222626107e448c125c2b96e6be46", "skip_samples": 1105, "discard_padding": 19, "decoded_pcm_sha256": "d208d208d208d208d208d208d208d208d208d208d208d208d208d208d208d208"},
+        {"track": 9, "sha256": "60cfe1f4893e0a242e9c944f64877c86706520aa8255dddd3759c71226b51ef6", "skip_samples": 1105, "discard_padding": 5, "decoded_pcm_sha256": "d209d209d209d209d209d209d209d209d209d209d209d209d209d209d209d209"},
+        {"track": 10, "sha256": "cc8f3ad31cc974f549684e524ed6e20ac567f36c431ea3a784df62aefb03c56c", "skip_samples": 1105, "discard_padding": 37, "decoded_pcm_sha256": "d210d210d210d210d210d210d210d210d210d210d210d210d210d210d210d210"},
+        {"track": 11, "sha256": "dc02a0a47594f4323874fc394e64857a7bcb4435c343419b4b11afd4cecd5c4d", "skip_samples": 1105, "discard_padding": 17, "decoded_pcm_sha256": "d211d211d211d211d211d211d211d211d211d211d211d211d211d211d211d211"},
+        {"track": 12, "sha256": "19b050b2c02ec4f095a88a4365c8b1836b325f574a23cf4f364615e9b72adead", "skip_samples": 1105, "discard_padding": 41, "decoded_pcm_sha256": "d212d212d212d212d212d212d212d212d212d212d212d212d212d212d212d212"}
+      ],
+      "ordered_pcm_concat_sha256": "dc3d9fd41fdf445d30e6da054fa42e0a33f5f23ba247522aa88248b38174e6cb",
+      "frame_count": 82266,
+      "captions_sha256": "b222222222222222222222222222222222222222222222222222222222222222",
+      "boundaries_sha256": "c222222222222222222222222222222222222222222222222222222222222222",
+      "chapters_sha256": "d222222222222222222222222222222222222222222222222222222222222222",
+      "video_stream_fingerprint_sha256": "a222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "sequence": 3,
+      "episode_id": "03-491-testimony",
+      "profile": "testimony-static/v1",
+      "approval_authority": {"reviewer": "fixture-reviewer", "decision": "APPROVED", "reviewed_at": "2026-08-22T09:03:00+09:00"},
+      "approved_source_audio_sha256": "209de0d146768d06733e1f0177c1d5b9671c93cf3b43593165c1167ea512b4e2",
+      "frame_count": 7223,
+      "captions_sha256": "b333333333333333333333333333333333333333333333333333333333333333",
+      "boundaries_sha256": "c333333333333333333333333333333333333333333333333333333333333333",
+      "chapters_sha256": null,
+      "video_stream_fingerprint_sha256": "a333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "sequence": 4,
+      "episode_id": "04-491-hymn",
+      "profile": "hymn-lyrics/v1",
+      "approval_authority": {"reviewer": "fixture-reviewer", "decision": "APPROVED", "reviewed_at": "2026-08-22T09:04:00+09:00"},
+      "approved_source_audio_sha256": "707961341817630faff851ac3fefe99b4ed9907ca6a561da656d5fa45a65b910",
+      "frame_count": 11752,
+      "captions_sha256": "b444444444444444444444444444444444444444444444444444444444444444",
+      "boundaries_sha256": "c444444444444444444444444444444444444444444444444444444444444444",
+      "chapters_sha256": null,
+      "video_stream_fingerprint_sha256": "a444444444444444444444444444444444444444444444444444444444444444"
+    },
+    {
+      "sequence": 5,
+      "episode_id": "05-370-testimony",
+      "profile": "testimony-static/v1",
+      "approval_authority": {"reviewer": "fixture-reviewer", "decision": "APPROVED", "reviewed_at": "2026-08-22T09:05:00+09:00"},
+      "approved_source_audio_sha256": "8209aee11558b46b4f41c2edb357475cbddd89574f5d2cab8ce20a359114015d",
+      "frame_count": 8850,
+      "captions_sha256": "b555555555555555555555555555555555555555555555555555555555555555",
+      "boundaries_sha256": "c555555555555555555555555555555555555555555555555555555555555555",
+      "chapters_sha256": null,
+      "video_stream_fingerprint_sha256": "a555555555555555555555555555555555555555555555555555555555555555"
+    },
+    {
+      "sequence": 6,
+      "episode_id": "06-370-hymn",
+      "profile": "hymn-lyrics/v1",
+      "approval_authority": {"reviewer": "fixture-reviewer", "decision": "APPROVED", "reviewed_at": "2026-08-22T09:06:00+09:00"},
+      "approved_source_audio_sha256": "a59748cdd96d2c7ba989b89138a2ba364947e99c012cf7d77943230393e5fffe",
+      "frame_count": 6612,
+      "captions_sha256": "b666666666666666666666666666666666666666666666666666666666666666",
+      "boundaries_sha256": "c666666666666666666666666666666666666666666666666666666666666666",
+      "chapters_sha256": null,
+      "video_stream_fingerprint_sha256": "a666666666666666666666666666666666666666666666666666666666666666"
+    }
+  ]
+}

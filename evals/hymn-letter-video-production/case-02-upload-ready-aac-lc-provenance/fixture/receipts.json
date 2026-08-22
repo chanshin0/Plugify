@@ -1,0 +1,188 @@
+{
+  "schema": "plugify.hymn-letter.upload-audio-receipts/1",
+  "release_id": "hymn-letter-caption-v3-20260822",
+  "entries": [
+    {
+      "sequence": 1,
+      "episode_id": "01-start",
+      "profile": "start-hybrid/v1",
+      "source_file_sha256": "2aa52a765543c0af7270e8d493e31a906f1ddea02549c663331fa4aaa4ab5852",
+      "final_file_sha256": "6f3a22a67a904a7641cc9864cb54713b646fc678d139c695db8f370e0df91073",
+      "derivation": {
+        "mode": "stream-copy",
+        "source_audio_payload_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "output_audio_payload_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "encoder": null
+      },
+      "approval": {
+        "kind": "approved-source",
+        "artifact_audio_payload_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "reviewer": "fixture-reviewer",
+        "decision": "APPROVED",
+        "reviewed_at": "2026-08-22T09:00:00+09:00"
+      },
+      "qc": {
+        "final_file_sha256": "6f3a22a67a904a7641cc9864cb54713b646fc678d139c695db8f370e0df91073",
+        "container": "mp4",
+        "major_brand": "isom",
+        "audio_codec": "aac",
+        "audio_profile": "LC",
+        "sample_rate": 48000,
+        "channels": 2,
+        "bit_rate": 192000,
+        "video_stream_fingerprint_sha256": "a111111111111111111111111111111111111111111111111111111111111111",
+        "frame_count": 22369,
+        "captions_sha256": "b111111111111111111111111111111111111111111111111111111111111111",
+        "boundaries_sha256": "c111111111111111111111111111111111111111111111111111111111111111",
+        "chapters_sha256": null,
+        "full_decode": "PASS",
+        "avfoundation_decode": "PASS",
+        "real_time_tail_playback": {"status": "PASS", "tail_seconds": 3.0, "reviewer": "fixture-qc"},
+        "status": "PASS"
+      }
+    },
+    {
+      "sequence": 2,
+      "episode_id": "02-playlist",
+      "profile": "playlist/v1",
+      "source_track_sha256": [
+        "5dc59272566568ccecf095fb722e76a4e0026ad3807f651d1b0e0cf9f69d2548",
+        "a76bce1387c7c5777db1b9345d0bc09daf62c9ab106578cfe37929673c0b0b99",
+        "b119fffe6785616b34600ac140cb159e0a2a43c0d7f031acb0a13e5ae7562a34",
+        "9965f142b423d5ed18f3db13b3c0166bb321064d95bd29cf837d470d12631ce3",
+        "d88624b23683d6d72aae3ca9e3b958b576fcdfafb4f0a0fde1d067692226cf09",
+        "4d43b0c2647d8be534c866055d0a45c7985d2c949912596e3aafb99d838ca8ff",
+        "4a0feb9a7d930ed1ed3173aca824da94a2d5c2eda02c787a5d55641c573a4ded",
+        "0f041d3ba6bc1dd1c3d843c1392e8bfdd17b222626107e448c125c2b96e6be46",
+        "60cfe1f4893e0a242e9c944f64877c86706520aa8255dddd3759c71226b51ef6",
+        "cc8f3ad31cc974f549684e524ed6e20ac567f36c431ea3a784df62aefb03c56c",
+        "dc02a0a47594f4323874fc394e64857a7bcb4435c343419b4b11afd4cecd5c4d",
+        "19b050b2c02ec4f095a88a4365c8b1836b325f574a23cf4f364615e9b72adead"
+      ],
+      "final_file_sha256": "f6977d06a72e6cb25384a9edbf13d76e72b9abd26a5671cead4b39bcd542e518",
+      "derivation": {
+        "mode": "approved-trackwise-gapless-pcm-concat-transcode",
+        "source_audio_payload_sha256": [
+          "0201020102010201020102010201020102010201020102010201020102010201",
+          "0202020202020202020202020202020202020202020202020202020202020202",
+          "0203020302030203020302030203020302030203020302030203020302030203",
+          "0204020402040204020402040204020402040204020402040204020402040204",
+          "0205020502050205020502050205020502050205020502050205020502050205",
+          "0206020602060206020602060206020602060206020602060206020602060206",
+          "0207020702070207020702070207020702070207020702070207020702070207",
+          "0208020802080208020802080208020802080208020802080208020802080208",
+          "0209020902090209020902090209020902090209020902090209020902090209",
+          "0210021002100210021002100210021002100210021002100210021002100210",
+          "0211021102110211021102110211021102110211021102110211021102110211",
+          "0212021202120212021202120212021202120212021202120212021202120212"
+        ],
+        "track_decodes": [
+          {"track": 1, "skip_samples": 1105, "discard_padding": 47, "decoded_pcm_sha256": "d201d201d201d201d201d201d201d201d201d201d201d201d201d201d201d201"},
+          {"track": 2, "skip_samples": 1105, "discard_padding": 23, "decoded_pcm_sha256": "d202d202d202d202d202d202d202d202d202d202d202d202d202d202d202d202"},
+          {"track": 3, "skip_samples": 1105, "discard_padding": 11, "decoded_pcm_sha256": "d203d203d203d203d203d203d203d203d203d203d203d203d203d203d203d203"},
+          {"track": 4, "skip_samples": 1105, "discard_padding": 29, "decoded_pcm_sha256": "d204d204d204d204d204d204d204d204d204d204d204d204d204d204d204d204"},
+          {"track": 5, "skip_samples": 1105, "discard_padding": 7, "decoded_pcm_sha256": "d205d205d205d205d205d205d205d205d205d205d205d205d205d205d205d205"},
+          {"track": 6, "skip_samples": 1105, "discard_padding": 31, "decoded_pcm_sha256": "d206d206d206d206d206d206d206d206d206d206d206d206d206d206d206d206"},
+          {"track": 7, "skip_samples": 1105, "discard_padding": 13, "decoded_pcm_sha256": "d207d207d207d207d207d207d207d207d207d207d207d207d207d207d207d207"},
+          {"track": 8, "skip_samples": 1105, "discard_padding": 19, "decoded_pcm_sha256": "d208d208d208d208d208d208d208d208d208d208d208d208d208d208d208d208"},
+          {"track": 9, "skip_samples": 1105, "discard_padding": 5, "decoded_pcm_sha256": "d209d209d209d209d209d209d209d209d209d209d209d209d209d209d209d209"},
+          {"track": 10, "skip_samples": 1105, "discard_padding": 37, "decoded_pcm_sha256": "d210d210d210d210d210d210d210d210d210d210d210d210d210d210d210d210"},
+          {"track": 11, "skip_samples": 1105, "discard_padding": 17, "decoded_pcm_sha256": "d211d211d211d211d211d211d211d211d211d211d211d211d211d211d211d211"},
+          {"track": 12, "skip_samples": 1105, "discard_padding": 41, "decoded_pcm_sha256": "d212d212d212d212d212d212d212d212d212d212d212d212d212d212d212d212"}
+        ],
+        "ordered_pcm_concat_sha256": "dc3d9fd41fdf445d30e6da054fa42e0a33f5f23ba247522aa88248b38174e6cb",
+        "decoded_total_samples": 120930048,
+        "removed_internal_gap_samples": 17327,
+        "output_audio_payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2",
+        "encoder": {
+          "binary_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "gapless_decode_policy": "honor-skip-samples-and-discard-padding-per-track",
+          "normalized_command": ["ffmpeg", "-i", "<video-only>", "-i", "<track-01>", "-i", "<track-02>", "-i", "<track-03>", "-i", "<track-04>", "-i", "<track-05>", "-i", "<track-06>", "-i", "<track-07>", "-i", "<track-08>", "-i", "<track-09>", "-i", "<track-10>", "-i", "<track-11>", "-i", "<track-12>", "-filter_complex", "[1:a]asetpts=PTS-STARTPTS[a1];[2:a]asetpts=PTS-STARTPTS[a2];[3:a]asetpts=PTS-STARTPTS[a3];[4:a]asetpts=PTS-STARTPTS[a4];[5:a]asetpts=PTS-STARTPTS[a5];[6:a]asetpts=PTS-STARTPTS[a6];[7:a]asetpts=PTS-STARTPTS[a7];[8:a]asetpts=PTS-STARTPTS[a8];[9:a]asetpts=PTS-STARTPTS[a9];[10:a]asetpts=PTS-STARTPTS[a10];[11:a]asetpts=PTS-STARTPTS[a11];[12:a]asetpts=PTS-STARTPTS[a12];[a1][a2][a3][a4][a5][a6][a7][a8][a9][a10][a11][a12]concat=n=12:v=0:a=1[aout]", "-map", "0:v", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "256k", "-ar", "44100", "-ac", "2", "<new-output>.mp4"]
+        }
+      },
+      "approval": {
+        "kind": "approved-derivative",
+        "artifact_audio_payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2",
+        "reviewer": "fixture-reviewer",
+        "decision": "APPROVED",
+        "reviewed_at": "2026-08-22T09:02:00+09:00"
+      },
+      "qc": {
+        "final_file_sha256": "f6977d06a72e6cb25384a9edbf13d76e72b9abd26a5671cead4b39bcd542e518",
+        "container": "mp4",
+        "major_brand": "isom",
+        "audio_codec": "aac",
+        "audio_profile": "LC",
+        "sample_rate": 44100,
+        "channels": 2,
+        "bit_rate": 256000,
+        "video_stream_fingerprint_sha256": "a222222222222222222222222222222222222222222222222222222222222222",
+        "frame_count": 82266,
+        "captions_sha256": "b222222222222222222222222222222222222222222222222222222222222222",
+        "boundaries_sha256": "c222222222222222222222222222222222222222222222222222222222222222",
+        "chapters_sha256": "d222222222222222222222222222222222222222222222222222222222222222",
+        "ordered_pcm_concat_sha256": "dc3d9fd41fdf445d30e6da054fa42e0a33f5f23ba247522aa88248b38174e6cb",
+        "decoded_total_samples": 120930048,
+        "removed_internal_gap_samples": 17327,
+        "track_boundaries": [
+          {"track": 1, "decoded_pcm_sha256": "d201d201d201d201d201d201d201d201d201d201d201d201d201d201d201d201", "start": "PASS", "tail": "PASS"},
+          {"track": 2, "decoded_pcm_sha256": "d202d202d202d202d202d202d202d202d202d202d202d202d202d202d202d202", "start": "PASS", "tail": "PASS"},
+          {"track": 3, "decoded_pcm_sha256": "d203d203d203d203d203d203d203d203d203d203d203d203d203d203d203d203", "start": "PASS", "tail": "PASS"},
+          {"track": 4, "decoded_pcm_sha256": "d204d204d204d204d204d204d204d204d204d204d204d204d204d204d204d204", "start": "PASS", "tail": "PASS"},
+          {"track": 5, "decoded_pcm_sha256": "d205d205d205d205d205d205d205d205d205d205d205d205d205d205d205d205", "start": "PASS", "tail": "PASS"},
+          {"track": 6, "decoded_pcm_sha256": "d206d206d206d206d206d206d206d206d206d206d206d206d206d206d206d206", "start": "PASS", "tail": "PASS"},
+          {"track": 7, "decoded_pcm_sha256": "d207d207d207d207d207d207d207d207d207d207d207d207d207d207d207d207", "start": "PASS", "tail": "PASS"},
+          {"track": 8, "decoded_pcm_sha256": "d208d208d208d208d208d208d208d208d208d208d208d208d208d208d208d208", "start": "PASS", "tail": "PASS"},
+          {"track": 9, "decoded_pcm_sha256": "d209d209d209d209d209d209d209d209d209d209d209d209d209d209d209d209", "start": "PASS", "tail": "PASS"},
+          {"track": 10, "decoded_pcm_sha256": "d210d210d210d210d210d210d210d210d210d210d210d210d210d210d210d210", "start": "PASS", "tail": "PASS"},
+          {"track": 11, "decoded_pcm_sha256": "d211d211d211d211d211d211d211d211d211d211d211d211d211d211d211d211", "start": "PASS", "tail": "PASS"},
+          {"track": 12, "decoded_pcm_sha256": "d212d212d212d212d212d212d212d212d212d212d212d212d212d212d212d212", "start": "PASS", "tail": "PASS"}
+        ],
+        "full_decode": "PASS",
+        "avfoundation_decode": "PASS",
+        "real_time_tail_playback": {"status": "PASS", "tail_seconds": 3.0, "reviewer": "fixture-qc"},
+        "status": "PASS"
+      }
+    },
+    {
+      "sequence": 3,
+      "episode_id": "03-491-testimony",
+      "profile": "testimony-static/v1",
+      "source_file_sha256": "209de0d146768d06733e1f0177c1d5b9671c93cf3b43593165c1167ea512b4e2",
+      "final_file_sha256": "5c0a645c8813d559d9e4df5dcb881ec0baac30cbb7a0a984d0f7cc91b73c76e1",
+      "derivation": {"mode": "stream-copy", "source_audio_payload_sha256": "3333333333333333333333333333333333333333333333333333333333333333", "output_audio_payload_sha256": "3333333333333333333333333333333333333333333333333333333333333333", "encoder": null},
+      "approval": {"kind": "approved-source", "artifact_audio_payload_sha256": "3333333333333333333333333333333333333333333333333333333333333333", "reviewer": "fixture-reviewer", "decision": "APPROVED", "reviewed_at": "2026-08-22T09:03:00+09:00"},
+      "qc": {"final_file_sha256": "5c0a645c8813d559d9e4df5dcb881ec0baac30cbb7a0a984d0f7cc91b73c76e1", "container": "mp4", "major_brand": "isom", "audio_codec": "aac", "audio_profile": "LC", "sample_rate": 48000, "channels": 2, "bit_rate": 192000, "video_stream_fingerprint_sha256": "a333333333333333333333333333333333333333333333333333333333333333", "frame_count": 7223, "captions_sha256": "b333333333333333333333333333333333333333333333333333333333333333", "boundaries_sha256": "c333333333333333333333333333333333333333333333333333333333333333", "chapters_sha256": null, "full_decode": "PASS", "avfoundation_decode": "PASS", "real_time_tail_playback": {"status": "PASS", "tail_seconds": 3.0, "reviewer": "fixture-qc"}, "status": "PASS"}
+    },
+    {
+      "sequence": 4,
+      "episode_id": "04-491-hymn",
+      "profile": "hymn-lyrics/v1",
+      "source_file_sha256": "707961341817630faff851ac3fefe99b4ed9907ca6a561da656d5fa45a65b910",
+      "final_file_sha256": "06a1d85585c2500ef1ccee937f33d441f342d1782efe87678828d271c4b072b7",
+      "derivation": {"mode": "approved-transcode", "source_audio_payload_sha256": "4444444444444444444444444444444444444444444444444444444444444444", "output_audio_payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4", "encoder": {"binary_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "normalized_command": ["ffmpeg", "-i", "<approved-source>", "-map", "0:v:0", "-map", "0:a:0", "-c:v", "copy", "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "256k", "-ar", "44100", "-ac", "2", "<new-output>.mp4"]}},
+      "approval": {"kind": "approved-derivative", "artifact_audio_payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4", "reviewer": "fixture-reviewer", "decision": "APPROVED", "reviewed_at": "2026-08-22T09:04:00+09:00"},
+      "qc": {"final_file_sha256": "06a1d85585c2500ef1ccee937f33d441f342d1782efe87678828d271c4b072b7", "container": "mp4", "major_brand": "isom", "audio_codec": "aac", "audio_profile": "LC", "sample_rate": 44100, "channels": 2, "bit_rate": 256000, "video_stream_fingerprint_sha256": "a444444444444444444444444444444444444444444444444444444444444444", "frame_count": 11752, "captions_sha256": "b444444444444444444444444444444444444444444444444444444444444444", "boundaries_sha256": "c444444444444444444444444444444444444444444444444444444444444444", "chapters_sha256": null, "full_decode": "PASS", "avfoundation_decode": "PASS", "real_time_tail_playback": {"status": "PASS", "tail_seconds": 3.0, "reviewer": "fixture-qc"}, "status": "PASS"}
+    },
+    {
+      "sequence": 5,
+      "episode_id": "05-370-testimony",
+      "profile": "testimony-static/v1",
+      "source_file_sha256": "8209aee11558b46b4f41c2edb357475cbddd89574f5d2cab8ce20a359114015d",
+      "final_file_sha256": "5a36f8d8848ccf6ea90ddb731a4a5c14a87fafb22d231afbdc9e54d23c689c7b",
+      "derivation": {"mode": "stream-copy", "source_audio_payload_sha256": "5555555555555555555555555555555555555555555555555555555555555555", "output_audio_payload_sha256": "5555555555555555555555555555555555555555555555555555555555555555", "encoder": null},
+      "approval": {"kind": "approved-source", "artifact_audio_payload_sha256": "5555555555555555555555555555555555555555555555555555555555555555", "reviewer": "fixture-reviewer", "decision": "APPROVED", "reviewed_at": "2026-08-22T09:05:00+09:00"},
+      "qc": {"final_file_sha256": "5a36f8d8848ccf6ea90ddb731a4a5c14a87fafb22d231afbdc9e54d23c689c7b", "container": "mp4", "major_brand": "isom", "audio_codec": "aac", "audio_profile": "LC", "sample_rate": 48000, "channels": 2, "bit_rate": 192000, "video_stream_fingerprint_sha256": "a555555555555555555555555555555555555555555555555555555555555555", "frame_count": 8850, "captions_sha256": "b555555555555555555555555555555555555555555555555555555555555555", "boundaries_sha256": "c555555555555555555555555555555555555555555555555555555555555555", "chapters_sha256": null, "full_decode": "PASS", "avfoundation_decode": "PASS", "real_time_tail_playback": {"status": "PASS", "tail_seconds": 3.0, "reviewer": "fixture-qc"}, "status": "PASS"}
+    },
+    {
+      "sequence": 6,
+      "episode_id": "06-370-hymn",
+      "profile": "hymn-lyrics/v1",
+      "source_file_sha256": "a59748cdd96d2c7ba989b89138a2ba364947e99c012cf7d77943230393e5fffe",
+      "final_file_sha256": "5036f477709bab8175a254f6b1e933ac43291ebbfe444366018e47014cc25de4",
+      "derivation": {"mode": "approved-transcode", "source_audio_payload_sha256": "6666666666666666666666666666666666666666666666666666666666666666", "output_audio_payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6", "encoder": {"binary_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "normalized_command": ["ffmpeg", "-i", "<approved-source>", "-map", "0:v:0", "-map", "0:a:0", "-c:v", "copy", "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "256k", "-ar", "44100", "-ac", "2", "<new-output>.mp4"]}},
+      "approval": {"kind": "approved-derivative", "artifact_audio_payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6", "reviewer": "fixture-reviewer", "decision": "APPROVED", "reviewed_at": "2026-08-22T09:06:00+09:00"},
+      "qc": {"final_file_sha256": "5036f477709bab8175a254f6b1e933ac43291ebbfe444366018e47014cc25de4", "container": "mp4", "major_brand": "isom", "audio_codec": "aac", "audio_profile": "LC", "sample_rate": 44100, "channels": 2, "bit_rate": 256000, "video_stream_fingerprint_sha256": "a666666666666666666666666666666666666666666666666666666666666666", "frame_count": 6612, "captions_sha256": "b666666666666666666666666666666666666666666666666666666666666666", "boundaries_sha256": "c666666666666666666666666666666666666666666666666666666666666666", "chapters_sha256": null, "full_decode": "PASS", "avfoundation_decode": "PASS", "real_time_tail_playback": {"status": "PASS", "tail_seconds": 3.0, "reviewer": "fixture-qc"}, "status": "PASS"}
+    }
+  ]
+}

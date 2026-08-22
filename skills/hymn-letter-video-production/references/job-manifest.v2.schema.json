@@ -1,184 +1,250 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://plugify.local/schemas/hymn-letter-video-job-v3-office-contract.json",
-  "title": "Godowon Hymn Letter office-native v3 render job",
+  "title": "Godowon Hymn Letter office-native v3 gapless AAC render job",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schema",
-    "release_id",
-    "episode_id",
-    "profile",
-    "inputs",
-    "settings",
-    "output"
-  ],
+  "required": ["schema", "release_id", "episode_id", "profile", "inputs", "settings", "output"],
   "properties": {
-    "schema": {
-      "const": "godowon.hymn-letter.v3-job/1"
-    },
-    "release_id": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 128
-    },
-    "episode_id": {
-      "type": "string",
-      "pattern": "^[0-9]{2}-[a-z0-9][a-z0-9-]*$"
-    },
+    "schema": {"const": "godowon.hymn-letter.v3-job/1"},
+    "release_id": {"const": "hymn-letter-caption-v3-gapless-aac-20260822"},
+    "episode_id": {"enum": ["01-start", "02-playlist", "03-491-testimony", "04-491-hymn", "05-370-testimony", "06-370-hymn"]},
     "profile": {
-      "enum": [
-        "start-hybrid/v1",
-        "playlist/v1",
-        "testimony-static/v1",
-        "hymn-lyrics/v1"
-      ]
+      "enum": ["start-hybrid/v1", "playlist/v1", "testimony-static/v1", "hymn-lyrics/v1"]
     },
-    "inputs": {
-      "type": "object"
-    },
-    "settings": {
-      "type": "object"
-    },
+    "inputs": {"type": "object"},
+    "settings": {"type": "object"},
     "output": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "filename",
-        "thumbnail_filename",
-        "container",
-        "frame_count"
-      ],
+      "required": ["filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"],
       "properties": {
-        "filename": {
-          "type": "string",
-          "pattern": "^[^/\\\\]+\\.(mp4|mov)$"
-        },
-        "thumbnail_filename": {
-          "type": "string",
-          "pattern": "^[^/\\\\]+\\.(jpg|jpeg|png)$"
-        },
-        "container": {
-          "enum": [
-            "mp4",
-            "mov"
-          ]
-        },
-        "frame_count": {
-          "type": "integer",
-          "minimum": 1
-        }
+        "filename": {"type": "string", "pattern": "^[^/\\\\]+\\.mp4$"},
+        "thumbnail_filename": {"type": "string", "pattern": "^[^/\\\\]+\\.(jpg|jpeg|png)$"},
+        "container": {"const": "mp4"},
+        "audio_codec": {"const": "aac"},
+        "audio_profile": {"const": "LC"},
+        "frame_count": {"type": "integer", "minimum": 1}
+      }
+    }
+  },
+  "$defs": {
+    "object_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "playlist_track": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "hymn_number", "title", "audio", "captions", "samples", "pcm_f32le_sha256", "start_sample", "start_frame"],
+      "properties": {
+        "index": {"type": "integer", "minimum": 1, "maximum": 12},
+        "hymn_number": {"type": "integer", "minimum": 1},
+        "title": {"type": "string", "minLength": 1},
+        "audio": {"$ref": "#/$defs/object_id"},
+        "captions": {"$ref": "#/$defs/object_id"},
+        "samples": {"type": "integer", "minimum": 1},
+        "pcm_f32le_sha256": {"$ref": "#/$defs/sha256"},
+        "start_sample": {"type": "integer", "minimum": 0},
+        "start_frame": {"type": "integer", "minimum": 0}
       }
     }
   },
   "allOf": [
     {
-      "if": {
-        "properties": {"profile": {"const": "start-hybrid/v1"}},
-        "required": ["profile"]
-      },
+      "oneOf": [
+        {"properties": {"episode_id": {"const": "01-start"}, "profile": {"const": "start-hybrid/v1"}, "output": {"type": "object", "additionalProperties": false, "required": ["filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"], "properties": {"filename": {"const": "01_고도원의_찬송편지를_시작합니다.mp4"}, "thumbnail_filename": {"const": "01_썸네일.jpg"}, "container": {"const": "mp4"}, "audio_codec": {"const": "aac"}, "audio_profile": {"const": "LC"}, "frame_count": {"const": 22369}}}}},
+        {"properties": {"episode_id": {"const": "02-playlist"}, "profile": {"const": "playlist/v1"}, "output": {"type": "object", "additionalProperties": false, "required": ["filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"], "properties": {"filename": {"const": "02_12곡_전곡듣기.mp4"}, "thumbnail_filename": {"const": "02_썸네일.jpg"}, "container": {"const": "mp4"}, "audio_codec": {"const": "aac"}, "audio_profile": {"const": "LC"}, "frame_count": {"const": 82266}}}}},
+        {"properties": {"episode_id": {"const": "03-491-testimony"}, "profile": {"const": "testimony-static/v1"}, "output": {"type": "object", "additionalProperties": false, "required": ["filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"], "properties": {"filename": {"const": "03_491장_찬송해설과_간증.mp4"}, "thumbnail_filename": {"const": "03_썸네일.jpg"}, "container": {"const": "mp4"}, "audio_codec": {"const": "aac"}, "audio_profile": {"const": "LC"}, "frame_count": {"const": 7223}}}}},
+        {"properties": {"episode_id": {"const": "04-491-hymn"}, "profile": {"const": "hymn-lyrics/v1"}, "output": {"type": "object", "additionalProperties": false, "required": ["filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"], "properties": {"filename": {"const": "04_491장_저_높은_곳을_향하여_찬송듣기.mp4"}, "thumbnail_filename": {"const": "04_썸네일.jpg"}, "container": {"const": "mp4"}, "audio_codec": {"const": "aac"}, "audio_profile": {"const": "LC"}, "frame_count": {"const": 11752}}}}},
+        {"properties": {"episode_id": {"const": "05-370-testimony"}, "profile": {"const": "testimony-static/v1"}, "output": {"type": "object", "additionalProperties": false, "required": ["filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"], "properties": {"filename": {"const": "05_370장_찬송해설과_간증.mp4"}, "thumbnail_filename": {"const": "05_썸네일.jpg"}, "container": {"const": "mp4"}, "audio_codec": {"const": "aac"}, "audio_profile": {"const": "LC"}, "frame_count": {"const": 8850}}}}},
+        {"properties": {"episode_id": {"const": "06-370-hymn"}, "profile": {"const": "hymn-lyrics/v1"}, "output": {"type": "object", "additionalProperties": false, "required": ["filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"], "properties": {"filename": {"const": "06_370장_주_안에_있는_나에게_찬송듣기.mp4"}, "thumbnail_filename": {"const": "06_썸네일.jpg"}, "container": {"const": "mp4"}, "audio_codec": {"const": "aac"}, "audio_profile": {"const": "LC"}, "frame_count": {"const": 6612}}}}}
+      ]
+    },
+    {
+      "if": {"properties": {"profile": {"const": "start-hybrid/v1"}}, "required": ["profile"]},
       "then": {
         "properties": {
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["audio_policy", "program_video", "audio", "captions", "backplate", "font", "thumbnail"],
+            "properties": {
+              "audio_policy": {"const": "stream-copy-approved-aac/v1"},
+              "program_video": {"$ref": "#/$defs/object_id"},
+              "audio": {"$ref": "#/$defs/object_id"},
+              "captions": {"$ref": "#/$defs/object_id"},
+              "backplate": {"$ref": "#/$defs/object_id"},
+              "font": {"$ref": "#/$defs/object_id"},
+              "thumbnail": {"$ref": "#/$defs/object_id"}
+            }
+          },
           "settings": {
             "type": "object",
             "additionalProperties": false,
             "required": ["intro_frames", "intro_style", "post_style"],
             "properties": {
-              "intro_frames": {"type": "integer", "minimum": 1},
-              "intro_style": {"type": "string", "minLength": 1},
-              "post_style": {"type": "string", "minLength": 1}
+              "intro_frames": {"const": 723},
+              "intro_style": {"const": "center"},
+              "post_style": {"const": "dense"}
             }
           }
         }
       }
     },
     {
-      "if": {
-        "properties": {"profile": {"const": "playlist/v1"}},
-        "required": ["profile"]
-      },
+      "if": {"properties": {"profile": {"const": "playlist/v1"}}, "required": ["profile"]},
       "then": {
         "properties": {
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["audio_policy", "tracks", "gapless_audio_contract", "caption_timing_contract", "chapter_contract", "font", "thumbnail", "active_rows"],
+            "properties": {
+              "audio_policy": {"const": "gapless-track-concat-aac-lc-256k/v1"},
+              "tracks": {
+                "type": "array",
+                "minItems": 12,
+                "maxItems": 12,
+                "prefixItems": [
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 1}, "hymn_number": {"const": 491}, "title": {"const": "저 높은 곳을 향하여"}, "samples": {"const": 17275392}, "pcm_f32le_sha256": {"const": "9674ebd4cdad2697abd4398028461ee38902daf9f45aa3972135c8efdfabcd6c"}, "start_sample": {"const": 0}, "start_frame": {"const": 0}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 2}, "hymn_number": {"const": 370}, "title": {"const": "주 안에 있는 나에게"}, "samples": {"const": 9718758}, "pcm_f32le_sha256": {"const": "c030614ee7fc33b02ed69a27a45d1b82b95b83425269d196f1c814715cdb0aea"}, "start_sample": {"const": 17275392}, "start_frame": {"const": 11752}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 3}, "hymn_number": {"const": 387}, "title": {"const": "멀리멀리 갔더니"}, "samples": {"const": 9024624}, "pcm_f32le_sha256": {"const": "adc913656cda1e9d39959896368c72b33e2a2f25a42e34a321bd37ee2459ffc2"}, "start_sample": {"const": 26994150}, "start_frame": {"const": 18364}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 4}, "hymn_number": {"const": 438}, "title": {"const": "내 영혼이 은총 입어"}, "samples": {"const": 8745912}, "pcm_f32le_sha256": {"const": "8192251ddbb406f422ea15522d063699dde56c2986f5b4c824b4fabb0018696a"}, "start_sample": {"const": 36018774}, "start_frame": {"const": 24503}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 5}, "hymn_number": {"const": 458}, "title": {"const": "너희 마음에 슬픔이 가득 차도"}, "samples": {"const": 8148798}, "pcm_f32le_sha256": {"const": "3112d455f4377839542be1c30694402be54225ad694661b46715024155747a0b"}, "start_sample": {"const": 44764686}, "start_frame": {"const": 30453}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 6}, "hymn_number": {"const": 490}, "title": {"const": "주여 지난 밤 내 꿈에"}, "samples": {"const": 9336852}, "pcm_f32le_sha256": {"const": "d551ce8dd85993de2d61f78f7ed074a40367ae6ff5654230d6956b41e0b0693e"}, "start_sample": {"const": 52913484}, "start_frame": {"const": 35996}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 7}, "hymn_number": {"const": 439}, "title": {"const": "십자가로 가까이"}, "samples": {"const": 10984428}, "pcm_f32le_sha256": {"const": "3c9c2f5f19d47f4eec55df50dbdbe3efa5520e7eff4f45d3a5c705d4d39ddb44"}, "start_sample": {"const": 62250336}, "start_frame": {"const": 42348}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 8}, "hymn_number": {"const": 540}, "title": {"const": "주의 음성을 내가 들으니"}, "samples": {"const": 9296280}, "pcm_f32le_sha256": {"const": "a7bc445567c09f882624b779555a1f4173b27e30c264a006d359905ee906f434"}, "start_sample": {"const": 73234764}, "start_frame": {"const": 49820}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 9}, "hymn_number": {"const": 394}, "title": {"const": "이 세상의 친구들"}, "samples": {"const": 7821576}, "pcm_f32le_sha256": {"const": "42d0bc4720f8f1c1f73689c6bee42fe134f668cb8af08fe370d71b7b84ad9a87"}, "start_sample": {"const": 82531044}, "start_frame": {"const": 56144}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 10}, "hymn_number": {"const": 382}, "title": {"const": "너 근심 걱정 말아라"}, "samples": {"const": 10143882}, "pcm_f32le_sha256": {"const": "07d3ad1465f82b004de2fedbaf098d47d7b16e802185b4c3502891cddde35062"}, "start_sample": {"const": 90352620}, "start_frame": {"const": 61465}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 11}, "hymn_number": {"const": 386}, "title": {"const": "만세반석 열린 곳에"}, "samples": {"const": 10369674}, "pcm_f32le_sha256": {"const": "6b6812d6c0b3e2d20f68f553f35d34ff315156730af6d83c6bfe23eb5676b927"}, "start_sample": {"const": 100496502}, "start_frame": {"const": 68365}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 12}, "hymn_number": {"const": 606}, "title": {"const": "날빛보다 더 밝은 천국"}, "samples": {"const": 10063872}, "pcm_f32le_sha256": {"const": "70c695311746b26f2d35d1e8e4091ab51a47ee7074d7c432a9e70316d157a556"}, "start_sample": {"const": 110866176}, "start_frame": {"const": 75420}}}]}
+                ],
+                "items": false
+              },
+              "gapless_audio_contract": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["mode", "sample_rate", "channels", "total_samples", "composite_pcm_f32le_sha256"],
+                "properties": {
+                  "mode": {"const": "decode-each-mp3-to-f32le-concat/v1"},
+                  "sample_rate": {"const": 44100},
+                  "channels": {"const": 2},
+                  "total_samples": {"const": 120930048},
+                  "composite_pcm_f32le_sha256": {"const": "2e3e983f5a71aa775bd0360bc29efa229d3656e6ff52c981236fc776fc3f9f63"}
+                }
+              },
+              "caption_timing_contract": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["mode", "sample_rate", "combined_srt_sha256", "cue_count", "lyric_cue_count", "title_card_cue_count", "title_card_text_policy", "offset_rounding", "title_card_serialization", "title_card_placement"],
+                "properties": {
+                  "mode": {"const": "per-track-srt-offset-by-start-sample/v1"},
+                  "sample_rate": {"const": 44100},
+                  "combined_srt_sha256": {"const": "8d37cf3e1f65e358efe9549d01250fbd34ceb1c0eda442257a04ba8922f5367c"},
+                  "cue_count": {"const": 279},
+                  "lyric_cue_count": {"const": 267},
+                  "title_card_cue_count": {"const": 12},
+                  "title_card_text_policy": {"const": "sequence-numbered-hymn-number-and-title/v1"},
+                  "offset_rounding": {"const": "half-up-samples-to-ms/v1"},
+                  "title_card_serialization": {"const": "{sequence}. {hymn_number}장  {title}"},
+                  "title_card_placement": {"const": "initial-title-then-next-title-in-prior-track-outro/v1"}
+                }
+              },
+              "chapter_contract": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["mode", "sample_rate", "ffmetadata_sha256"],
+                "properties": {
+                  "mode": {"const": "track-start-sample/v1"},
+                  "sample_rate": {"const": 44100},
+                  "ffmetadata_sha256": {"const": "cdf0986a950517085094975a33fb906962f52692002e12acb53262857a5a973e"}
+                }
+              },
+              "font": {"$ref": "#/$defs/object_id"},
+              "thumbnail": {"$ref": "#/$defs/object_id"},
+              "active_rows": {"type": "array", "minItems": 12, "maxItems": 12, "items": {"$ref": "#/$defs/object_id"}}
+            }
+          },
           "settings": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "style",
-              "active_row_state",
-              "active_row_frame_boundaries",
-              "title_card_policy",
-              "movie_timescale",
-              "video_track_timescale"
-            ],
+            "required": ["style", "active_row_state", "active_row_frame_boundaries", "title_card_policy", "movie_timescale", "video_track_timescale"],
             "properties": {
-              "style": {"type": "string", "minLength": 1},
-              "active_row_state": {"type": "string", "minLength": 1},
-              "active_row_frame_boundaries": {
-                "type": "array",
-                "minItems": 2,
-                "items": {"type": "integer", "minimum": 0}
-              },
+              "style": {"const": "dense"},
+              "active_row_state": {"const": "yellow"},
+              "active_row_frame_boundaries": {"const": [0, 11752, 18364, 24503, 30453, 35996, 42348, 49820, 56144, 61465, 68365, 75420, 82266]},
               "title_card_policy": {
                 "type": "object",
                 "additionalProperties": false,
                 "required": ["mode", "expected_titles", "expected_active_rows"],
                 "properties": {
                   "mode": {"const": "playlist-prior-outro/v1"},
-                  "expected_titles": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {"type": "string", "minLength": 1}
-                  },
-                  "expected_active_rows": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {"type": "integer", "minimum": 1}
-                  }
+                  "expected_titles": {"const": ["491장 저 높은 곳을 향하여", "370장 주 안에 있는 나에게", "387장 멀리멀리 갔더니", "438장 내 영혼이 은총 입어", "458장 너희 마음에 슬픔이 가득 차도", "490장 주여 지난 밤 내 꿈에", "439장 십자가로 가까이", "540장 주의 음성을 내가 들으니", "394장 이 세상의 친구들", "382장 너 근심 걱정 말아라", "386장 만세반석 열린 곳에", "606장 날빛보다 더 밝은 천국"]},
+                  "expected_active_rows": {"const": [1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]}
                 }
               },
-              "movie_timescale": {"type": "integer", "minimum": 1},
-              "video_track_timescale": {"type": "integer", "minimum": 1}
+              "movie_timescale": {"const": 44100},
+              "video_track_timescale": {"const": 15360}
             }
           }
         }
       }
     },
     {
-      "if": {
-        "properties": {"profile": {"const": "testimony-static/v1"}},
-        "required": ["profile"]
-      },
+      "if": {"properties": {"profile": {"const": "testimony-static/v1"}}, "required": ["profile"]},
       "then": {
         "properties": {
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["audio_policy", "backplate", "audio", "captions", "font", "thumbnail"],
+            "properties": {
+              "audio_policy": {"const": "stream-copy-approved-aac/v1"},
+              "backplate": {"$ref": "#/$defs/object_id"},
+              "audio": {"$ref": "#/$defs/object_id"},
+              "captions": {"$ref": "#/$defs/object_id"},
+              "font": {"$ref": "#/$defs/object_id"},
+              "thumbnail": {"$ref": "#/$defs/object_id"}
+            }
+          },
           "settings": {
             "type": "object",
             "additionalProperties": false,
             "required": ["style", "restore_audio_edit", "movie_timescale", "video_track_timescale"],
             "properties": {
-              "style": {"type": "string", "minLength": 1},
-              "restore_audio_edit": {"type": "boolean"},
-              "movie_timescale": {"type": "integer", "minimum": 1},
-              "video_track_timescale": {"type": "integer", "minimum": 1}
+              "style": {"const": "center"},
+              "restore_audio_edit": {"const": true},
+              "movie_timescale": {"const": 384000},
+              "video_track_timescale": {"const": 15360}
             }
           }
         }
       }
     },
     {
-      "if": {
-        "properties": {"profile": {"const": "hymn-lyrics/v1"}},
-        "required": ["profile"]
-      },
+      "if": {"properties": {"profile": {"const": "hymn-lyrics/v1"}}, "required": ["profile"]},
       "then": {
         "properties": {
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["audio_policy", "backplate", "audio", "captions", "font", "thumbnail"],
+            "properties": {
+              "audio_policy": {"const": "approved-mp3-to-aac-lc-256k/v1"},
+              "backplate": {"$ref": "#/$defs/object_id"},
+              "audio": {"$ref": "#/$defs/object_id"},
+              "captions": {"$ref": "#/$defs/object_id"},
+              "font": {"$ref": "#/$defs/object_id"},
+              "thumbnail": {"$ref": "#/$defs/object_id"}
+            }
+          },
           "settings": {
             "type": "object",
             "additionalProperties": false,
             "required": ["style", "movie_timescale", "video_track_timescale"],
             "properties": {
-              "style": {"type": "string", "minLength": 1},
-              "movie_timescale": {"type": "integer", "minimum": 1},
-              "video_track_timescale": {"type": "integer", "minimum": 1}
+              "style": {"const": "center"},
+              "movie_timescale": {"const": 44100},
+              "video_track_timescale": {"const": 15360}
             }
           }
         }

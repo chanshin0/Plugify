@@ -1,6 +1,6 @@
 {
   "schema": "plugify.hymn-letter.episode-inventory/2",
-  "release_id": "hymn-letter-caption-v3-20260822",
+  "release_id": "hymn-letter-caption-v3-gapless-aac-20260822",
   "episodes": [
     {
       "sequence": 1,
@@ -9,6 +9,8 @@
       "profile": "start-hybrid/v1",
       "container": "mp4",
       "audio_codec": "aac",
+      "audio_profile": "LC",
+      "audio_policy": "stream-copy-approved-aac/v1",
       "frame_count": 22369
     },
     {
@@ -16,9 +18,11 @@
       "episode_id": "02-playlist",
       "kind": "playlist",
       "profile": "playlist/v1",
-      "container": "mov",
-      "audio_codec": "mp3",
-      "frame_count": 82278
+      "container": "mp4",
+      "audio_codec": "aac",
+      "audio_profile": "LC",
+      "audio_policy": "gapless-track-concat-aac-lc-256k/v1",
+      "frame_count": 82266
     },
     {
       "sequence": 3,
@@ -27,6 +31,8 @@
       "profile": "testimony-static/v1",
       "container": "mp4",
       "audio_codec": "aac",
+      "audio_profile": "LC",
+      "audio_policy": "stream-copy-approved-aac/v1",
       "frame_count": 7223
     },
     {
@@ -34,8 +40,10 @@
       "episode_id": "04-491-hymn",
       "kind": "hymn_lyrics",
       "profile": "hymn-lyrics/v1",
-      "container": "mov",
-      "audio_codec": "mp3",
+      "container": "mp4",
+      "audio_codec": "aac",
+      "audio_profile": "LC",
+      "audio_policy": "approved-mp3-to-aac-lc-256k/v1",
       "frame_count": 11752
     },
     {
@@ -45,6 +53,8 @@
       "profile": "testimony-static/v1",
       "container": "mp4",
       "audio_codec": "aac",
+      "audio_profile": "LC",
+      "audio_policy": "stream-copy-approved-aac/v1",
       "frame_count": 8850
     },
     {
@@ -52,8 +62,10 @@
       "episode_id": "06-370-hymn",
       "kind": "hymn_lyrics",
       "profile": "hymn-lyrics/v1",
-      "container": "mov",
-      "audio_codec": "mp3",
+      "container": "mp4",
+      "audio_codec": "aac",
+      "audio_profile": "LC",
+      "audio_policy": "approved-mp3-to-aac-lc-256k/v1",
       "frame_count": 6612
     }
   ]

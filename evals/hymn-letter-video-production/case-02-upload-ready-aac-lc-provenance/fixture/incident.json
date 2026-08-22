@@ -1,0 +1,45 @@
+{
+  "schema": "plugify.hymn-letter.codec-incident/1",
+  "observed_at": "2026-08-22",
+  "episode_id": "02-playlist",
+  "expected_candidate_statements": [
+    "17,327 all-zero samples prove a 0.392902-second noncanonical timeline defect; they are not the proven direct cause of the audible spike.",
+    "Without QuickTime output capture, codec versus interleave/nearby H.264 keyframe contribution remains unresolved.",
+    "The safe path removes both per-track MP3 trim metadata loss and MOV+MP3 playback risk."
+  ],
+  "adversarial_overclaim_corpus": [
+    "The audible spike was directly caused by the 17,327 silent samples.",
+    "The 17,327 silent samples directly caused the audible spike.",
+    "The direct cause of the audible spike was the 17,327 silent samples.",
+    "17,327개의 무음 샘플이 가청 튐을 직접 일으켰다."
+  ],
+  "selected_tracks": {
+    "ordered_paths": [
+      "media/02-track-01.mp3", "media/02-track-02.mp3", "media/02-track-03.mp3",
+      "media/02-track-04.mp3", "media/02-track-05.mp3", "media/02-track-06.mp3",
+      "media/02-track-07.mp3", "media/02-track-08.mp3", "media/02-track-09.mp3",
+      "media/02-track-10.mp3", "media/02-track-11.mp3", "media/02-track-12.mp3"
+    ],
+    "observed_real_time_playback": "clean",
+    "gapless_rule": "decode-each-standalone-track-honoring-skip-samples-and-discard-padding-before-pcm-concat"
+  },
+  "forbidden_preconcatenated_source": {
+    "path": "media/02-approved-source.mp3",
+    "reason": "per-track MP3 priming/padding side-data is absent at internal boundaries",
+    "measured_internal_trim_loss_samples": 17327,
+    "measured_noncanonical_timeline_seconds": 0.392902,
+    "measured_samples_character": "all-zero-silence-in-mp3float-and-audiotoolbox",
+    "causality_limit": "silent extra samples prove a noncanonical timeline defect but are not asserted as the direct cause of the audible spike"
+  },
+  "final_artifact": {
+    "path": "media/02-legacy-playlist.mov",
+    "observed_real_time_tail": "end-note-glitch",
+    "immediate_mechanism_status": "unresolved-without-quicktime-output-capture",
+    "remaining_risk": "long MOV+MP3 playback path; codec versus interleave/large-nearby-H264-keyframe contribution is not differentiated"
+  },
+  "rename_control": {
+    "path": "media/02-renamed-only.mp4",
+    "expect_same_bytes_as_final_artifact": true,
+    "expected_result": "reject"
+  }
+}
