@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plugify.local/schemas/hymn-letter-video-job-v3-office-contract.json",
+  "title": "Godowon Hymn Letter office-native v3 render job",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "release_id",
+    "episode_id",
+    "profile",
+    "inputs",
+    "settings",
+    "output"
+  ],
+  "properties": {
+    "schema": {
+      "const": "godowon.hymn-letter.v3-job/1"
+    },
+    "release_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "episode_id": {
+      "type": "string",
+      "pattern": "^[0-9]{2}-[a-z0-9][a-z0-9-]*$"
+    },
+    "profile": {
+      "enum": [
+        "start-hybrid/v1",
+        "playlist/v1",
+        "testimony-static/v1",
+        "hymn-lyrics/v1"
+      ]
+    },
+    "inputs": {
+      "type": "object"
+    },
+    "settings": {
+      "type": "object"
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "filename",
+        "thumbnail_filename",
+        "container",
+        "frame_count"
+      ],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "pattern": "^[^/\\\\]+\\.(mp4|mov)$"
+        },
+        "thumbnail_filename": {
+          "type": "string",
+          "pattern": "^[^/\\\\]+\\.(jpg|jpeg|png)$"
+        },
+        "container": {
+          "enum": [
+            "mp4",
+            "mov"
+          ]
+        },
+        "frame_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"profile": {"const": "start-hybrid/v1"}},
+        "required": ["profile"]
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["intro_frames", "intro_style", "post_style"],
+            "properties": {
+              "intro_frames": {"type": "integer", "minimum": 1},
+              "intro_style": {"type": "string", "minLength": 1},
+              "post_style": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"profile": {"const": "playlist/v1"}},
+        "required": ["profile"]
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "style",
+              "active_row_state",
+              "active_row_frame_boundaries",
+              "title_card_policy",
+              "movie_timescale",
+              "video_track_timescale"
+            ],
+            "properties": {
+              "style": {"type": "string", "minLength": 1},
+              "active_row_state": {"type": "string", "minLength": 1},
+              "active_row_frame_boundaries": {
+                "type": "array",
+                "minItems": 2,
+                "items": {"type": "integer", "minimum": 0}
+              },
+              "title_card_policy": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["mode", "expected_titles", "expected_active_rows"],
+                "properties": {
+                  "mode": {"const": "playlist-prior-outro/v1"},
+                  "expected_titles": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {"type": "string", "minLength": 1}
+                  },
+                  "expected_active_rows": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {"type": "integer", "minimum": 1}
+                  }
+                }
+              },
+              "movie_timescale": {"type": "integer", "minimum": 1},
+              "video_track_timescale": {"type": "integer", "minimum": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"profile": {"const": "testimony-static/v1"}},
+        "required": ["profile"]
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["style", "restore_audio_edit", "movie_timescale", "video_track_timescale"],
+            "properties": {
+              "style": {"type": "string", "minLength": 1},
+              "restore_audio_edit": {"type": "boolean"},
+              "movie_timescale": {"type": "integer", "minimum": 1},
+              "video_track_timescale": {"type": "integer", "minimum": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"profile": {"const": "hymn-lyrics/v1"}},
+        "required": ["profile"]
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["style", "movie_timescale", "video_track_timescale"],
+            "properties": {
+              "style": {"type": "string", "minLength": 1},
+              "movie_timescale": {"type": "integer", "minimum": 1},
+              "video_track_timescale": {"type": "integer", "minimum": 1}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

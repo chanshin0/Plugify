@@ -1,5 +1,7 @@
 # 고도원 찬송편지 26편 제작 워크플로우
 
+> 2026-08-22 현재 portable v3 정본은 `godowon-office/godo-hymns/releases/hymn-letter-caption-v3-20260822/`의 office-native release/job/source-bundle lock이다. Plugify의 `hymn_video_flow_v3.py`는 그 tracked JSON을 **변환 없이 그대로** 검증하고 office renderer/QC에 위임한다. 아래 `hymn_video_flow.py` 문단은 역사적 v1 primitive 설명이다.
+
 ## 범위와 완성 구조
 
 이 workflow는 다음 26편을 제작·검수·전달할 때만 쓴다.
@@ -17,14 +19,23 @@
 |---|---|---|
 | `start` | `start-hybrid/v1` | v17 시작편으로 증거 있음. 승인 interview/program video + 승인 audio + captions 필요 |
 | `testimony_intro` | `testimony-static/v1` | v17 491·370으로 증거 있음. 승인 audio + captions 필요 |
-| `hymn_lyrics` | `hymn-lyrics/v1` | **차단**. 승인 노래 source, 가사 timing, golden fixture가 확정되기 전 렌더 금지 |
-| `playlist` | `playlist/v1` | **차단**. 승인 12곡 순서·gap·chapter timing과 golden fixture가 확정되기 전 렌더 금지 |
+| `hymn_lyrics` | `hymn-lyrics/v1` | v3 release에 잠긴 04·06만 지원 |
+| `playlist` | `playlist/v1` | 수정된 제목 순서와 golden이 잠긴 02만 지원 |
 
-차단 profile을 유사한 지원 profile로 바꾸어 실행하지 않는다. 필요한 authoritative source와 승인만 요청하고 멈춘다.
+inventory 밖 profile/episode를 유사한 지원 항목으로 바꾸어 실행하지 않는다. 필요한 authoritative source와 승인만 요청하고 멈춘다.
 
-지원 episode의 의미 정본은 [episode-inventory.json](episode-inventory.json)이다. 현재 검증된 항목은 `start`, `hymn-491-testimony`, `hymn-370-testimony` 세 개뿐이다. 최신 12곡 선정은 아직 확정되지 않았으므로 나머지 23편의 ID를 이전 선정표나 대본 언급만으로 만들지 않는다.
+portable v3 inventory의 정본은 [episode-inventory.v2.json](episode-inventory.v2.json)이다. 현재 허용 항목은 `01-start`, `02-playlist`, `03-491-testimony`, `04-491-hymn`, `05-370-testimony`, `06-370-hymn` 여섯 개뿐이다.
 
 ## 1. Intake와 manifest
+
+portable v3 manifest는 office-native tracked JSON을 그대로 쓴다.
+
+- release: `godowon.hymn-letter.v3-release-lock/1`
+- source bundle: `godowon.hymn-letter.source-bundle/1`
+- job: `godowon.hymn-letter.v3-job/1`
+- content-addressed bytes: `SOURCE_ROOT/objects/sha256/<prefix>/<digest-rest>`
+
+`validate-job`은 반드시 `--job`과 `--release`를 함께 받아 release lock의 listed job SHA, supported profile, inventory mapping, output contract를 같이 검증한다.
 
 먼저 26편 inventory에서 현재 episode의 ID·kind·profile과 승인된 입력을 확인한다.
 
@@ -36,7 +47,7 @@
 - EDL, reviewed ASS, reference layout, thumbnail, publishing metadata가 있으면 각각 별도 role과 SHA로 잠근다.
 - 사람이 정해야 하는 가사, timing, cut, 곡 순서, gap, 공개 대상은 추측하지 않는다.
 
-Manifest는 [job-manifest.schema.json](job-manifest.schema.json)의 정확한 7개 top-level key만 사용한다.
+아래 문단은 **역사적 v1 manifest에만** 적용한다. v3 job에 이 shape를 섞지 않는다. v1 manifest는 [job-manifest.schema.json](job-manifest.schema.json)의 정확한 7개 top-level key만 사용한다.
 
 ```text
 schema
@@ -54,10 +65,11 @@ delivery_intent
 
 ## 2. 결정론적 CLI
 
-CLI 정본은 `scripts/hymn_video_flow.py`다. 어느 작업 디렉터리에서도 같은 진입점을 사용한다.
+portable v3 CLI 정본은 `scripts/hymn_video_flow_v3.py`이고, 역사적 v1 primitive 정본은 `scripts/hymn_video_flow.py`다. 어느 작업 디렉터리에서도 해당 release에 맞는 진입점을 명시한다.
 
 ```bash
-HYMN_LETTER_SKILL_DIR="/mnt/c/Work/Plugify/skills/hymn-letter-video-production"
+HYMN_LETTER_SKILL_DIR="/absolute/path/to/Plugify/skills/hymn-letter-video-production"
+HYMN_LETTER_RUNTIME_PYTHON="/absolute/path/to/locked/python-with-Pillow-and-numpy"
 JOB_MANIFEST="/absolute/path/job.json"
 TIMELINE_SPEC="/absolute/path/timeline-spec.json"
 TIMELINE_OUTPUT="/absolute/new/path/timeline.ffconcat"
@@ -68,11 +80,45 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow.py" --help
 
 ### `validate-job`
 
+portable v3:
+
+```bash
+python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" validate-job \
+  --job /absolute/path/jobs/02_playlist.json \
+  --release /absolute/path/release.lock.json
+```
+
+portable v3는 source bundle 검증 뒤 office-native contract를 변환 없이 render/QC에 넘긴다. `--runtime-python`은 명시적으로 잠가 wrapper receipt에 경로·SHA·버전을 기록한다.
+
+```bash
+python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" verify-source-bundle \
+  --job /absolute/path/jobs/02_playlist.json \
+  --release /absolute/path/release.lock.json \
+  --source-root /absolute/path/SOURCE_ROOT
+
+python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" render \
+  --job /absolute/path/jobs/02_playlist.json \
+  --release /absolute/path/release.lock.json \
+  --source-root /absolute/path/SOURCE_ROOT \
+  --run-root /absolute/path/new-run \
+  --runtime-python "$HYMN_LETTER_RUNTIME_PYTHON"
+
+python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" qc \
+  --job /absolute/path/jobs/02_playlist.json \
+  --release /absolute/path/release.lock.json \
+  --source-root /absolute/path/SOURCE_ROOT \
+  --run-root /absolute/path/run-root \
+  --gate semantic-equivalent \
+  --runtime-python "$HYMN_LETTER_RUNTIME_PYTHON"
+```
+
+legacy v1 primitive:
+
 ```bash
 python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow.py" validate-job --manifest "$JOB_MANIFEST"
 ```
 
-역할:
+역할(아래 항목은 legacy v1 validator에만 적용):
 
 - manifest schema identifier, exact top/subkeys, absolute path, lowercase SHA-256, no-overwrite를 독립적으로 검사한다.
 - 모든 input의 실제 SHA를 다시 계산하고 `role` 중복을 거부한다.
@@ -80,8 +126,8 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow.py" validate-job --manif
 - pinned episode inventory와 ID/kind/profile의 exact mapping을 검사한다.
 - tracked visual module의 path/SHA, template version, bundle lock SHA를 확인한다.
 - 지원 profile의 필수 role을 확인한다.
-- 현재 지원 profile에 `lyrics`, `lyric_timing`, `track_manifest`, `playlist_timing`, `package_manifest`가 들어오면 미지원 가사·playlist 작업을 간증/시작편으로 재분류한 것으로 보고 거부한다.
-- `hymn-lyrics/v1`, `playlist/v1`은 승인 계약이 생기기 전 unsupported exit로 중단한다.
+- v1 지원 profile에 `lyrics`, `lyric_timing`, `track_manifest`, `playlist_timing`, `package_manifest`가 들어오면 미지원 작업을 간증/시작편으로 재분류한 것으로 보고 거부한다.
+- v1에서는 `hymn-lyrics/v1`, `playlist/v1`을 unsupported로 중단한다. portable v3의 pinned 02·04·06에는 이 제한을 적용하지 않는다.
 
 `validate-job` PASS가 없으면 timeline, render, package 또는 delivery로 가지 않는다.
 
@@ -132,7 +178,7 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow.py" verify-package --pac
 
 `verify-package` PASS는 **로컬 package 무결성**만 뜻한다. package를 portable renderer라 하거나 Drive/YouTube/알림 완료 증거로 해석하지 않는다.
 
-세 명령은 low-level validation primitive이며 render, media QC, package 의미 검토, 외부 delivery를 실행하지 않는다. 실제 인자는 실행 중인 CLI의 `--help`를 정본으로 삼는다. 성공은 종료코드 `0`과 한 줄 JSON stdout으로 판정한다. 인자 파싱 뒤 검증 실패는 비정상 종료코드와 stderr `ERROR[n]`을 쓰며, 필수 인자 누락·알 수 없는 flag 같은 argparse 사용법 오류는 종료코드 `2`와 `usage:/error:` 형식을 쓴다.
+위 세 **v1 명령**은 low-level validation primitive이며 render, media QC, package 의미 검토, 외부 delivery를 실행하지 않는다. 실제 인자는 실행 중인 CLI의 `--help`를 정본으로 삼는다. 성공은 종료코드 `0`과 한 줄 JSON stdout으로 판정한다. 인자 파싱 뒤 검증 실패는 비정상 종료코드와 stderr `ERROR[n]`을 쓰며, 필수 인자 누락·알 수 없는 flag 같은 argparse 사용법 오류는 종료코드 `2`와 `usage:/error:` 형식을 쓴다.
 
 | exit | 의미 |
 |---:|---|
@@ -143,7 +189,7 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow.py" verify-package --pac
 | `7` | unsafe path/symlink/overwrite 시도 |
 | `11` | package 구조·checksum set 오류 |
 
-현재 skill CLI에는 render나 실제 H.264/audio/caption QC subcommand가 없다. 따라서 승인된 project renderer/QC가 생성한 exact renderer SHA·명령·report를 [qc-contract.md](qc-contract.md)로 검토해야 한다. 그러한 결정론적 report가 없으면 `RENDERED_UNVERIFIED`에서 멈추며, 문서 규칙만으로 QC를 통과했다고 쓰지 않는다.
+portable v3 wrapper는 render/QC subcommand를 가진다. 다만 wrapper가 새 schema를 발명하지는 않는다. office release/job/source-bundle lock과 renderer module SHA를 검증하고, 그 exact JSON을 office renderer/QC에 넘긴 뒤 wrapper receipt만 추가한다.
 
 ## 3. Render와 로컬 QC
 

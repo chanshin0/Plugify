@@ -144,6 +144,10 @@ VIDEO_FILENAME_RE = re.compile(r"^[^/\\\x00\r\n]{1,176}\.mp4$")
 SUM_LINE_RE = re.compile(r"^([0-9a-f]{64}) ([ *])(.+)$")
 MAX_FRAME_COUNT = 2_147_483_647
 MAX_FPS = 1000
+ALLOWED_SYSTEM_SYMLINK_COMPONENTS = {
+    Path("/tmp"),
+    Path("/var"),
+}
 
 
 class FlowError(Exception):
@@ -296,6 +300,8 @@ def _reject_existing_symlink_components(path: Path, label: str) -> None:
     absolute = path if path.is_absolute() else (Path.cwd() / path)
     for component in reversed((absolute, *absolute.parents)):
         if os.path.lexists(component) and component.is_symlink():
+            if component in ALLOWED_SYSTEM_SYMLINK_COMPONENTS:
+                continue
             _fail(EXIT_UNSAFE, f"{label} contains a symlink component: {component}")
 
 
@@ -934,6 +940,10 @@ def _safe_manifest_entry(raw: str, line_number: int) -> str:
     return normalized.as_posix()
 
 
+def _is_ignored_package_metadata(relative: str) -> bool:
+    return PurePosixPath(relative).name == ".DS_Store"
+
+
 def _path_within(child: Path, parent: Path) -> bool:
     try:
         child.relative_to(parent)
@@ -974,6 +984,8 @@ def _walk_safe_regular_files(package_dir: Path) -> set[str]:
                 _fail(EXIT_UNSAFE, f"package contains a non-regular file: {candidate}")
             relative = candidate.relative_to(package_dir).as_posix()
             safe_relative = _safe_manifest_entry(relative, 0)
+            if _is_ignored_package_metadata(safe_relative):
+                continue
             if safe_relative in payloads:
                 _fail(EXIT_PACKAGE, f"duplicate package payload path: {safe_relative}")
             payloads.add(safe_relative)
@@ -1044,6 +1056,11 @@ def _parse_sums_bytes(data: bytes) -> dict[str, str]:
             _fail(EXIT_PACKAGE, f"invalid checksum syntax on line {line_number}")
         digest, _mode, raw_path = match.groups()
         relative = _safe_manifest_entry(raw_path, line_number)
+        if _is_ignored_package_metadata(relative):
+            _fail(
+                EXIT_PACKAGE,
+                f"checksum must not list incidental metadata on line {line_number}: {relative}",
+            )
         if relative in entries:
             _fail(EXIT_PACKAGE, f"duplicate checksum entry: {relative}")
         entries[relative] = digest

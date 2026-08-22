@@ -1,0 +1,60 @@
+{
+  "schema": "plugify.hymn-letter.episode-inventory/2",
+  "release_id": "hymn-letter-caption-v3-20260822",
+  "episodes": [
+    {
+      "sequence": 1,
+      "episode_id": "01-start",
+      "kind": "start",
+      "profile": "start-hybrid/v1",
+      "container": "mp4",
+      "audio_codec": "aac",
+      "frame_count": 22369
+    },
+    {
+      "sequence": 2,
+      "episode_id": "02-playlist",
+      "kind": "playlist",
+      "profile": "playlist/v1",
+      "container": "mov",
+      "audio_codec": "mp3",
+      "frame_count": 82278
+    },
+    {
+      "sequence": 3,
+      "episode_id": "03-491-testimony",
+      "kind": "testimony_intro",
+      "profile": "testimony-static/v1",
+      "container": "mp4",
+      "audio_codec": "aac",
+      "frame_count": 7223
+    },
+    {
+      "sequence": 4,
+      "episode_id": "04-491-hymn",
+      "kind": "hymn_lyrics",
+      "profile": "hymn-lyrics/v1",
+      "container": "mov",
+      "audio_codec": "mp3",
+      "frame_count": 11752
+    },
+    {
+      "sequence": 5,
+      "episode_id": "05-370-testimony",
+      "kind": "testimony_intro",
+      "profile": "testimony-static/v1",
+      "container": "mp4",
+      "audio_codec": "aac",
+      "frame_count": 8850
+    },
+    {
+      "sequence": 6,
+      "episode_id": "06-370-hymn",
+      "kind": "hymn_lyrics",
+      "profile": "hymn-lyrics/v1",
+      "container": "mov",
+      "audio_codec": "mp3",
+      "frame_count": 6612
+    }
+  ]
+}

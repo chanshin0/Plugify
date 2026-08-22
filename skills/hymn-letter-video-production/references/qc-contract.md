@@ -1,14 +1,16 @@
 # 찬송편지 QC 계약
 
+> 2026-08-22 현재 portable v3 QC는 `godowon.hymn-letter.v3-release-lock/1`, `godowon.hymn-letter.v3-job/1`, `godowon.hymn-letter.source-bundle/1`을 그대로 입력으로 받는다. Plugify wrapper는 schema inventing이 아니라 release/job/source-root/module SHA 검증과 wrapper receipt 추가만 한다.
+
 이 계약은 고도원 찬송편지 26편에만 적용한다. “파일이 만들어졌다”와 “최종 영상이 승인 입력·공통 시각·프레임 경계를 보존했다”를 구분하며, 기계 검사가 하나라도 빠지면 fail closed한다.
 
-## 현재 검증된 기준선
+## 현재 portable v3 기준선
 
-- tracked SSOT: `/mnt/c/work/godowon-office/godo-hymns/tools/hymn_letter_visual_template.py`
-- module SHA-256: `0634d97c6eaa0a79f667108b551a7f65b0985bf810bd7e6ce9f950daab52cf80`
-- template version: `hymn-letter-visual-v2`
-- template lock SHA-256: `915c84bcb6d91b3d51fac77662baf10de9e6f51aed63784ab6a860f2a174698e`
-- frame rule: `start=ceil(start_ms*30)`, `end=ceil(end_ms*30)-1`
+- tracked release: sibling `godowon-office/godo-hymns/releases/hymn-letter-caption-v3-20260822/release.lock.json`
+- renderer modules: release lock의 repo-relative path와 SHA-256을 매 실행 전에 재검산
+- template version: `godowon-hymn-caption-v3/1`
+- styles: center 68px·최대 2줄, dense 60px·최대 3줄
+- frame rule: `start=ceil(start_ms*30/1000)`, `end=ceil(end_ms*30/1000)-1`
 - output baseline: 1920×1080, 30fps, H.264 High, yuv420p, Rec.709
 
 이 값 중 하나를 바꾸는 것은 에피소드 설정 변경이 아니라 새 template release다. 새 version·lock과 영향받는 영상의 전체 회귀 검토가 필요하다.
@@ -17,12 +19,15 @@
 
 ### 1. Job과 입력
 
-- [job-manifest.schema.json](job-manifest.schema.json)으로 추가 필드까지 엄격히 검증한다.
-- `inputs`의 각 `role`은 한 번만 나타나야 하며 모든 경로는 절대경로다.
-- 현재 파일 SHA-256이 manifest와 같아야 한다. script, captions, audio, video, EDL, reference layout 중 하나라도 달라지면 중단한다.
-- `references/episode-inventory.json`의 pinned SHA와 exact ID/kind/profile mapping이 일치해야 한다. inventory 밖 episode나 다른 kind/profile로 재분류한 episode는 거부한다.
-- source와 output의 canonical path가 달라야 하고 `output.overwrite`는 반드시 `false`다.
-- `hymn-lyrics/v1`과 `playlist/v1`은 승인된 source/timing/golden fixture가 아직 없으므로 profile gate에서 종료한다. 다른 profile로 우회하지 않는다.
+- portable v3 job/release/source-bundle lock의 SHA가 서로 정확히 결박되어야 한다.
+- release lock의 listed job SHA, source bundle lock SHA, environment lock SHA, golden lock SHA가 모두 다시 계산되어야 한다.
+- reference-bit-exact는 `environment.lock.json`이 exact match일 때만 `PASS`가 가능하다. 그렇지 않으면 `NOT_APPLICABLE`이며 semantic PASS로 둔갑시키지 않는다.
+- 02 playlist의 canonical captions는 2026-08-22 제목 순서 수정본을 가리킨다. 제목 카드는 1번을 시작에 한 번, 2–12번을 직전 곡의 outro에 한 번씩 둔다.
+
+- [job-manifest.v2.schema.json](job-manifest.v2.schema.json)과 [episode-inventory.v2.json](episode-inventory.v2.json)으로 office-native v3 job을 엄격히 검증한다.
+- 입력은 절대경로가 아니라 `sha256:<64hex>` object ID이며, `SOURCE_ROOT/objects/sha256/<prefix>/<rest>` 아래 bytes·size를 다시 검산한다.
+- source와 output은 분리하고 기존 output을 덮어쓰지 않는다.
+- `hymn-lyrics/v1`과 `playlist/v1`은 현재 release에 잠긴 04·06 및 02에 한해 지원한다. inventory 밖 항목은 다른 profile로 우회하지 않는다.
 
 ### 2. 공통 시각 SSOT
 
@@ -30,7 +35,7 @@
 - module path/SHA, template version, bundle lock SHA, config SHA, base/header/font asset SHA를 렌더 전에 확인한다.
 - 자산이나 lock을 한 바이트라도 변조한 fixture가 거부되는지 회귀검사한다.
 - 에피소드별 좌표, 폰트, safe area, 줄맞춤, framerate override는 허용하지 않는다.
-- 자막 raster는 공통 모듈의 Pillow actual-pixel renderer로만 만든다. 최대 5줄, safe area, header 비겹침, 실제 glyph bbox를 검사한다.
+- 자막 raster는 공통 모듈의 Pillow actual-pixel renderer로만 만든다. center 최대 2줄, dense 최대 3줄, safe area, 배경 비겹침, 실제 glyph bbox를 검사한다.
 
 ### 3. 대본·자막 불변
 
@@ -62,7 +67,7 @@
 
 ### 6. 최종 비디오와 실제 압축 경계
 
-- candidate가 아니라 최종 muxed H.264 MP4의 video+audio 전체 decode를 실행한다.
+- candidate가 아니라 최종 muxed H.264 MP4/MOV의 video+audio 전체 decode를 실행한다.
 - resolution, fps, pix_fmt, codec/profile, Rec.709 metadata, frame 수와 presentation PTS sequence를 확인한다.
 - H.264 B-frame의 packet-order PTS 재정렬을 오류로 오판하지 않는다. DTS 엄격 증가와 presentation-order PTS 연속성을 별도로 본다.
 - 생성 PNG나 layout manifest만 보지 않고 **최종 H.264에서 실제 프레임을 decode**해 기대 Pillow PNG와 비교한다.
@@ -73,8 +78,8 @@ Profile별 경계 정책:
 |---|---|
 | `start-hybrid/v1` | source-video→공통화면 전환의 직전/첫/title 마지막/첫 caption 프레임과, 공통화면 전 구간 frame 단위 PSNR |
 | `testimony-static/v1` | 모든 interval의 first/last endpoint와 가능한 각 cue의 `first-1 / first / last / last+1` reference 비교 |
-| `hymn-lyrics/v1` | 미승인. lyric timing과 golden fixture가 승인되기 전 정책 없음으로 PASS하지 않음 |
-| `playlist/v1` | 미승인. track order/gap/chapter/golden fixture가 승인되기 전 정책 없음으로 PASS하지 않음 |
+| `hymn-lyrics/v1` | center style, MOV+MP3, 모든 interval의 first/last endpoint와 cue boundary 비교 |
+| `playlist/v1` | dense style, active-row PNG state + chapter/gap/title-card timing + actual H.264 boundary 비교 |
 
 MAE/PSNR threshold, crop, decode batch size는 versioned QC 구현이 소유한다. episode manifest가 완화할 수 없다.
 

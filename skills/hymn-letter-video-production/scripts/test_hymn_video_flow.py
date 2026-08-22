@@ -268,6 +268,12 @@ class BuildTimelineTests(CliTestCase):
         self.assertFalse(escaped_output.exists())
 
 
+@unittest.skipUnless(
+    CANONICAL_MODULE.is_file()
+    and (CANONICAL_BUNDLE / "template.lock.json").is_file()
+    and EPISODE_INVENTORY.is_file(),
+    "legacy WSL-backed template fixture unavailable on this host",
+)
 class ValidateJobTests(CliTestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix="hymn-flow-job-")
@@ -772,6 +778,19 @@ class VerifyPackageTests(CliTestCase):
         package, sums = self.make_package("lists-sums")
         sums.write_text(
             sums.read_text(encoding="utf-8") + f"{'0' * 64}  ./SHA256SUMS.txt\n",
+            encoding="utf-8",
+        )
+        self.assert_failure(self.invoke(package), 11)
+
+    def test_ignores_incidental_ds_store_but_rejects_if_listed(self) -> None:
+        package, sums = self.make_package("finder-metadata")
+        (package / ".DS_Store").write_bytes(b"finder-noise")
+        payload = self.assert_success_json(self.invoke(package))
+        self.assertEqual(payload["payload_count"], 2)
+
+        sums.write_text(
+            sums.read_text(encoding="utf-8")
+            + f"{sha256(package / '.DS_Store')}  ./.DS_Store\n",
             encoding="utf-8",
         )
         self.assert_failure(self.invoke(package), 11)
