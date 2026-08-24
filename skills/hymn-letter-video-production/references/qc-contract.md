@@ -25,7 +25,7 @@
 - reference-bit-exact는 `environment.lock.json`이 exact match일 때만 `PASS`가 가능하다. 그렇지 않으면 `NOT_APPLICABLE`이며 semantic PASS로 둔갑시키지 않는다.
 - renderer module SHA가 하나라도 64-zero sentinel이면 render와 모든 QC/upload/package가 실패해야 한다. 모든 module pin이 nonzero인 상태에서 golden이 `status: BOOTSTRAP_REQUIRED`이거나 `reference_output_sha256: null`이거나 output SHA가 64-zero이면 첫 render와 semantic QC만 가능하다. reference-bit-exact, upload-ready promotion, package는 실패해야 한다. 현재 compiled production release와 measured golden은 nonzero지만, 별도 human approval receipt가 없으면 promotion/package 권한은 여전히 없다.
 - 02 playlist의 canonical captions는 2026-08-22 제목 순서 수정본을 가리킨다. 제목 카드는 1번을 시작에 한 번, 2–12번을 직전 곡의 outro에 한 번씩 둔다.
-- 02의 12 track rows는 누적 sample 기준이며 `start_frame=ceil(start_sample*30/44100)`이다. combined SRT는 half-up `(samples*1000+22050)//44100` offset과 lyric cue 267개만 가져야 하며, 찬송가 번호·곡명 title cue는 0개다. title policy는 `omit-hymn-number-and-title/v1`이고 expected title/active-row 배열은 비어 있어야 한다.
+- 02의 12 track rows는 누적 sample 기준이며 `start_frame=ceil(start_sample*30/44100)`이다. combined SRT는 half-up `(samples*1000+22050)//44100` offset, lyric cue 267개, 제목 카드 12개로 총 279개여야 한다. 제목 카드는 이전 승인본의 exact interval에 `{sequence}. {title}`로 표시하고 찬송가 장 번호는 없어야 한다. title policy는 `playlist-title-only-prior-outro/v1`이고 expected title은 ordered track title 12개, active-row는 `[1,1,2,3,4,5,6,7,8,9,10,11]`이어야 한다.
 
 - [job-manifest.v2.schema.json](job-manifest.v2.schema.json)과 [episode-inventory.v2.json](episode-inventory.v2.json)으로 office-native v3 job을 엄격히 검증한다.
 - 입력은 절대경로가 아니라 `sha256:<64hex>` object ID이며, `SOURCE_ROOT/objects/sha256/<prefix>/<rest>` 아래 bytes·size를 다시 검산한다.
@@ -85,7 +85,7 @@ Profile별 경계 정책:
 | `start-hybrid/v1` | source-video→공통화면 전환의 직전/첫/title 마지막/첫 caption 프레임과, 공통화면 전 구간 frame 단위 PSNR |
 | `testimony-static/v1` | 모든 interval의 first/last endpoint와 가능한 각 cue의 `first-1 / first / last / last+1` reference 비교 |
 | `hymn-lyrics/v1` | center style, MP4 + AAC-LC, 모든 interval의 first/last endpoint와 cue boundary 비교 |
-| `playlist/v1` | dense style, active-row PNG state + chapter/gap timing + title-card 부재 + actual H.264 boundary 비교 |
+| `playlist/v1` | dense style, active-row PNG state + chapter/gap timing + 제목 카드 12개의 text/원래 timing/장 번호 부재 + actual H.264 boundary 비교 |
 
 MAE/PSNR threshold, crop, decode batch size는 versioned QC 구현이 소유한다. episode manifest가 완화할 수 없다.
 

@@ -91,7 +91,7 @@ PRODUCTION_PLAYLIST_TRACKS = (
     (606, "날빛보다 더 밝은 천국", 10063872, 110866176, 75420),
 )
 PRODUCTION_PCM_CONCAT_SHA256 = "b88ceebf62e7dbdcfdd0c692a510d399b911f4be47e99e3d7b93c1a79634c5fe"
-PRODUCTION_COMBINED_SRT_SHA256 = "e2fde2b19f77df8a07c441a2a237d8d60c48847a655babd7069cec5b6cfc6dcf"
+PRODUCTION_COMBINED_SRT_SHA256 = "85ac5c9af34472639ab66c0a403895a1a5de25cd7479a7e31a5d9d89bb4d0d02"
 PRODUCTION_CHAPTERS_SHA256 = "cdf0986a950517085094975a33fb906962f52692002e12acb53262857a5a973e"
 
 
@@ -236,9 +236,9 @@ class V3FixtureMixin:
                 "active_row_state": "yellow",
                 "active_row_frame_boundaries": [*starts, episode["frame_count"]],
                 "title_card_policy": {
-                    "mode": "omit-hymn-number-and-title/v1",
-                    "expected_titles": [],
-                    "expected_active_rows": [],
+                    "mode": "playlist-title-only-prior-outro/v1",
+                    "expected_titles": [track[1] for track in PRODUCTION_PLAYLIST_TRACKS],
+                    "expected_active_rows": [1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
                 },
                 "movie_timescale": 44100,
                 "video_track_timescale": 15360,
@@ -349,13 +349,13 @@ class V3FixtureMixin:
                         "mode": "per-track-srt-offset-by-start-sample/v1",
                         "sample_rate": 44100,
                         "combined_srt_sha256": PRODUCTION_COMBINED_SRT_SHA256,
-                        "cue_count": 267,
+                        "cue_count": 279,
                         "lyric_cue_count": 267,
-                        "title_card_cue_count": 0,
-                        "title_card_text_policy": "omit-hymn-number-and-title/v1",
+                        "title_card_cue_count": 12,
+                        "title_card_text_policy": "sequence-numbered-title-only/v1",
                         "offset_rounding": "half-up-samples-to-ms/v1",
-                        "title_card_serialization": "none",
-                        "title_card_placement": "omitted/v1",
+                        "title_card_serialization": "{sequence}. {title}",
+                        "title_card_placement": "initial-title-then-next-title-in-prior-track-outro/v1",
                     },
                     "chapter_contract": {
                         "mode": "track-start-sample/v1",
@@ -562,7 +562,7 @@ class ValidateJobV3Tests(V3FixtureMixin, PortableCliTestCase):
     def test_rejects_playlist_title_card_regression(self) -> None:
         fixture = self.make_fixture("02-playlist")
         job = json.loads(fixture["job"].read_text(encoding="utf-8"))
-        job["settings"]["title_card_policy"]["expected_titles"] = ["491장 저 높은 곳을 향하여"]
+        job["settings"]["title_card_policy"]["expected_titles"][0] = "491장 저 높은 곳을 향하여"
         write_json(fixture["job"], job)
         release = json.loads(fixture["release"].read_text(encoding="utf-8"))
         release["jobs"][0]["sha256"] = sha256(fixture["job"])

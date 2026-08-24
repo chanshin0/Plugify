@@ -139,14 +139,14 @@
                 "properties": {
                   "mode": {"const": "per-track-srt-offset-by-start-sample/v1"},
                   "sample_rate": {"const": 44100},
-                  "combined_srt_sha256": {"const": "e2fde2b19f77df8a07c441a2a237d8d60c48847a655babd7069cec5b6cfc6dcf"},
-                  "cue_count": {"const": 267},
+                  "combined_srt_sha256": {"const": "85ac5c9af34472639ab66c0a403895a1a5de25cd7479a7e31a5d9d89bb4d0d02"},
+                  "cue_count": {"const": 279},
                   "lyric_cue_count": {"const": 267},
-                  "title_card_cue_count": {"const": 0},
-                  "title_card_text_policy": {"const": "omit-hymn-number-and-title/v1"},
+                  "title_card_cue_count": {"const": 12},
+                  "title_card_text_policy": {"const": "sequence-numbered-title-only/v1"},
                   "offset_rounding": {"const": "half-up-samples-to-ms/v1"},
-                  "title_card_serialization": {"const": "none"},
-                  "title_card_placement": {"const": "omitted/v1"}
+                  "title_card_serialization": {"const": "{sequence}. {title}"},
+                  "title_card_placement": {"const": "initial-title-then-next-title-in-prior-track-outro/v1"}
                 }
               },
               "chapter_contract": {
@@ -177,9 +177,9 @@
                 "additionalProperties": false,
                 "required": ["mode", "expected_titles", "expected_active_rows"],
                 "properties": {
-                  "mode": {"const": "omit-hymn-number-and-title/v1"},
-                  "expected_titles": {"const": []},
-                  "expected_active_rows": {"const": []}
+                  "mode": {"const": "playlist-title-only-prior-outro/v1"},
+                  "expected_titles": {"const": ["저 높은 곳을 향하여", "주 안에 있는 나에게", "멀리멀리 갔더니", "내 영혼이 은총 입어", "너희 마음에 슬픔이 가득 차도", "주여 지난 밤 내 꿈에", "십자가로 가까이", "주의 음성을 내가 들으니", "이 세상의 친구들", "너 근심 걱정 말아라", "만세반석 열린 곳에", "날빛보다 더 밝은 천국"]},
+                  "expected_active_rows": {"const": [1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]}
                 }
               },
               "movie_timescale": {"const": 44100},

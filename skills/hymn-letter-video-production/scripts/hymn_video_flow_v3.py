@@ -96,7 +96,7 @@ REFERENCE_DIR = SKILL_DIR / "references"
 INVENTORY_PATH = REFERENCE_DIR / "episode-inventory.v2.json"
 INVENTORY_SHA256 = "9e634d9d5a59b5e6be338778bd0e70f0a9f7dc53fb8340e295ae18ed18a6da94"
 PROJECT_RELEASE_ID = "hymn-letter-caption-v3-gapless-aac-20260824"
-PROJECT_RELEASE_SHA256 = "b2b7ba566a380fdf50274cc6ba26ef1b8e5be4310618f27d650b1bb738114187"
+PROJECT_RELEASE_SHA256 = "65f7478f59ef4152febc9522f40a7444d3fcccc7dcee4e1c663f5cbcc051824a"
 GOLDEN_SCHEMA = "godowon.hymn-letter.v3-golden-lock/1"
 ENVIRONMENT_SCHEMA = "godowon.hymn-letter.environment-lock/1"
 PACKAGE_PLAN_SCHEMA = "godowon.hymn-letter.upload-ready-package-plan/1"
@@ -259,7 +259,7 @@ REQUIRED_RELEASE_JOB_PATHS = {
 }
 PLAYLIST_TOTAL_SAMPLES = 120_930_048
 PLAYLIST_PCM_F32LE_SHA256 = "b88ceebf62e7dbdcfdd0c692a510d399b911f4be47e99e3d7b93c1a79634c5fe"
-PLAYLIST_COMBINED_SRT_SHA256 = "e2fde2b19f77df8a07c441a2a237d8d60c48847a655babd7069cec5b6cfc6dcf"
+PLAYLIST_COMBINED_SRT_SHA256 = "85ac5c9af34472639ab66c0a403895a1a5de25cd7479a7e31a5d9d89bb4d0d02"
 PLAYLIST_CHAPTERS_SHA256 = "cdf0986a950517085094975a33fb906962f52692002e12acb53262857a5a973e"
 PLAYLIST_START_FRAMES = [0, 11752, 18364, 24503, 30453, 35996, 42348, 49820, 56144, 61465, 68365, 75420]
 PLAYLIST_SAMPLES = [17275392, 9718758, 9024624, 8745912, 8148798, 9336852, 10984428, 9296280, 7821576, 10143882, 10369674, 10063872]
@@ -898,15 +898,15 @@ def _normalize_job_inputs(profile: str, inputs: dict[str, Any]) -> dict[str, lis
     if caption_contract["mode"] != "per-track-srt-offset-by-start-sample/v1" or caption_contract["sample_rate"] != 44100:
         _fail(EXIT_SCHEMA, "unsupported playlist caption timing contract")
     if (
-        caption_contract["cue_count"] != 267
+        caption_contract["cue_count"] != 279
         or caption_contract["lyric_cue_count"] != 267
-        or caption_contract["title_card_cue_count"] != 0
-        or caption_contract["title_card_text_policy"] != "omit-hymn-number-and-title/v1"
+        or caption_contract["title_card_cue_count"] != 12
+        or caption_contract["title_card_text_policy"] != "sequence-numbered-title-only/v1"
         or caption_contract["offset_rounding"] != "half-up-samples-to-ms/v1"
-        or caption_contract["title_card_serialization"] != "none"
-        or caption_contract["title_card_placement"] != "omitted/v1"
+        or caption_contract["title_card_serialization"] != "{sequence}. {title}"
+        or caption_contract["title_card_placement"] != "initial-title-then-next-title-in-prior-track-outro/v1"
     ):
-        _fail(EXIT_SCHEMA, "playlist combined SRT must preserve 267 lyric cues and omit hymn-number/title cards")
+        _fail(EXIT_SCHEMA, "playlist combined SRT must preserve 267 lyric cues and add 12 title-only cards at the locked original intervals")
     if _validate_contract_hash(caption_contract["combined_srt_sha256"], "job.inputs.caption_timing_contract.combined_srt_sha256") != PLAYLIST_COMBINED_SRT_SHA256:
         _fail(EXIT_SCHEMA, "playlist combined SRT hash differs from the locked production value")
 
@@ -963,12 +963,15 @@ def _validate_settings(job: dict[str, Any], required_input_values: dict[str, lis
             {"mode", "expected_titles", "expected_active_rows"},
             "job.settings.title_card_policy",
         )
-        if title_policy["mode"] != "omit-hymn-number-and-title/v1":
+        if title_policy["mode"] != "playlist-title-only-prior-outro/v1":
             _fail(EXIT_SCHEMA, "unsupported playlist title-card policy")
         expected_titles = title_policy["expected_titles"]
         expected_active_rows = title_policy["expected_active_rows"]
-        if expected_titles != [] or expected_active_rows != []:
-            _fail(EXIT_SCHEMA, "omitted playlist title policy must declare empty title and active-row arrays")
+        track_titles = [track["title"] for track in tracks]
+        if expected_titles != track_titles:
+            _fail(EXIT_SCHEMA, "playlist title-only cards must exactly match the twelve ordered track titles")
+        if expected_active_rows != [1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]:
+            _fail(EXIT_SCHEMA, "playlist title-only cards must use the locked prior-outro active-row vector")
         if settings["movie_timescale"] != 44100 or settings["video_track_timescale"] != 15360:
             _fail(EXIT_SCHEMA, "playlist timescales differ from the locked production contract")
     elif profile == "testimony-static/v1":

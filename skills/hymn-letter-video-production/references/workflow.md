@@ -49,7 +49,7 @@ portable v3 manifest는 office-native tracked JSON을 그대로 쓴다.
 - EDL, reviewed ASS, reference layout, thumbnail, publishing metadata가 있으면 각각 별도 role과 SHA로 잠근다.
 - 사람이 정해야 하는 가사, timing, cut, 곡 순서, gap, 공개 대상은 추측하지 않는다.
 
-02 job은 `tracks[12]`의 exact 순서와 각 `audio`, `captions`, decoded sample 수, PCM SHA-256, 누적 `start_sample`, `ceil(start_sample*30/44100)`인 `start_frame`을 잠근다. `caption_timing_contract`는 267개 가사 cue만 유지하고 찬송가 번호·곡명 title cue는 0개로 잠근다. offset은 half-up sample→millisecond 규칙을 쓰며 `title_card_policy.mode`는 `omit-hymn-number-and-title/v1`, `expected_titles`와 `expected_active_rows`는 모두 빈 배열이어야 한다.
+02 job은 `tracks[12]`의 exact 순서와 각 `audio`, `captions`, decoded sample 수, PCM SHA-256, 누적 `start_sample`, `ceil(start_sample*30/44100)`인 `start_frame`을 잠근다. `caption_timing_contract`는 가사 cue 267개와 제목 카드 12개, 총 279개를 잠근다. 제목 카드는 이전 승인본의 시작·종료 시각을 그대로 쓰고 `{sequence}. {title}`만 표시하며 찬송가 장 번호는 넣지 않는다. offset은 half-up sample→millisecond 규칙을 쓰며 `title_card_policy.mode`는 `playlist-title-only-prior-outro/v1`, `expected_titles`는 ordered track title 12개, `expected_active_rows`는 `[1,1,2,3,4,5,6,7,8,9,10,11]`이어야 한다.
 
 아래 문단은 **역사적 v1 manifest에만** 적용한다. v3 job에 이 shape를 섞지 않는다. v1 manifest는 [job-manifest.schema.json](job-manifest.schema.json)의 정확한 7개 top-level key만 사용한다.
 
@@ -175,7 +175,7 @@ The exact plan contract has only `schema`, `release`, `source_root`, and `episod
 
 최종 package에는 01–06 MP4·thumbnail, upload authority/receipt, 별도 human approval receipt, release lock·6 jobs·environment/golden/source-bundle lock, release가 참조하는 모든 content-addressed object, SHA로 잠긴 office renderer/QC/package 8 modules, Plugify wrapper/validator/schema/docs snapshot, canonical delegation-input lock, snapshot과 byte-equal한 12 office-native producer receipt가 들어간다. 절대경로·locale·mtime은 manifest bytes에 기록하지 않는다. fresh machine은 같은 repo commit의 외부 trusted release/approval receipt와 package의 `00_재현자료/source_bundle`만으로 source bytes를 복원하고 exact-set을 검증할 수 있어야 한다. 외부 서명/attestation이 없으므로 historical office delegate origin은 `UNATTESTED`로 보고하며, artifact/evidence integrity PASS나 human approval과 혼동하지 않는다.
 
-renderer module SHA가 하나라도 64-zero sentinel이면 모든 render/QC/upload/package 실행을 막는다. 모든 module pin이 nonzero인 상태에서 golden lock이 `BOOTSTRAP_REQUIRED`이거나 `reference_output_sha256`가 `null`이거나 output SHA가 64-zero이면 첫 render와 semantic QC만 가능하고, reference-bit-exact QC·upload-ready promotion·package는 막는다. 현재 production trust anchor는 measured golden을 포함한 release SHA `4ac954e40cfc7b6b8b5dc3ffd6ac0b47edea674c59a7422c3126cfa45507daba`이며 golden SHA는 `4bd574c850fecd5f4d98ecf2110132f58c00f86435074a63ab86012aa19a3c6f`다. 사용자가 실제 오디오를 듣지 못한 run은 기술 QC가 PASS해도 local 검토본·`promotion_pending`이며 사람 승인 receipt를 만들지 않는다.
+renderer module SHA가 하나라도 64-zero sentinel이면 모든 render/QC/upload/package 실행을 막는다. 모든 module pin이 nonzero인 상태에서 golden lock이 `BOOTSTRAP_REQUIRED`이거나 `reference_output_sha256`가 `null`이거나 output SHA가 64-zero이면 첫 render와 semantic QC만 가능하고, reference-bit-exact QC·upload-ready promotion·package는 막는다. 현재 production trust anchor는 corrected 02 measured golden을 포함한 release SHA `65f7478f59ef4152febc9522f40a7444d3fcccc7dcee4e1c663f5cbcc051824a`이며 golden SHA는 `cdc5a492a66bb06e38a156ae700462ff489e9c71ac64918ae681bd677bf96269`다. 사용자가 실제 오디오를 듣지 못한 run은 기술 QC가 PASS해도 local 검토본·`promotion_pending`이며 사람 승인 receipt를 만들지 않는다.
 
 legacy v1 primitive:
 
