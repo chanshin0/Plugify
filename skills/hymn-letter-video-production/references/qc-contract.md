@@ -6,7 +6,7 @@
 
 ## 현재 portable v3 기준선
 
-- tracked release: sibling `godowon-office/godo-hymns/releases/hymn-letter-caption-v3-gapless-aac-20260822/release.lock.json`
+- tracked release: sibling `godowon-office/godo-hymns/releases/hymn-letter-caption-v3-gapless-aac-20260824/release.lock.json`
 - renderer modules: release lock의 repo-relative path와 SHA-256을 매 실행 전에 재검산
 - template version: `godowon-hymn-caption-v3/1`
 - styles: center 68px·최대 2줄, dense 60px·최대 3줄
@@ -25,7 +25,7 @@
 - reference-bit-exact는 `environment.lock.json`이 exact match일 때만 `PASS`가 가능하다. 그렇지 않으면 `NOT_APPLICABLE`이며 semantic PASS로 둔갑시키지 않는다.
 - renderer module SHA가 하나라도 64-zero sentinel이면 render와 모든 QC/upload/package가 실패해야 한다. 모든 module pin이 nonzero인 상태에서 golden이 `status: BOOTSTRAP_REQUIRED`이거나 `reference_output_sha256: null`이거나 output SHA가 64-zero이면 첫 render와 semantic QC만 가능하다. reference-bit-exact, upload-ready promotion, package는 실패해야 한다. 현재 compiled production release와 measured golden은 nonzero지만, 별도 human approval receipt가 없으면 promotion/package 권한은 여전히 없다.
 - 02 playlist의 canonical captions는 2026-08-22 제목 순서 수정본을 가리킨다. 제목 카드는 1번을 시작에 한 번, 2–12번을 직전 곡의 outro에 한 번씩 둔다.
-- 02의 12 track rows는 누적 sample 기준이며 `start_frame=ceil(start_sample*30/44100)`이다. combined SRT는 half-up `(samples*1000+22050)//44100` offset, lyric cue 267개, title cue 12개, 총 279개를 가져야 한다. title 직렬화는 `"{sequence}. {hymn_number}장  {title}"`처럼 `장` 뒤 두 칸이며, 표시용 expected title은 한 칸이다.
+- 02의 12 track rows는 누적 sample 기준이며 `start_frame=ceil(start_sample*30/44100)`이다. combined SRT는 half-up `(samples*1000+22050)//44100` offset과 lyric cue 267개만 가져야 하며, 찬송가 번호·곡명 title cue는 0개다. title policy는 `omit-hymn-number-and-title/v1`이고 expected title/active-row 배열은 비어 있어야 한다.
 
 - [job-manifest.v2.schema.json](job-manifest.v2.schema.json)과 [episode-inventory.v2.json](episode-inventory.v2.json)으로 office-native v3 job을 엄격히 검증한다.
 - 입력은 절대경로가 아니라 `sha256:<64hex>` object ID이며, `SOURCE_ROOT/objects/sha256/<prefix>/<rest>` 아래 bytes·size를 다시 검산한다.
@@ -67,7 +67,7 @@
 - 04·06은 승인 standalone MP3에서 `-c:v copy -c:a aac -profile:a aac_low -b:a 256k -ar 44100 -ac 2`로 변환한다. audio filter, trim, resample shortcut, `-shortest`, extra argv는 금지한다.
 - 02는 승인 standalone MP3 12개를 exact order로 각각 skip-samples/discard-padding을 적용해 decode하고, `[i:a]asetpts=PTS-STARTPTS` 12개와 exact `concat=n=12:v=0:a=1` graph로 continuous PCM을 만든 뒤 AAC-LC 256k로 한 번 encode한다. 과거 pre-concatenated MP3를 derivative input으로 쓰는 것은 금지한다.
 - 02 authority/derivation/QC는 각 track의 source SHA, skip/discard, decoded PCM SHA, ordered domain-separated PCM composite, decoded total samples, 제거된 internal gap samples, start/tail PASS를 서로 exact-bind한다.
-- 02 production raw concatenated f32le PCM SHA는 `2e3e983f5a71aa775bd0360bc29efa229d3656e6ff52c981236fc776fc3f9f63`, 실제 skip/discard+decoded-PCM vector의 domain-manifest SHA는 `a18ae5063bb626971bdb1897a311b79b145a679655b089f588cfa1af6b5cbf76`다. `dc3d9f…`는 fake vector를 쓰는 frozen evaluator 전용이며 successor authority로 허용하지 않는다.
+- 02 production raw concatenated f32le PCM SHA는 `b88ceebf62e7dbdcfdd0c692a510d399b911f4be47e99e3d7b93c1a79634c5fe`, 실제 skip/discard+decoded-PCM vector의 domain-manifest SHA는 `ba04e40ef9be81d73e7ada45d1213d8a6f2239b67ca794a384abb0a023964e57`다. `dc3d9f…`는 fake vector를 쓰는 frozen evaluator 전용이며 successor authority로 허용하지 않는다.
 - 최종 muxed MP4에서 source/output의 container-independent audio payload SHA와 실제 probe를 비교한다. 01·03·05는 payload 동일, 02·04·06은 승인 derivative payload와 final payload 동일이어야 한다.
 - 파일 전체 SHA나 청취 확인만으로 오디오 불변을 주장하지 않는다.
 
@@ -85,7 +85,7 @@ Profile별 경계 정책:
 | `start-hybrid/v1` | source-video→공통화면 전환의 직전/첫/title 마지막/첫 caption 프레임과, 공통화면 전 구간 frame 단위 PSNR |
 | `testimony-static/v1` | 모든 interval의 first/last endpoint와 가능한 각 cue의 `first-1 / first / last / last+1` reference 비교 |
 | `hymn-lyrics/v1` | center style, MP4 + AAC-LC, 모든 interval의 first/last endpoint와 cue boundary 비교 |
-| `playlist/v1` | dense style, active-row PNG state + chapter/gap/title-card timing + actual H.264 boundary 비교 |
+| `playlist/v1` | dense style, active-row PNG state + chapter/gap timing + title-card 부재 + actual H.264 boundary 비교 |
 
 MAE/PSNR threshold, crop, decode batch size는 versioned QC 구현이 소유한다. episode manifest가 완화할 수 없다.
 

@@ -7,7 +7,7 @@
   "required": ["schema", "release_id", "episode_id", "profile", "inputs", "settings", "output"],
   "properties": {
     "schema": {"const": "godowon.hymn-letter.v3-job/1"},
-    "release_id": {"const": "hymn-letter-caption-v3-gapless-aac-20260822"},
+    "release_id": {"const": "hymn-letter-caption-v3-gapless-aac-20260824"},
     "episode_id": {"enum": ["01-start", "02-playlist", "03-491-testimony", "04-491-hymn", "05-370-testimony", "06-370-hymn"]},
     "profile": {
       "enum": ["start-hybrid/v1", "playlist/v1", "testimony-static/v1", "hymn-lyrics/v1"]
@@ -105,7 +105,7 @@
                 "minItems": 12,
                 "maxItems": 12,
                 "prefixItems": [
-                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 1}, "hymn_number": {"const": 491}, "title": {"const": "저 높은 곳을 향하여"}, "samples": {"const": 17275392}, "pcm_f32le_sha256": {"const": "9674ebd4cdad2697abd4398028461ee38902daf9f45aa3972135c8efdfabcd6c"}, "start_sample": {"const": 0}, "start_frame": {"const": 0}}}]},
+                  {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 1}, "hymn_number": {"const": 491}, "title": {"const": "저 높은 곳을 향하여"}, "samples": {"const": 17275392}, "pcm_f32le_sha256": {"const": "2ce54cee2c18193028328cfd0234b2eb4aa7c73b89ab8cf3be4ce3068646fd41"}, "start_sample": {"const": 0}, "start_frame": {"const": 0}}}]},
                   {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 2}, "hymn_number": {"const": 370}, "title": {"const": "주 안에 있는 나에게"}, "samples": {"const": 9718758}, "pcm_f32le_sha256": {"const": "c030614ee7fc33b02ed69a27a45d1b82b95b83425269d196f1c814715cdb0aea"}, "start_sample": {"const": 17275392}, "start_frame": {"const": 11752}}}]},
                   {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 3}, "hymn_number": {"const": 387}, "title": {"const": "멀리멀리 갔더니"}, "samples": {"const": 9024624}, "pcm_f32le_sha256": {"const": "adc913656cda1e9d39959896368c72b33e2a2f25a42e34a321bd37ee2459ffc2"}, "start_sample": {"const": 26994150}, "start_frame": {"const": 18364}}}]},
                   {"allOf": [{"$ref": "#/$defs/playlist_track"}, {"properties": {"index": {"const": 4}, "hymn_number": {"const": 438}, "title": {"const": "내 영혼이 은총 입어"}, "samples": {"const": 8745912}, "pcm_f32le_sha256": {"const": "8192251ddbb406f422ea15522d063699dde56c2986f5b4c824b4fabb0018696a"}, "start_sample": {"const": 36018774}, "start_frame": {"const": 24503}}}]},
@@ -129,7 +129,7 @@
                   "sample_rate": {"const": 44100},
                   "channels": {"const": 2},
                   "total_samples": {"const": 120930048},
-                  "composite_pcm_f32le_sha256": {"const": "2e3e983f5a71aa775bd0360bc29efa229d3656e6ff52c981236fc776fc3f9f63"}
+                  "composite_pcm_f32le_sha256": {"const": "b88ceebf62e7dbdcfdd0c692a510d399b911f4be47e99e3d7b93c1a79634c5fe"}
                 }
               },
               "caption_timing_contract": {
@@ -139,14 +139,14 @@
                 "properties": {
                   "mode": {"const": "per-track-srt-offset-by-start-sample/v1"},
                   "sample_rate": {"const": 44100},
-                  "combined_srt_sha256": {"const": "8d37cf3e1f65e358efe9549d01250fbd34ceb1c0eda442257a04ba8922f5367c"},
-                  "cue_count": {"const": 279},
+                  "combined_srt_sha256": {"const": "e2fde2b19f77df8a07c441a2a237d8d60c48847a655babd7069cec5b6cfc6dcf"},
+                  "cue_count": {"const": 267},
                   "lyric_cue_count": {"const": 267},
-                  "title_card_cue_count": {"const": 12},
-                  "title_card_text_policy": {"const": "sequence-numbered-hymn-number-and-title/v1"},
+                  "title_card_cue_count": {"const": 0},
+                  "title_card_text_policy": {"const": "omit-hymn-number-and-title/v1"},
                   "offset_rounding": {"const": "half-up-samples-to-ms/v1"},
-                  "title_card_serialization": {"const": "{sequence}. {hymn_number}장  {title}"},
-                  "title_card_placement": {"const": "initial-title-then-next-title-in-prior-track-outro/v1"}
+                  "title_card_serialization": {"const": "none"},
+                  "title_card_placement": {"const": "omitted/v1"}
                 }
               },
               "chapter_contract": {
@@ -177,9 +177,9 @@
                 "additionalProperties": false,
                 "required": ["mode", "expected_titles", "expected_active_rows"],
                 "properties": {
-                  "mode": {"const": "playlist-prior-outro/v1"},
-                  "expected_titles": {"const": ["491장 저 높은 곳을 향하여", "370장 주 안에 있는 나에게", "387장 멀리멀리 갔더니", "438장 내 영혼이 은총 입어", "458장 너희 마음에 슬픔이 가득 차도", "490장 주여 지난 밤 내 꿈에", "439장 십자가로 가까이", "540장 주의 음성을 내가 들으니", "394장 이 세상의 친구들", "382장 너 근심 걱정 말아라", "386장 만세반석 열린 곳에", "606장 날빛보다 더 밝은 천국"]},
-                  "expected_active_rows": {"const": [1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]}
+                  "mode": {"const": "omit-hymn-number-and-title/v1"},
+                  "expected_titles": {"const": []},
+                  "expected_active_rows": {"const": []}
                 }
               },
               "movie_timescale": {"const": 44100},

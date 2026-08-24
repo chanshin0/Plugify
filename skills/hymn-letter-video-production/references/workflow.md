@@ -1,6 +1,6 @@
 # 고도원 찬송편지 26편 제작 워크플로우
 
-> 2026-08-23 현재 portable v3 정본은 `godowon-office/godo-hymns/releases/hymn-letter-caption-v3-gapless-aac-20260822/`의 office-native release/job/source-bundle lock이다. Plugify의 `hymn_video_flow_v3.py`는 그 tracked JSON을 **변환 없이 그대로** 검증하고 office renderer/QC/package에 위임한 뒤 독립 검증한다. 아래 `hymn_video_flow.py` 문단은 역사적 v1 primitive 설명이다.
+> 2026-08-24 현재 portable v3 정본은 `godowon-office/godo-hymns/releases/hymn-letter-caption-v3-gapless-aac-20260824/`의 office-native release/job/source-bundle lock이다. Plugify의 `hymn_video_flow_v3.py`는 그 tracked JSON을 **변환 없이 그대로** 검증하고 office renderer/QC/package에 위임한 뒤 독립 검증한다. 아래 `hymn_video_flow.py` 문단은 역사적 v1 primitive 설명이다.
 
 ## 범위와 완성 구조
 
@@ -49,7 +49,7 @@ portable v3 manifest는 office-native tracked JSON을 그대로 쓴다.
 - EDL, reviewed ASS, reference layout, thumbnail, publishing metadata가 있으면 각각 별도 role과 SHA로 잠근다.
 - 사람이 정해야 하는 가사, timing, cut, 곡 순서, gap, 공개 대상은 추측하지 않는다.
 
-02 job은 `tracks[12]`의 exact 순서와 각 `audio`, `captions`, decoded sample 수, PCM SHA-256, 누적 `start_sample`, `ceil(start_sample*30/44100)`인 `start_frame`을 잠근다. `caption_timing_contract`는 267 lyric cue + 12 title cue = 279 cue, half-up sample→millisecond offset, `"{sequence}. {hymn_number}장  {title}"`의 두 칸 직렬화, 첫 title/직전 곡 outro의 다음 title 배치를 잠근다. 표시용 `expected_titles`는 `"{hymn_number}장 {title}"` 한 칸 문자열이다.
+02 job은 `tracks[12]`의 exact 순서와 각 `audio`, `captions`, decoded sample 수, PCM SHA-256, 누적 `start_sample`, `ceil(start_sample*30/44100)`인 `start_frame`을 잠근다. `caption_timing_contract`는 267개 가사 cue만 유지하고 찬송가 번호·곡명 title cue는 0개로 잠근다. offset은 half-up sample→millisecond 규칙을 쓰며 `title_card_policy.mode`는 `omit-hymn-number-and-title/v1`, `expected_titles`와 `expected_active_rows`는 모두 빈 배열이어야 한다.
 
 아래 문단은 **역사적 v1 manifest에만** 적용한다. v3 job에 이 shape를 섞지 않는다. v1 manifest는 [job-manifest.schema.json](job-manifest.schema.json)의 정확한 7개 top-level key만 사용한다.
 

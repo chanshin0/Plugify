@@ -19,7 +19,9 @@ sys.dont_write_bytecode = True
 
 SCRIPT = Path(__file__).resolve().with_name("hymn_video_flow_v3.py")
 INVENTORY_PATH = SCRIPT.parent.parent / "references" / "episode-inventory.v2.json"
-INVENTORY = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))["episodes"]
+INVENTORY_PAYLOAD = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+PRODUCTION_RELEASE_ID = INVENTORY_PAYLOAD["release_id"]
+INVENTORY = INVENTORY_PAYLOAD["episodes"]
 INVENTORY_BY_ID = {episode["episode_id"]: episode for episode in INVENTORY}
 JOB_FILENAMES = {
     1: "01_start.json",
@@ -59,7 +61,7 @@ PROFILE_INPUTS = {
     },
 }
 PRODUCTION_PCM_SHA256 = (
-    "9674ebd4cdad2697abd4398028461ee38902daf9f45aa3972135c8efdfabcd6c",
+    "2ce54cee2c18193028328cfd0234b2eb4aa7c73b89ab8cf3be4ce3068646fd41",
     "c030614ee7fc33b02ed69a27a45d1b82b95b83425269d196f1c814715cdb0aea",
     "adc913656cda1e9d39959896368c72b33e2a2f25a42e34a321bd37ee2459ffc2",
     "8192251ddbb406f422ea15522d063699dde56c2986f5b4c824b4fabb0018696a",
@@ -73,7 +75,7 @@ PRODUCTION_PCM_SHA256 = (
     "70c695311746b26f2d35d1e8e4091ab51a47ee7074d7c432a9e70316d157a556",
 )
 PRODUCTION_DISCARD_PADDING = (47, 713, 191, 119, 497, 155, 1091, 407, 551, 677, 677, 47)
-PRODUCTION_ORDERED_PCM_SHA256 = "a18ae5063bb626971bdb1897a311b79b145a679655b089f588cfa1af6b5cbf76"
+PRODUCTION_ORDERED_PCM_SHA256 = "ba04e40ef9be81d73e7ada45d1213d8a6f2239b67ca794a384abb0a023964e57"
 PRODUCTION_PLAYLIST_TRACKS = (
     (491, "저 높은 곳을 향하여", 17275392, 0, 0),
     (370, "주 안에 있는 나에게", 9718758, 17275392, 11752),
@@ -88,8 +90,8 @@ PRODUCTION_PLAYLIST_TRACKS = (
     (386, "만세반석 열린 곳에", 10369674, 100496502, 68365),
     (606, "날빛보다 더 밝은 천국", 10063872, 110866176, 75420),
 )
-PRODUCTION_PCM_CONCAT_SHA256 = "2e3e983f5a71aa775bd0360bc29efa229d3656e6ff52c981236fc776fc3f9f63"
-PRODUCTION_COMBINED_SRT_SHA256 = "8d37cf3e1f65e358efe9549d01250fbd34ceb1c0eda442257a04ba8922f5367c"
+PRODUCTION_PCM_CONCAT_SHA256 = "b88ceebf62e7dbdcfdd0c692a510d399b911f4be47e99e3d7b93c1a79634c5fe"
+PRODUCTION_COMBINED_SRT_SHA256 = "e2fde2b19f77df8a07c441a2a237d8d60c48847a655babd7069cec5b6cfc6dcf"
 PRODUCTION_CHAPTERS_SHA256 = "cdf0986a950517085094975a33fb906962f52692002e12acb53262857a5a973e"
 
 
@@ -234,13 +236,9 @@ class V3FixtureMixin:
                 "active_row_state": "yellow",
                 "active_row_frame_boundaries": [*starts, episode["frame_count"]],
                 "title_card_policy": {
-                    "mode": "playlist-prior-outro/v1",
-                    "expected_titles": [
-                        f"{hymn_number}장 {title}"
-                        for hymn_number, title, _samples, _start_sample, _start_frame
-                        in PRODUCTION_PLAYLIST_TRACKS
-                    ],
-                    "expected_active_rows": [1, *range(1, 12)],
+                    "mode": "omit-hymn-number-and-title/v1",
+                    "expected_titles": [],
+                    "expected_active_rows": [],
                 },
                 "movie_timescale": 44100,
                 "video_track_timescale": 15360,
@@ -351,13 +349,13 @@ class V3FixtureMixin:
                         "mode": "per-track-srt-offset-by-start-sample/v1",
                         "sample_rate": 44100,
                         "combined_srt_sha256": PRODUCTION_COMBINED_SRT_SHA256,
-                        "cue_count": 279,
+                        "cue_count": 267,
                         "lyric_cue_count": 267,
-                        "title_card_cue_count": 12,
-                        "title_card_text_policy": "sequence-numbered-hymn-number-and-title/v1",
+                        "title_card_cue_count": 0,
+                        "title_card_text_policy": "omit-hymn-number-and-title/v1",
                         "offset_rounding": "half-up-samples-to-ms/v1",
-                        "title_card_serialization": "{sequence}. {hymn_number}장  {title}",
-                        "title_card_placement": "initial-title-then-next-title-in-prior-track-outro/v1",
+                        "title_card_serialization": "none",
+                        "title_card_placement": "omitted/v1",
                     },
                     "chapter_contract": {
                         "mode": "track-start-sample/v1",
@@ -369,7 +367,7 @@ class V3FixtureMixin:
 
         source_bundle = {
             "schema": "godowon.hymn-letter.source-bundle/1",
-            "release_id": "hymn-letter-caption-v3-gapless-aac-20260822",
+            "release_id": PRODUCTION_RELEASE_ID,
             "storage_layout": "objects/sha256/<prefix>/<digest-rest>",
             "objects": object_entries,
         }
@@ -453,7 +451,7 @@ class V3FixtureMixin:
             golden_lock,
             {
                 "schema": "godowon.hymn-letter.v3-golden-lock/1",
-                "release_id": "hymn-letter-caption-v3-gapless-aac-20260822",
+                "release_id": PRODUCTION_RELEASE_ID,
                 "episodes": golden_episodes,
             },
         )
@@ -461,7 +459,7 @@ class V3FixtureMixin:
         settings = self._settings_for(episode)
         job = {
             "schema": "godowon.hymn-letter.v3-job/1",
-            "release_id": "hymn-letter-caption-v3-gapless-aac-20260822",
+            "release_id": PRODUCTION_RELEASE_ID,
             "episode_id": episode["episode_id"],
             "profile": episode["profile"],
             "inputs": inputs,
@@ -499,7 +497,7 @@ class V3FixtureMixin:
 
         release = {
             "schema": "godowon.hymn-letter.v3-release-lock/1",
-            "release_id": "hymn-letter-caption-v3-gapless-aac-20260822",
+            "release_id": PRODUCTION_RELEASE_ID,
             "created_at": "2026-08-22",
             "source_bundle_lock": "source-bundle.lock.json",
             "environment_lock": "environment.lock.json",
@@ -561,10 +559,10 @@ class ValidateJobV3Tests(V3FixtureMixin, PortableCliTestCase):
                 self.assertEqual(payload["output_container"], episode["container"])
                 self.assertEqual(payload["output_audio_codec"], episode["audio_codec"])
 
-    def test_rejects_playlist_title_card_row_regression(self) -> None:
+    def test_rejects_playlist_title_card_regression(self) -> None:
         fixture = self.make_fixture("02-playlist")
         job = json.loads(fixture["job"].read_text(encoding="utf-8"))
-        job["settings"]["title_card_policy"]["expected_active_rows"] = [1, 1, 1]
+        job["settings"]["title_card_policy"]["expected_titles"] = ["491장 저 높은 곳을 향하여"]
         write_json(fixture["job"], job)
         release = json.loads(fixture["release"].read_text(encoding="utf-8"))
         release["jobs"][0]["sha256"] = sha256(fixture["job"])
@@ -1021,7 +1019,7 @@ class PackageV3Tests(V3FixtureMixin, PortableCliTestCase):
             jobs.append({"path": f"jobs/{job_path.name}", "sha256": sha256(job_path)})
         source_bundle = {
             "schema": "godowon.hymn-letter.source-bundle/1",
-            "release_id": "hymn-letter-caption-v3-gapless-aac-20260822",
+            "release_id": PRODUCTION_RELEASE_ID,
             "storage_layout": "objects/sha256/<prefix>/<digest-rest>",
             "objects": {object_id: all_objects[object_id] for object_id in sorted(referenced_ids)},
         }
@@ -1053,7 +1051,7 @@ class PackageV3Tests(V3FixtureMixin, PortableCliTestCase):
         )
         target = self.root / name
         shutil.copytree(frozen, target)
-        release_id = "hymn-letter-caption-v3-gapless-aac-20260822"
+        release_id = PRODUCTION_RELEASE_ID
         authority = json.loads((target / "authority-lock.json").read_text(encoding="utf-8"))
         receipts = json.loads((target / "receipts.json").read_text(encoding="utf-8"))
         manifest = json.loads((target / "upload-ready.json").read_text(encoding="utf-8"))
@@ -1182,7 +1180,7 @@ class PackageV3Tests(V3FixtureMixin, PortableCliTestCase):
         for filename in ("upload-ready.json", "authority-lock.json", "receipts.json"):
             path = frozen_relabel / filename
             value = json.loads(path.read_text(encoding="utf-8"))
-            value["release_id"] = "hymn-letter-caption-v3-gapless-aac-20260822"
+            value["release_id"] = PRODUCTION_RELEASE_ID
             write_json(path, value)
         manifest = json.loads((frozen_relabel / "upload-ready.json").read_text(encoding="utf-8"))
         manifest["authority_lock"]["sha256"] = sha256(frozen_relabel / "authority-lock.json")
@@ -1675,19 +1673,10 @@ class RenderAndQcV3Tests(V3FixtureMixin, PortableCliTestCase):
             office_root
             / "godo-hymns"
             / "releases"
-            / "hymn-letter-caption-v3-gapless-aac-20260822"
+            / PRODUCTION_RELEASE_ID
             / "release.lock.json"
         )
-        runtime_python = (
-            Path.home()
-            / ".cache"
-            / "codex-runtimes"
-            / "codex-primary-runtime"
-            / "dependencies"
-            / "python"
-            / "bin"
-            / "python3.12"
-        )
+        runtime_python = Path("/Users/admin/venvs/hymn-letter-v3-runtime-copies/bin/python3.12")
         if not release_path.is_file() or not runtime_python.is_file():
             self.skipTest("actual pinned office release/runtime is unavailable")
         normalized_release_path, release_sha256, release = flow._load_release(release_path)

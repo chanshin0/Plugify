@@ -25,12 +25,12 @@ EXPECTED_APPROVAL_AUTHORITIES = {
     for sequence in range(1, 7)
 }
 FROZEN_FIXTURE_RELEASE_ID = "hymn-letter-caption-v3-20260822"
-SUCCESSOR_RELEASE_ID = "hymn-letter-caption-v3-gapless-aac-20260822"
+SUCCESSOR_RELEASE_ID = "hymn-letter-caption-v3-gapless-aac-20260824"
 AUTHORITY_LOCK_SCHEMA = "plugify.hymn-letter.upload-authority-lock/1"
 AUDIO_RECEIPTS_SCHEMA = "plugify.hymn-letter.upload-audio-receipts/1"
 PCM_COMPOSITE_DOMAIN = b"plugify.hymn-letter.ordered-pcm-manifest/v1\0"
 FROZEN_PLAYLIST_PCM_COMPOSITE_SHA256 = "dc3d9fd41fdf445d30e6da054fa42e0a33f5f23ba247522aa88248b38174e6cb"
-SUCCESSOR_PLAYLIST_PCM_COMPOSITE_SHA256 = "a18ae5063bb626971bdb1897a311b79b145a679655b089f588cfa1af6b5cbf76"
+SUCCESSOR_PLAYLIST_PCM_COMPOSITE_SHA256 = "ba04e40ef9be81d73e7ada45d1213d8a6f2239b67ca794a384abb0a023964e57"
 PLAYLIST_DISCARD_PADDING = (47, 23, 11, 29, 7, 31, 13, 19, 5, 37, 17, 41)
 EXPECTED_PLAYLIST_PCM_TRACK_VECTOR = tuple(
     (track, 1105, PLAYLIST_DISCARD_PADDING[track - 1], f"d2{track:02d}" * 16)

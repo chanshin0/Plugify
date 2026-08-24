@@ -90,13 +90,13 @@ ALLOWED_SYSTEM_SYMLINK_COMPONENTS = {Path("/tmp"), Path("/var")}
 SCRIPT_PATH = Path(__file__).resolve()
 SCRIPT_SHA256 = _sha256_file(SCRIPT_PATH)
 UPLOAD_READY_VALIDATOR_PATH = SCRIPT_PATH.with_name("upload_ready_validator.py")
-UPLOAD_READY_VALIDATOR_SHA256 = "2175cd8e3347713467ca8971f746b9b2509cfb7184a0dd1c1d7fd5472a095355"
+UPLOAD_READY_VALIDATOR_SHA256 = "e13006d74dced7cf9670739649cb58e770d50170345f52f1bf8c036dc9a1872f"
 SKILL_DIR = SCRIPT_PATH.parent.parent
 REFERENCE_DIR = SKILL_DIR / "references"
 INVENTORY_PATH = REFERENCE_DIR / "episode-inventory.v2.json"
-INVENTORY_SHA256 = "45d57e747b383e184665a520041aefa3d1b250dc8346c942f9c324488fd0aa07"
-PROJECT_RELEASE_ID = "hymn-letter-caption-v3-gapless-aac-20260823"
-PROJECT_RELEASE_SHA256 = "15ed285f3eabee7074fc69045d57135c1088b37355f42dd69ad4d5054c8356d0"
+INVENTORY_SHA256 = "9e634d9d5a59b5e6be338778bd0e70f0a9f7dc53fb8340e295ae18ed18a6da94"
+PROJECT_RELEASE_ID = "hymn-letter-caption-v3-gapless-aac-20260824"
+PROJECT_RELEASE_SHA256 = "a2b0872915f033d099c7a77642195841dab75986cb200973a80ab6f432d4db17"
 GOLDEN_SCHEMA = "godowon.hymn-letter.v3-golden-lock/1"
 ENVIRONMENT_SCHEMA = "godowon.hymn-letter.environment-lock/1"
 PACKAGE_PLAN_SCHEMA = "godowon.hymn-letter.upload-ready-package-plan/1"
@@ -259,7 +259,7 @@ REQUIRED_RELEASE_JOB_PATHS = {
 }
 PLAYLIST_TOTAL_SAMPLES = 120_930_048
 PLAYLIST_PCM_F32LE_SHA256 = "b88ceebf62e7dbdcfdd0c692a510d399b911f4be47e99e3d7b93c1a79634c5fe"
-PLAYLIST_COMBINED_SRT_SHA256 = "8d37cf3e1f65e358efe9549d01250fbd34ceb1c0eda442257a04ba8922f5367c"
+PLAYLIST_COMBINED_SRT_SHA256 = "e2fde2b19f77df8a07c441a2a237d8d60c48847a655babd7069cec5b6cfc6dcf"
 PLAYLIST_CHAPTERS_SHA256 = "cdf0986a950517085094975a33fb906962f52692002e12acb53262857a5a973e"
 PLAYLIST_START_FRAMES = [0, 11752, 18364, 24503, 30453, 35996, 42348, 49820, 56144, 61465, 68365, 75420]
 PLAYLIST_SAMPLES = [17275392, 9718758, 9024624, 8745912, 8148798, 9336852, 10984428, 9296280, 7821576, 10143882, 10369674, 10063872]
@@ -276,20 +276,6 @@ PLAYLIST_PCM_SHA256 = [
     "07d3ad1465f82b004de2fedbaf098d47d7b16e802185b4c3502891cddde35062",
     "6b6812d6c0b3e2d20f68f553f35d34ff315156730af6d83c6bfe23eb5676b927",
     "70c695311746b26f2d35d1e8e4091ab51a47ee7074d7c432a9e70316d157a556",
-]
-PLAYLIST_TITLES = [
-    "491장 저 높은 곳을 향하여",
-    "370장 주 안에 있는 나에게",
-    "387장 멀리멀리 갔더니",
-    "438장 내 영혼이 은총 입어",
-    "458장 너희 마음에 슬픔이 가득 차도",
-    "490장 주여 지난 밤 내 꿈에",
-    "439장 십자가로 가까이",
-    "540장 주의 음성을 내가 들으니",
-    "394장 이 세상의 친구들",
-    "382장 너 근심 걱정 말아라",
-    "386장 만세반석 열린 곳에",
-    "606장 날빛보다 더 밝은 천국",
 ]
 PACKAGE_CODE_SNAPSHOTS = {
     SCRIPT_PATH: "hymn-letter-video-production/scripts/hymn_video_flow_v3.py",
@@ -912,15 +898,15 @@ def _normalize_job_inputs(profile: str, inputs: dict[str, Any]) -> dict[str, lis
     if caption_contract["mode"] != "per-track-srt-offset-by-start-sample/v1" or caption_contract["sample_rate"] != 44100:
         _fail(EXIT_SCHEMA, "unsupported playlist caption timing contract")
     if (
-        caption_contract["cue_count"] != 279
+        caption_contract["cue_count"] != 267
         or caption_contract["lyric_cue_count"] != 267
-        or caption_contract["title_card_cue_count"] != 12
-        or caption_contract["title_card_text_policy"] != "sequence-numbered-hymn-number-and-title/v1"
+        or caption_contract["title_card_cue_count"] != 0
+        or caption_contract["title_card_text_policy"] != "omit-hymn-number-and-title/v1"
         or caption_contract["offset_rounding"] != "half-up-samples-to-ms/v1"
-        or caption_contract["title_card_serialization"] != "{sequence}. {hymn_number}장  {title}"
-        or caption_contract["title_card_placement"] != "initial-title-then-next-title-in-prior-track-outro/v1"
+        or caption_contract["title_card_serialization"] != "none"
+        or caption_contract["title_card_placement"] != "omitted/v1"
     ):
-        _fail(EXIT_SCHEMA, "playlist combined SRT must preserve 279 cues and 12 sequence-numbered title cards")
+        _fail(EXIT_SCHEMA, "playlist combined SRT must preserve 267 lyric cues and omit hymn-number/title cards")
     if _validate_contract_hash(caption_contract["combined_srt_sha256"], "job.inputs.caption_timing_contract.combined_srt_sha256") != PLAYLIST_COMBINED_SRT_SHA256:
         _fail(EXIT_SCHEMA, "playlist combined SRT hash differs from the locked production value")
 
@@ -977,31 +963,12 @@ def _validate_settings(job: dict[str, Any], required_input_values: dict[str, lis
             {"mode", "expected_titles", "expected_active_rows"},
             "job.settings.title_card_policy",
         )
-        if title_policy["mode"] != "playlist-prior-outro/v1":
+        if title_policy["mode"] != "omit-hymn-number-and-title/v1":
             _fail(EXIT_SCHEMA, "unsupported playlist title-card policy")
         expected_titles = title_policy["expected_titles"]
         expected_active_rows = title_policy["expected_active_rows"]
-        track_count = len(required_input_values["active_rows"])
-        if type(expected_titles) is not list or len(expected_titles) != track_count:
-            _fail(EXIT_SCHEMA, "playlist title policy must contain one expected title per track")
-        for index, title in enumerate(expected_titles):
-            _require_nonempty_string(title, f"job.settings.title_card_policy.expected_titles[{index}]")
-        if expected_titles != [f"{track['hymn_number']}장 {track['title']}" for track in tracks]:
-            _fail(EXIT_SCHEMA, "playlist title policy must exactly match ordered track titles")
-        if expected_titles != PLAYLIST_TITLES:
-            _fail(EXIT_SCHEMA, "playlist titles differ from the locked production order")
-        if type(expected_active_rows) is not list or len(expected_active_rows) != track_count:
-            _fail(EXIT_SCHEMA, "playlist title policy must contain one active-row expectation per title")
-        normalized_title_rows = [
-            _require_positive_int(value, f"job.settings.title_card_policy.expected_active_rows[{index}]")
-            for index, value in enumerate(expected_active_rows)
-        ]
-        required_title_rows = [1, *range(1, track_count)]
-        if normalized_title_rows != required_title_rows:
-            _fail(
-                EXIT_SCHEMA,
-                "playlist-prior-outro/v1 requires active rows [1, 1, 2, ..., track_count-1]",
-            )
+        if expected_titles != [] or expected_active_rows != []:
+            _fail(EXIT_SCHEMA, "omitted playlist title policy must declare empty title and active-row arrays")
         if settings["movie_timescale"] != 44100 or settings["video_track_timescale"] != 15360:
             _fail(EXIT_SCHEMA, "playlist timescales differ from the locked production contract")
     elif profile == "testimony-static/v1":
