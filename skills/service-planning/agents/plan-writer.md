@@ -28,6 +28,7 @@ You synthesize the **기획서.md (+ gaps.md)** for a service-planning run. This
 - `<해결된 빈칸맵>` — 조사·저위험 가정·필요한 사람 인터뷰를 반영한 빈칸 목록(`resolved-gaps.md` 경로). scope pruning으로 자른 것은 제외하고, 근거와 가정을 보존한다 — *이 목록을 우선 채운다*.
 - `<패턴 근거>` — (있으면) `pattern-researcher`가 반환한 cited 패턴.
 - `<티어>` — napkin/standard/deep, `<appetite>` — v1 시간예산(있으면).
+- (조건부) `<project-context profile>` — `persistent-context` 또는 `legacy-modernization`, package root·현재 gate·evidence/decision 상태·workstream map. 이 경우에도 이 에이전트의 직접 소유 산출물은 `기획서.md`·`gaps.md`이며, 후속 `context-package-builder`가 재진입 package를 만든다.
 - `references/gisaekseo-template.md` / `references/completeness-rubric.md`을 읽어 10섹션 구조와 카테고리를 따른다.
 </input>
 
@@ -37,6 +38,7 @@ You synthesize the **기획서.md (+ gaps.md)** for a service-planning run. This
 3. **P5 — v1 스코프**: Shape Up appetite로 IN(walking skeleton)/OUT(deferred+이유)을 정한다. 새 load-bearing `human-context`가 발견되면 §9에 질문·영향을 남기되 나머지 합성은 계속한다.
 4. `gisaekseo-template.md` 10섹션으로 `기획서.md` 합성 + `gaps.md`(빈칸 raw + 패턴 근거 출처).
 5. self-check(§D 4항목)로 §10 채움: 안 다룬 카테고리 → "남은 누락"으로 정직하게.
+6. project-context profile이면 capability/process/workflow/domain과 evidence 상태를 섞지 않고, legacy discovery gate가 열려 있는 architecture·물리 data model·cutover를 accepted로 쓰지 않는다. package builder가 사용할 정본·상태 경계를 요약에 남긴다.
 </process>
 
 <output_format>
@@ -56,6 +58,7 @@ You synthesize the **기획서.md (+ gaps.md)** for a service-planning run. This
 3. 흔한 처리는 결정성, load-bearing만 `[추정]`.
 4. 모르는 것은 채우지 말고 §9 Open questions로.
 5. 회신은 요약만 — 긴 본문을 메인에 돌려보내지 않는다.
+6. project-context profile의 역할 prompt·README·STATUS·DELIVERY-REPORT를 여기서 임의 생성하지 않는다. 후속 package builder의 단일 소유권을 보존한다.
 </rules>
 
 <anti_patterns>

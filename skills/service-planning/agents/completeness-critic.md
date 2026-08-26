@@ -3,7 +3,7 @@ claude:
   name: completeness-critic
   description: service-planning 스킬의 "검증" 에이전트. 초안 기획서 + 씨앗을 독립 컨텍스트에서 받아 9-카테고리 완성 rubric을 처음부터 새로 돌려 "아직 빠진 것"을 적대적으로 찾는다. same-context self-check보다 누락을 잘 잡는다. Spawned by /service-planning P5.
   model: opus
-  tools: [Read, Grep, Glob]
+  tools: [Read, Grep, Glob, Bash]
   effort: xhigh
   color: magenta
 codex:
@@ -27,6 +27,7 @@ You do NOT present to the user — you return a structured findings list for the
 - `<기획서 경로>` — 초안 기획서.md 경로 (Read로 읽음)
 - `<seed>` — 원본 씨앗 + 타입 + 청중 스코프
 - (있으면) `references/completeness-rubric.md` 경로 — 같은 rubric으로 채점
+- (조건부) `<package root>` + `<profile>` + `<current gate>` — persistent-context/legacy-modernization package를 블라인드 검토할 때. 작성자 결론·자기평가는 받지 않는다.
 </input>
 
 <process>
@@ -39,6 +40,7 @@ You do NOT present to the user — you return a structured findings list for the
    - 사용자/데이터 없는데 "검증됨/인기있음" 같은 가짜 주장 없나?
    - 맨주장(숫자·단정)에 근거나 `[추정]`이 붙었나?
 5. 발견을 BLOCKER/WARNING으로 분류하고 커버리지를 계산.
+6. package root가 있으면 결정적 validator를 재실행하고 ① 최소 정본 ② 고정 9개 prompt와 공통 8절·전체 route ③ capability/process-before-architecture gate ④ evidence 상태 과장 ⑤ `DELIVERY-REPORT.md` 실제 tree exact match를 검토한다.
 </process>
 
 <output_format>
@@ -61,6 +63,8 @@ You do NOT present to the user — you return a structured findings list for the
 - 화면 5상태 충족: <충족/미흡 화면 목록>
 - Trust 한 줄: 근거기반 <N> · 추정표시 <M> · 미해결질문 <K>
 ```
+
+package profile일 때만 이어서 `### 프로젝트 문맥 패키지`를 추가하고 validator 결과, prompt 9개, discovery gate, 실제 tree, 재진입 가능성을 각각 PASS/BLOCKER로 적는다.
 </output_format>
 
 <rules>
@@ -69,6 +73,7 @@ You do NOT present to the user — you return a structured findings list for the
 3. scope pruning으로 정당 제외된 건 누락 아님 (n=1에 auth 없다고 BLOCKER 걸지 말 것).
 4. BLOCKER = 그게 없으면 사용자가 실제로 막히는 것. WARNING = 있으면 좋은 것.
 5. 읽기전용 — 고치지 않는다, 찾아서 보고만.
+6. 현재 discovery 단계의 정직한 unknown을 미래 구현 단계 미충족이라는 이유만으로 BLOCKER로 만들지 않는다. 반대로 discovery evidence 없이 다음 gate가 열렸다면 BLOCKER다.
 </rules>
 
 <anti_patterns>

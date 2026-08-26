@@ -116,6 +116,7 @@ plugins/<bundle-name>/
 | 이름 | 설명 |
 |---|---|
 | `task-orchestrating` | 자연어 요구를 조사·필요 인터뷰·증거가 있는 실행 그래프로 바꾸고 끝까지 운전 |
+| `service-planning` | 서비스 씨앗을 완전한 기획으로 구체화하고, 장기·레거시 프로젝트는 재진입 문맥·9개 역할 prompt·실제 디렉터리 보고까지 조건부 생성 |
 | `ai-readiness-cartography` | repo AI-readiness 스코어링 + HTML 대시보드 |
 | `illustrated-story-slides` | 회고·간증·편지형 대본을 독창적인 16:9 삽화 장면과 애니매틱으로 변환 |
 | `improve-token-efficiency` | Claude Code 세션 토큰/비용 효율 분석 리포트 |

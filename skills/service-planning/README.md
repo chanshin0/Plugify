@@ -64,6 +64,7 @@
 | 기획서 합성 (결정·스코프·10섹션) | **P4~P5** `plan-writer` 단일 에이전트 | `기획서.md`·`gaps.md` |
 | lo-fi 와이어프레임 (선택) | **P6** `wireframe-builder` 단일 에이전트 | `wireframes.html` |
 | v1 데이터 모델 (선택) | **P7** `data-model-builder` 단일 에이전트 | `data-model.md` |
+| 지속형 프로젝트 문맥 (조건부) | **P8** `context-package-builder` 단일 에이전트 + 결정적 validator | README·STATUS·DELIVERY-REPORT·고정 9개 역할 prompt |
 
 파이프라인 P0~P7 전체와 인터뷰·승인 경계는 `SKILL.md` §C 참고.
 
@@ -96,6 +97,23 @@ P3에서 씨앗에 돌리는 체크리스트 (상세: `references/completeness-r
   - `deep`: 화면별 상태 상세 + 에이전트 + P6 와이어프레임 + P7 데이터모델 + 선택 `/self-review`.
 - **와이어프레임(P6)·데이터모델(P7)**: deep 기본 / standard에선 "와이어프레임 그려줘" · "데이터 모델 짜줘" 요청 시. 각각 단일 `wireframe-builder`·`data-model-builder` 에이전트가 `wireframes.html`·`data-model.md` 생성(함대 금지, 산출물 1개당 1에이전트).
 - **산출물**: `~/Documents/service-planning/{날짜}-{slug}/기획서.md` (+ `gaps.md`, + `wireframes.html`, + `data-model.md`).
+- **지속형 프로젝트 문맥(P8, 조건부)**: 여러 세션이 이어지는 프로젝트, 역할별 handoff, 레거시/AX 현대화이면 `persistent-context` profile을 켠다. `context-package-builder`가 README·STATUS·DELIVERY-REPORT와 아래 9개 역할 prompt를 만들고 결정적 validator로 실제 tree를 대조한다. 단순 deep/다중 화면에는 켜지 않는다.
+
+```text
+prompts/
+├── 00-ORCHESTRATOR.md
+├── 10-BUSINESS-DISCOVERY.md
+├── 20-SOURCE-CARTOGRAPHER.md
+├── 30-WORKFLOW-MODELER.md
+├── 40-DATA-ARCHITECT.md
+├── 50-PORTAL-PLANNER.md
+├── 60-MIGRATION-PLANNER.md
+├── 70-SECURITY-AI-REVIEWER.md
+└── 90-COMPLETENESS-CRITIC.md
+```
+
+- **레거시 현대화 gate**: capability와 실제 workflow를 먼저 발견하고, workflow를 구현·수용 단위, domain을 데이터 권위 이전·retire 단위로 쓴다. 정적 source 존재는 실제 사용·writer·정본을 증명하지 않는다.
+- **결과 보고 형식**: outcome/current gate → 사실·가정·미확인 → 결정·중단선 → 검증 → 검증 직후 실제 디렉터리 구조 → 재진입 → 다음 gate → 승인 필요 순서다. 상세 정본은 `references/project-context-package.md`.
 - **사람이 개입하는 곳**:
   - 조사로 알 수 없고 결과를 크게 바꾸는 의도·우선순위가 있을 때만 P3에서 1~3개 집중 인터뷰를 받는다.
   - 외부 전송·유료 호출·파괴·비가역 행동은 실제 실행 직전에 승인한다.

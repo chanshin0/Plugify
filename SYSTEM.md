@@ -56,6 +56,7 @@
 
 ### 3.1 첫 실전 관찰 목록 (고친 뒤 첫 실전 1회를 증거로 재검증하는 항목)
 
+- service-planning persistent-context/legacy-modernization(2026-08-26 출하): 다음 실제 장기·레거시 기획 1회가 capability/process discovery gate를 architecture보다 먼저 보존하고, README·STATUS·고정 9개 역할 prompt·DELIVERY-REPORT를 만들며, 검증 직후 실제 filesystem tree와 보고 tree가 exact match하는지 validator·산출물·fresh review 증거를 대조. 아침지기 AX package는 출하 전 forward test로만 기록하고 이 첫 post-release 관찰을 대신하지 않음
 - SessionStart workspace sync(2026-08-20 출하): 이 기기의 실제 Codex·Claude 동시/순차 세션 시작 1회에서 중복 훅 없이 세 Git 검증·최신화와 최신 agent sync가 실행되고, 다음 실제 새 기기 bootstrap 1회에서 기기 로컬 인증·hook trust 경계를 침범하지 않는지 설정·Git·fresh review 증거를 대조
 - portable workspace migration(2026-08-19 출하): 다음 실제 새 기기 또는 새 container 적용 1회에서 dry-run→clone/apply→root router·manifest→도구 install→strict verify가 기존 checkout·대외비 경계·기기 로컬 설정을 훼손하지 않고 닫히는지 실제 Git·설정 증거를 fresh review가 대조
 - visualize(2026-08-15 출하): 다음 실전 시각화 1회가 답변 내부 표면이 아닌 독립 HTML 파일로 생성되고, 지원되는 안전한 브라우저 경로로 데스크톱→375px을 순차 검증해 실제 콘텐츠·명암 테마·형식별 상호작용·콘솔 무오류를 충족하며 Chrome exit 134나 사용자-visible crash dialog를 만들지 않는지 산출물·실행 로그·브라우저 증거를 fresh review가 대조
