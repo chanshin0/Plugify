@@ -23,6 +23,13 @@ INVENTORY_PAYLOAD = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
 PRODUCTION_RELEASE_ID = INVENTORY_PAYLOAD["release_id"]
 INVENTORY = INVENTORY_PAYLOAD["episodes"]
 INVENTORY_BY_ID = {episode["episode_id"]: episode for episode in INVENTORY}
+CANDIDATE_CATALOG_PATH = SCRIPT.parent.parent / "references" / "hymn-letter-track-catalog.v1.json"
+CANDIDATE_CATALOG_SHA256 = "676407cca40e2fdbac024400dfbdf8c83867e6e33388dee9507c7c5a5bc7ff72"
+CANDIDATE_CATALOG = json.loads(CANDIDATE_CATALOG_PATH.read_text(encoding="utf-8"))
+CANDIDATE_TRACKS = {track["sequence"]: track for track in CANDIDATE_CATALOG["tracks"]}
+APPROVED_SOURCE_ROOT = (
+    SCRIPT.parents[4] / "godowon-office" / "godo-hymns" / "work" / "hymn-letter-v3-source"
+)
 JOB_FILENAMES = {
     1: "01_start.json",
     2: "02_playlist.json",
@@ -597,6 +604,27 @@ class ValidateJobV3Tests(V3FixtureMixin, PortableCliTestCase):
             2,
         )
 
+    def test_production_testimony_still_requires_locked_movie_timescale(self) -> None:
+        for episode_id in ("03-491-testimony", "05-370-testimony"):
+            with self.subTest(episode_id=episode_id):
+                fixture = self.make_fixture(episode_id)
+                job = json.loads(fixture["job"].read_text(encoding="utf-8"))
+                job["settings"]["movie_timescale"] = 1000
+                write_json(fixture["job"], job)
+                release = json.loads(fixture["release"].read_text(encoding="utf-8"))
+                release["jobs"][0]["sha256"] = sha256(fixture["job"])
+                write_json(fixture["release"], release)
+                self.assert_failure(
+                    self.run_cli(
+                        "validate-job",
+                        "--job",
+                        fixture["job"],
+                        "--release",
+                        fixture["release"],
+                    ),
+                    2,
+                )
+
 
 class SchemaLockShapeV3Tests(unittest.TestCase):
     def test_release_jobs_and_playlist_vector_use_closed_prefix_items(self) -> None:
@@ -659,6 +687,71 @@ class SchemaLockShapeV3Tests(unittest.TestCase):
             self.assertEqual(properties["start_frame"]["const"], start_frame)
             self.assertNotIn("audio", properties)
             self.assertNotIn("captions", properties)
+
+    def test_candidate_schemas_bind_dynamic_testimony_movie_timescale(self) -> None:
+        references = SCRIPT.parent.parent / "references"
+        candidate_job = json.loads(
+            (references / "candidate-job.schema.json").read_text(encoding="utf-8")
+        )
+        testimony_job = next(
+            branch
+            for branch in candidate_job["allOf"]
+            if branch["if"]["properties"]["profile"]["const"] == "testimony-static/v1"
+        )
+        testimony_settings = testimony_job["then"]["properties"]["settings"]["properties"]
+        self.assertEqual(testimony_settings["movie_timescale"], {"type": "integer", "minimum": 1})
+        self.assertIs(testimony_settings["restore_audio_edit"]["const"], True)
+        hymn_job = next(
+            branch
+            for branch in candidate_job["allOf"]
+            if branch["if"]["properties"]["profile"]["const"] == "hymn-lyrics/v1"
+        )
+        self.assertEqual(
+            hymn_job["then"]["properties"]["settings"]["properties"]["movie_timescale"]["const"],
+            44100,
+        )
+
+        candidate_intake = json.loads(
+            (references / "candidate-intake.schema.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(sha256(CANDIDATE_CATALOG_PATH), CANDIDATE_CATALOG_SHA256)
+        self.assertEqual(
+            candidate_intake["properties"]["catalog"]["properties"]["sha256"]["const"],
+            CANDIDATE_CATALOG_SHA256,
+        )
+        self.assertEqual(
+            [track["sequence"] for track in CANDIDATE_CATALOG["tracks"]],
+            list(range(8, 27, 2)),
+        )
+        audio_probe = candidate_intake["properties"]["probe"]["properties"]["audio"]
+        self.assertIn("movie_timescale", audio_probe["required"])
+        self.assertIn("render_frame_count", audio_probe["required"])
+        self.assertEqual(
+            audio_probe["properties"]["render_frame_count"],
+            {"type": "integer", "minimum": 1},
+        )
+        testimony_intake = next(
+            branch
+            for branch in candidate_intake["allOf"]
+            if branch["if"]["properties"]["episode"]["properties"]["profile"]["const"]
+            == "testimony-static/v1"
+        )
+        self.assertEqual(
+            testimony_intake["then"]["properties"]["probe"]["properties"]["audio"]
+            ["properties"]["movie_timescale"],
+            {"type": "integer", "minimum": 1},
+        )
+        hymn_intake = next(
+            branch
+            for branch in candidate_intake["allOf"]
+            if branch["if"]["properties"]["episode"]["properties"]["profile"]["const"]
+            == "hymn-lyrics/v1"
+        )
+        self.assertEqual(
+            hymn_intake["then"]["properties"]["probe"]["properties"]["audio"]
+            ["properties"]["movie_timescale"],
+            {"type": "null"},
+        )
 
 
 class VerifySourceBundleV3Tests(V3FixtureMixin, PortableCliTestCase):
@@ -2003,6 +2096,522 @@ class RenderAndQcV3Tests(V3FixtureMixin, PortableCliTestCase):
             ),
             7,
         )
+
+
+class CandidateFixtureMixin:
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory(prefix="hymn-candidate-v1-")
+        self.root = Path(self.temporary.name).resolve()
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    @staticmethod
+    def _json_bytes(payload: object) -> bytes:
+        return (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+    def make_candidate(self, sequence: int, *, approved_hymn: bool = False) -> dict[str, Path]:
+        testimony = sequence % 2 == 1
+        track_sequence = sequence + 1 if testimony else sequence
+        approved_track = CANDIDATE_TRACKS.get(track_sequence)
+        episode = {
+            "sequence": sequence,
+            "episode_id": f"{sequence:02d}-387-{'testimony' if testimony else 'hymn'}",
+            "kind": "testimony_intro" if testimony else "hymn_lyrics",
+            "profile": "testimony-static/v1" if testimony else "hymn-lyrics/v1",
+            "hymn_number": approved_track["hymn_number"] if approved_track else 387,
+            "title": approved_track["title"] if approved_track else "멀리멀리 갔더니",
+        }
+        run_root = self.root / f"candidate-{sequence:02d}"
+        run_root.mkdir()
+        object_entries: dict[str, dict] = {}
+        object_paths: dict[str, Path] = {}
+        input_metadata: dict[str, dict] = {}
+
+        def add_object(key: str, filename: str, payload: bytes) -> dict:
+            digest = hashlib.sha256(payload).hexdigest()
+            object_id = f"sha256:{digest}"
+            object_path = run_root / "objects" / "sha256" / digest[:2] / digest[2:]
+            object_path.parent.mkdir(parents=True, exist_ok=True)
+            object_path.write_bytes(payload)
+            object_entries[object_id] = {
+                "sha256": digest,
+                "size": len(payload),
+                "filenames": [filename],
+                "roles": [key],
+            }
+            object_paths[key] = object_path
+            metadata = {
+                "object_id": object_id,
+                "sha256": digest,
+                "size": len(payload),
+                "original_filename": filename,
+            }
+            input_metadata[key] = metadata
+            return metadata
+
+        approved_audio_bytes: bytes | None = None
+        approved_captions_bytes: bytes | None = None
+        if approved_hymn:
+            if testimony or approved_track is None:
+                raise ValueError("approved_hymn requires a registered even sequence")
+            audio_digest = approved_track["audio_object_id"].removeprefix("sha256:")
+            captions_digest = approved_track["captions_object_id"].removeprefix("sha256:")
+            approved_audio_path = (
+                APPROVED_SOURCE_ROOT / "objects" / "sha256" / audio_digest[:2] / audio_digest[2:]
+            )
+            approved_captions_path = (
+                APPROVED_SOURCE_ROOT
+                / "objects" / "sha256" / captions_digest[:2] / captions_digest[2:]
+            )
+            approved_audio_bytes = approved_audio_path.read_bytes()
+            approved_captions_bytes = approved_captions_path.read_bytes()
+
+        common_payloads = {
+            "captions": (
+                "captions.srt",
+                approved_captions_bytes
+                if approved_captions_bytes is not None
+                else b"1\n00:00:00,000 --> 00:00:01,000\ntext\n",
+            ),
+            "backplate": ("backplate.jpg", b"candidate-backplate"),
+            "thumbnail": ("thumbnail.jpg", b"candidate-thumbnail"),
+            "font": ("font.ttf", b"candidate-font"),
+        }
+        for key, (filename, payload) in common_payloads.items():
+            add_object(key, filename, payload)
+
+        if testimony:
+            add_object("approved_script", "approved-script.txt", b"approved script\n")
+            narration = add_object("narration_audio", "narration.m4a", b"aac-lc-48k-candidate")
+            narration_receipt = {
+                "schema": "godowon.hymn-letter.narration-receipt/1",
+                "narration_mode": "recorded",
+                "approved_script_sha256": input_metadata["approved_script"]["sha256"],
+                "result_sha256": narration["sha256"],
+                "script_approved": True,
+                "human_approval_receipt": True,
+                "human_listening_approved": True,
+            }
+            add_object(
+                "narration_receipt",
+                "narration-receipt.json",
+                self._json_bytes(narration_receipt),
+            )
+            speech_master_report = {
+                "schema": "godowon.hymn-letter.speech-master-report/1",
+                "status": "PASS",
+                "profile": {
+                    "id": "hymn-letter-speech-master-v1",
+                    "output": {
+                        "container": "M4A",
+                        "codec": "AAC-LC",
+                        "sample_rate": 48000,
+                        "channels": 2,
+                        "bitrate": "192k",
+                    },
+                },
+                "artifacts": {"output": {"sha256": narration["sha256"]}},
+                "qc": {"pass": True},
+            }
+            add_object(
+                "speech_master_report",
+                "speech-master-report.json",
+                self._json_bytes(speech_master_report),
+            )
+            audio_metadata = narration
+            approvals = {
+                "narration_mode": "recorded",
+                "script_approved": True,
+                "human_approval_receipt": True,
+                "human_listening_approved": True,
+            }
+            audio_probe = {
+                "codec_name": "aac",
+                "profile": "LC",
+                "sample_rate": 48000,
+                "channels": 2,
+                "duration_ms": 3000,
+                "movie_timescale": 1000,
+            }
+            settings = {
+                "style": "center",
+                "restore_audio_edit": True,
+                "movie_timescale": 1000,
+                "video_track_timescale": 15360,
+            }
+            audio_policy = "stream-copy-approved-aac/v1"
+        else:
+            audio_metadata = add_object(
+                "audio",
+                "hymn.mp3",
+                approved_audio_bytes
+                if approved_audio_bytes is not None
+                else b"arbitrary-mp3-with-untrusted-catalog-assertion",
+            )
+            approvals = {"catalog_audio_sha_match": True}
+            audio_probe = {
+                "codec_name": "mp3",
+                "profile": "unknown",
+                "sample_rate": 44100,
+                "channels": 2,
+                "duration_ms": 5000,
+                "movie_timescale": None,
+            }
+            settings = {
+                "style": "center",
+                "movie_timescale": 44100,
+                "video_track_timescale": 15360,
+            }
+            audio_policy = "approved-mp3-to-aac-lc-256k/v1"
+
+        job_frame_count = (
+            90
+            if testimony
+            else approved_track["frame_count"] if approved_hymn else 150
+        )
+        audio_probe["render_frame_count"] = job_frame_count
+
+        job_inputs = {
+            "audio_policy": audio_policy,
+            "backplate": input_metadata["backplate"]["object_id"],
+            "audio": audio_metadata["object_id"],
+            "captions": input_metadata["captions"]["object_id"],
+            "font": input_metadata["font"]["object_id"],
+            "thumbnail": input_metadata["thumbnail"]["object_id"],
+        }
+        job = {
+            "schema": "godowon.hymn-letter.v3-job/1",
+            "release_id": PRODUCTION_RELEASE_ID,
+            "episode_id": episode["episode_id"],
+            "profile": episode["profile"],
+            "inputs": job_inputs,
+            "settings": settings,
+            "output": {
+                "filename": f"{sequence:02d}_candidate.mp4",
+                "thumbnail_filename": f"{sequence:02d}_thumbnail.jpg",
+                "container": "mp4",
+                "audio_codec": "aac",
+                "audio_profile": "LC",
+                "frame_count": job_frame_count,
+            },
+        }
+        job_path = run_root / "job.json"
+        write_json(job_path, job)
+
+        intake_inputs = (
+            {
+                key: input_metadata[key]
+                for key in (
+                    "approved_script", "narration_audio", "captions", "backplate",
+                    "thumbnail", "font", "narration_receipt", "speech_master_report",
+                )
+            }
+            if testimony
+            else {
+                key: input_metadata[key]
+                for key in ("audio", "captions", "backplate", "thumbnail", "font")
+            }
+        )
+        base_release = {
+            "release_id": PRODUCTION_RELEASE_ID,
+            "release_lock_sha256": "24867e11a54c33f69005ed7b033f3996200597697fa99657bb4764ea9ddff7e6",
+        }
+        intake = {
+            "schema": "godowon.hymn-letter.episode-intake/1",
+            "status": "CANDIDATE_UNAPPROVED",
+            "series_name": "'고도원의 찬송편지'",
+            "base_release": base_release,
+            "episode": episode,
+            "inputs": intake_inputs,
+            "approvals": approvals,
+            "probe": {
+                "ffprobe_sha256": "1" * 64,
+                "ffprobe_version": "fixture ffprobe (must not execute)",
+                "audio": audio_probe,
+                "captions": {"cue_count": 1, "last_end_ms": 1000},
+            },
+            "catalog": {
+                "schema": "godowon.hymn-letter.track-catalog/1",
+                "sha256": CANDIDATE_CATALOG_SHA256,
+                "track_sequence": sequence + 1 if testimony else sequence,
+            },
+        }
+        intake_path = run_root / "intake-receipt.json"
+        write_json(intake_path, intake)
+
+        source_bundle = {
+            "schema": "godowon.hymn-letter.candidate-source-bundle/1",
+            "release_id": PRODUCTION_RELEASE_ID,
+            "storage_layout": "objects/sha256/<prefix>/<digest-rest>",
+            "objects": object_entries,
+        }
+        source_bundle_path = run_root / "source-bundle.lock.json"
+        write_json(source_bundle_path, source_bundle)
+        candidate_lock = {
+            "schema": "godowon.hymn-letter.candidate-lock/1",
+            "status": "CANDIDATE_UNAPPROVED",
+            "series_name": "'고도원의 찬송편지'",
+            "base_release": base_release,
+            "episode": episode,
+            "job": {"path": "job.json", "sha256": sha256(job_path)},
+            "source_bundle": {
+                "path": "source-bundle.lock.json",
+                "sha256": sha256(source_bundle_path),
+            },
+            "intake_receipt": {
+                "path": "intake-receipt.json",
+                "sha256": sha256(intake_path),
+            },
+        }
+        lock_path = run_root / "candidate.lock.json"
+        write_json(lock_path, candidate_lock)
+        return {
+            "run_root": run_root,
+            "lock": lock_path,
+            "job": job_path,
+            "source_bundle": source_bundle_path,
+            "intake": intake_path,
+            "objects": object_paths,
+        }
+
+    def refresh_reference(self, fixture: dict[str, Path], key: str, path_key: str) -> None:
+        lock = json.loads(fixture["lock"].read_text(encoding="utf-8"))
+        lock[key]["sha256"] = sha256(fixture[path_key])
+        write_json(fixture["lock"], lock)
+
+    def run_candidate(self, fixture: dict[str, Path], **environment: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, str(SCRIPT), "validate-candidate", "--run-root", str(fixture["run_root"])],
+            text=True,
+            capture_output=True,
+            check=False,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", **environment},
+        )
+
+
+class CandidateValidationV3Tests(CandidateFixtureMixin, PortableCliTestCase):
+    def test_accepts_testimony_without_running_media_tools(self) -> None:
+        marker = self.root / "media-tool-ran"
+        tool_root = self.root / "tools"
+        tool_root.mkdir()
+        for tool_name in ("ffprobe", "ffmpeg"):
+            tool = tool_root / tool_name
+            tool.write_text(f"#!/bin/sh\ntouch {marker}\nexit 99\n", encoding="utf-8")
+            tool.chmod(0o755)
+        fixture = self.make_candidate(7)
+        payload = self.assert_success_json(self.run_candidate(fixture, PATH=str(tool_root)))
+        self.assertEqual(payload["candidate_status"], "CANDIDATE_UNAPPROVED")
+        self.assertEqual(payload["sequence"], 7)
+        self.assertEqual(payload["catalog_track_sequence"], 8)
+        self.assertEqual(payload["expected_pcm_f32le_sha256"], PRODUCTION_PCM_SHA256[2])
+        self.assertFalse(payload["execution_authorized"])
+        self.assertFalse(marker.exists(), "validate-candidate executed a media tool")
+
+    def test_accepts_actual_approved_387_hymn_objects(self) -> None:
+        track = CANDIDATE_TRACKS[8]
+        required_paths = []
+        for key in ("audio_object_id", "captions_object_id"):
+            digest = track[key].removeprefix("sha256:")
+            required_paths.append(
+                APPROVED_SOURCE_ROOT / "objects" / "sha256" / digest[:2] / digest[2:]
+            )
+        if not all(path.is_file() for path in required_paths):
+            self.skipTest("approved 387 source objects are unavailable")
+        fixture = self.make_candidate(8, approved_hymn=True)
+        payload = self.assert_success_json(self.run_candidate(fixture))
+        self.assertEqual(payload["catalog_sha256"], CANDIDATE_CATALOG_SHA256)
+        self.assertEqual(payload["catalog_track_sequence"], 8)
+        self.assertEqual(payload["approved_frame_count"], 6140)
+        self.assertEqual(payload["expected_pcm_f32le_sha256"], PRODUCTION_PCM_SHA256[2])
+        self.assertFalse(payload["execution_authorized"])
+
+        job = json.loads(fixture["job"].read_text(encoding="utf-8"))
+        job["output"]["frame_count"] = 6139
+        write_json(fixture["job"], job)
+        self.refresh_reference(fixture, "job", "job")
+        intake = json.loads(fixture["intake"].read_text(encoding="utf-8"))
+        intake["probe"]["audio"]["render_frame_count"] = 6139
+        write_json(fixture["intake"], intake)
+        self.refresh_reference(fixture, "intake_receipt", "intake")
+        mismatch = self.run_candidate(fixture)
+        self.assert_failure(mismatch, 4)
+        self.assertIn("frame count differs from approved track", mismatch.stderr)
+
+    def test_rejects_arbitrary_mp3_even_when_catalog_assertion_is_true(self) -> None:
+        fixture = self.make_candidate(8)
+        intake = json.loads(fixture["intake"].read_text(encoding="utf-8"))
+        self.assertIs(intake["approvals"]["catalog_audio_sha_match"], True)
+        result = self.run_candidate(fixture)
+        self.assert_failure(result, 4)
+        self.assertIn("audio object differs from approved track", result.stderr)
+
+    def test_rejects_mutated_immutable_catalog(self) -> None:
+        if str(SCRIPT.parent) not in sys.path:
+            sys.path.insert(0, str(SCRIPT.parent))
+        import hymn_video_flow_v3 as flow
+
+        mutated_catalog = self.root / "mutated-track-catalog.json"
+        catalog = copy.deepcopy(CANDIDATE_CATALOG)
+        catalog["tracks"][0]["title"] = "변조된 제목"
+        write_json(mutated_catalog, catalog)
+        previous_path = flow.CANDIDATE_TRACK_CATALOG_PATH
+        flow.CANDIDATE_TRACK_CATALOG_PATH = mutated_catalog
+        try:
+            with self.assertRaises(flow.FlowError) as raised:
+                flow._load_candidate_track_catalog()
+            self.assertEqual(raised.exception.code, 4)
+        finally:
+            flow.CANDIDATE_TRACK_CATALOG_PATH = previous_path
+
+    def test_rejects_episode_title_drift_from_paired_catalog_track(self) -> None:
+        fixture = self.make_candidate(7)
+        intake = json.loads(fixture["intake"].read_text(encoding="utf-8"))
+        intake["episode"]["title"] = "임의 제목"
+        write_json(fixture["intake"], intake)
+        lock = json.loads(fixture["lock"].read_text(encoding="utf-8"))
+        lock["episode"]["title"] = "임의 제목"
+        lock["intake_receipt"]["sha256"] = sha256(fixture["intake"])
+        write_json(fixture["lock"], lock)
+        result = self.run_candidate(fixture)
+        self.assert_failure(result, 4)
+        self.assertIn("hymn number/title differs from approved track", result.stderr)
+
+    def test_rejects_unregistered_sequence_and_kind_profile_parity(self) -> None:
+        fixture = self.make_candidate(7)
+        lock = json.loads(fixture["lock"].read_text(encoding="utf-8"))
+        lock["episode"]["sequence"] = 27
+        lock["episode"]["episode_id"] = "27-387-testimony"
+        write_json(fixture["lock"], lock)
+        self.assert_failure(self.run_candidate(fixture), 6)
+
+        fixture = self.make_candidate(9)
+        lock = json.loads(fixture["lock"].read_text(encoding="utf-8"))
+        lock["episode"]["sequence"] = 8
+        lock["episode"]["episode_id"] = "08-387-testimony"
+        write_json(fixture["lock"], lock)
+        self.assert_failure(self.run_candidate(fixture), 6)
+
+    def test_rejects_relative_path_escape(self) -> None:
+        fixture = self.make_candidate(8)
+        outside = self.root / "outside-job.json"
+        shutil.copyfile(fixture["job"], outside)
+        lock = json.loads(fixture["lock"].read_text(encoding="utf-8"))
+        lock["job"] = {"path": "../outside-job.json", "sha256": sha256(outside)}
+        write_json(fixture["lock"], lock)
+        self.assert_failure(self.run_candidate(fixture), 7)
+
+    def test_rejects_symlinked_reference(self) -> None:
+        fixture = self.make_candidate(8)
+        outside = self.root / "outside-job.json"
+        shutil.copyfile(fixture["job"], outside)
+        fixture["job"].unlink()
+        fixture["job"].symlink_to(outside)
+        self.assert_failure(self.run_candidate(fixture), 7)
+
+    def test_rejects_content_hash_mismatch(self) -> None:
+        fixture = self.make_candidate(8)
+        fixture["objects"]["audio"].write_bytes(b"mutated catalog audio")
+        self.assert_failure(self.run_candidate(fixture), 4)
+
+    def test_rejects_missing_job_input_object(self) -> None:
+        fixture = self.make_candidate(7)
+        fixture["objects"]["narration_audio"].unlink()
+        self.assert_failure(self.run_candidate(fixture), 3)
+
+    def test_rejects_candidate_status_drift_in_lock_or_intake(self) -> None:
+        fixture = self.make_candidate(8)
+        lock = json.loads(fixture["lock"].read_text(encoding="utf-8"))
+        lock["status"] = "APPROVED"
+        write_json(fixture["lock"], lock)
+        self.assert_failure(self.run_candidate(fixture), 6)
+
+        fixture = self.make_candidate(7)
+        intake = json.loads(fixture["intake"].read_text(encoding="utf-8"))
+        intake["status"] = "APPROVED"
+        write_json(fixture["intake"], intake)
+        self.refresh_reference(fixture, "intake_receipt", "intake")
+        self.assert_failure(self.run_candidate(fixture), 6)
+
+    def test_candidate_movie_timescale_must_match_audio_probe_contract(self) -> None:
+        fixture = self.make_candidate(7)
+        job = json.loads(fixture["job"].read_text(encoding="utf-8"))
+        job["settings"]["movie_timescale"] = 2000
+        write_json(fixture["job"], job)
+        self.refresh_reference(fixture, "job", "job")
+        result = self.run_candidate(fixture)
+        self.assert_failure(result, 2)
+        self.assertIn("does not match the audio probe", result.stderr)
+
+        fixture = self.make_candidate(8)
+        intake = json.loads(fixture["intake"].read_text(encoding="utf-8"))
+        intake["probe"]["audio"]["movie_timescale"] = 44100
+        write_json(fixture["intake"], intake)
+        self.refresh_reference(fixture, "intake_receipt", "intake")
+        result = self.run_candidate(fixture)
+        self.assert_failure(result, 2)
+        self.assertIn("must be null", result.stderr)
+
+    def test_candidate_job_frame_count_must_match_audio_probe(self) -> None:
+        fixture = self.make_candidate(7)
+        job = json.loads(fixture["job"].read_text(encoding="utf-8"))
+        intake = json.loads(fixture["intake"].read_text(encoding="utf-8"))
+        self.assertEqual(job["output"]["frame_count"], 90)
+        self.assertEqual(intake["probe"]["audio"]["render_frame_count"], 90)
+
+        job["output"]["frame_count"] = 1
+        write_json(fixture["job"], job)
+        self.refresh_reference(fixture, "job", "job")
+        result = self.run_candidate(fixture)
+        self.assert_failure(result, 2)
+        self.assertIn("does not match the intake audio probe", result.stderr)
+
+    def test_production_commands_reject_candidate_lock_as_release(self) -> None:
+        fixture = self.make_candidate(8)
+        regular_executable = Path(sys.executable).resolve()
+        upload_manifest = fixture["run_root"] / "upload-ready.json"
+        authority = fixture["run_root"] / "authority-lock.json"
+        write_json(upload_manifest, {"release_id": PRODUCTION_RELEASE_ID})
+        write_json(authority, {})
+        package_output = self.root / "production-package-must-not-exist"
+        commands = {
+            "validate": [
+                "validate-job", "--job", fixture["job"], "--release", fixture["lock"],
+            ],
+            "render": [
+                "render", "--job", fixture["job"], "--release", fixture["lock"],
+                "--source-root", fixture["run_root"], "--run-root", self.root / "render-run",
+                "--runtime-python", regular_executable,
+            ],
+            "qc": [
+                "qc", "--job", fixture["job"], "--release", fixture["lock"],
+                "--source-root", fixture["run_root"], "--run-root", self.root / "qc-run",
+                "--gate", "semantic-equivalent", "--runtime-python", regular_executable,
+            ],
+            "package": [
+                "package", "--plan", fixture["job"], "--ffprobe", regular_executable,
+                "--release", fixture["lock"], "--source-root", fixture["run_root"],
+                "--runtime-python", regular_executable, "--approval-receipt", fixture["intake"],
+                "--package-dir", package_output,
+            ],
+            "upload": [
+                "verify-upload-ready", "--manifest", upload_manifest,
+                "--authority-lock", authority, "--ffprobe", regular_executable,
+                "--release", fixture["lock"], "--approval-receipt", fixture["intake"],
+            ],
+        }
+        for name, arguments in commands.items():
+            with self.subTest(command=name):
+                result = subprocess.run(
+                    [sys.executable, str(SCRIPT), *map(str, arguments)],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                    env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                )
+                self.assert_failure(result, 4)
+                self.assertIn("compiled production trust pin", result.stderr)
+        self.assertFalse(package_output.exists())
 
 
 class UsageTests(PortableCliTestCase):

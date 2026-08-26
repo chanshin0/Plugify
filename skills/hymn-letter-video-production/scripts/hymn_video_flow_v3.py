@@ -72,6 +72,13 @@ INVENTORY_SCHEMA = "plugify.hymn-letter.episode-inventory/2"
 JOB_SCHEMA = "godowon.hymn-letter.v3-job/1"
 SOURCE_BUNDLE_SCHEMA = "godowon.hymn-letter.source-bundle/1"
 RELEASE_SCHEMA = "godowon.hymn-letter.v3-release-lock/1"
+CANDIDATE_LOCK_SCHEMA = "godowon.hymn-letter.candidate-lock/1"
+CANDIDATE_SOURCE_BUNDLE_SCHEMA = "godowon.hymn-letter.candidate-source-bundle/1"
+CANDIDATE_INTAKE_SCHEMA = "godowon.hymn-letter.episode-intake/1"
+CANDIDATE_NARRATION_SCHEMA = "godowon.hymn-letter.narration-receipt/1"
+CANDIDATE_CATALOG_SCHEMA = "godowon.hymn-letter.track-catalog/1"
+CANDIDATE_STATUS = "CANDIDATE_UNAPPROVED"
+CANDIDATE_SERIES = "'고도원의 찬송편지'"
 RUN_RECEIPT_SCHEMA = "plugify.hymn-letter.run-receipt/1"
 PACKAGE_SCHEMA = "plugify.hymn-letter.deterministic-package/2"
 DELEGATION_INPUTS_SCHEMA = "plugify.hymn-letter.delegation-inputs-lock/1"
@@ -95,6 +102,8 @@ SKILL_DIR = SCRIPT_PATH.parent.parent
 REFERENCE_DIR = SKILL_DIR / "references"
 INVENTORY_PATH = REFERENCE_DIR / "episode-inventory.v2.json"
 INVENTORY_SHA256 = "752fecfe218fa4f485c02c2795d9667344920f2a2f513bac26c2eecb7519acc6"
+CANDIDATE_TRACK_CATALOG_PATH = REFERENCE_DIR / "hymn-letter-track-catalog.v1.json"
+CANDIDATE_TRACK_CATALOG_SHA256 = "676407cca40e2fdbac024400dfbdf8c83867e6e33388dee9507c7c5a5bc7ff72"
 PROJECT_RELEASE_ID = "hymn-letter-caption-v4-interview-soft-20260826"
 PROJECT_RELEASE_SHA256 = "24867e11a54c33f69005ed7b033f3996200597697fa99657bb4764ea9ddff7e6"
 GOLDEN_SCHEMA = "godowon.hymn-letter.v3-golden-lock/1"
@@ -152,6 +161,41 @@ ENVIRONMENT_KEYS = {
 }
 SOURCE_BUNDLE_KEYS = {"schema", "release_id", "storage_layout", "objects"}
 SOURCE_OBJECT_KEYS = {"sha256", "size", "filenames", "roles"}
+CANDIDATE_LOCK_KEYS = {
+    "schema", "status", "series_name", "base_release", "episode",
+    "job", "source_bundle", "intake_receipt",
+}
+CANDIDATE_BASE_RELEASE_KEYS = {"release_id", "release_lock_sha256"}
+CANDIDATE_EPISODE_KEYS = {
+    "sequence", "episode_id", "kind", "profile", "hymn_number", "title",
+}
+CANDIDATE_REFERENCE_KEYS = {"path", "sha256"}
+CANDIDATE_INTAKE_KEYS = {
+    "schema", "status", "series_name", "base_release", "episode", "inputs",
+    "approvals", "probe", "catalog",
+}
+CANDIDATE_INPUT_REFERENCE_KEYS = {
+    "object_id", "sha256", "size", "original_filename",
+}
+CANDIDATE_PROBE_KEYS = {"ffprobe_sha256", "ffprobe_version", "audio", "captions"}
+CANDIDATE_AUDIO_PROBE_KEYS = {
+    "codec_name", "profile", "sample_rate", "channels", "duration_ms",
+    "movie_timescale", "render_frame_count",
+}
+CANDIDATE_CAPTION_PROBE_KEYS = {"cue_count", "last_end_ms"}
+CANDIDATE_CATALOG_KEYS = {"schema", "sha256", "track_sequence"}
+CANDIDATE_TRACK_CATALOG_KEYS = {"schema", "series_name", "base_release", "tracks"}
+CANDIDATE_TRACK_CATALOG_BASE_KEYS = {
+    "release_id", "release_lock_sha256", "playlist_job_path",
+    "playlist_job_sha256", "source_bundle_lock_sha256",
+}
+CANDIDATE_TRACK_KEYS = {
+    "sequence", "hymn_number", "title", "audio_object_id",
+    "captions_object_id", "samples", "pcm_f32le_sha256", "frame_count",
+}
+CANDIDATE_TRACK_SEQUENCES = tuple(range(8, 27, 2))
+CANDIDATE_CATALOG_PLAYLIST_JOB_SHA256 = "f7ca7704a6e89ca3b5d3756447d3a73f8a9ff1baab44b627e6dd3afd32b2d226"
+CANDIDATE_CATALOG_SOURCE_BUNDLE_SHA256 = "9ff852c1c48f9b7d8b3656f35ac8a3589d6739f971eb702078aafaec242c3eb1"
 RUN_RECEIPT_KEYS = {
     "schema",
     "release_id",
@@ -985,6 +1029,738 @@ def _validate_settings(job: dict[str, Any], required_input_values: dict[str, lis
             "style": "center", "movie_timescale": 44100, "video_track_timescale": 15360,
         }:
             _fail(EXIT_SCHEMA, "hymn lyric settings differ from the locked production contract")
+
+
+def _candidate_sequence_contract(sequence: Any) -> tuple[str, str]:
+    value = _require_positive_int(sequence, "candidate episode.sequence")
+    if value < 7 or value > 26:
+        _fail(EXIT_UNSUPPORTED, "candidate episode.sequence must be registered in 07..26")
+    if value % 2:
+        return "testimony_intro", "testimony-static/v1"
+    return "hymn_lyrics", "hymn-lyrics/v1"
+
+
+def _load_candidate_track_catalog() -> tuple[Path, str, dict[int, dict[str, Any]]]:
+    """Load the candidate-only immutable catalog and validate its approval anchors."""
+    catalog_path = CANDIDATE_TRACK_CATALOG_PATH
+    _reject_unsafe_symlink_components(catalog_path, "candidate track catalog")
+    if catalog_path.is_symlink() or not catalog_path.is_file():
+        _fail(EXIT_MISSING, "candidate track catalog must be a regular non-symlink file")
+    catalog_bytes = _read_stable_bytes(catalog_path, "candidate track catalog")
+    catalog_sha256 = hashlib.sha256(catalog_bytes).hexdigest()
+    if catalog_sha256 != CANDIDATE_TRACK_CATALOG_SHA256:
+        _fail(
+            EXIT_HASH,
+            "candidate track catalog SHA mismatch: "
+            f"expected {CANDIDATE_TRACK_CATALOG_SHA256}, got {catalog_sha256}",
+        )
+    raw_catalog = _decode_json_bytes(catalog_bytes, "candidate track catalog")
+    catalog = _require_exact_keys(
+        raw_catalog, CANDIDATE_TRACK_CATALOG_KEYS, "candidate track catalog"
+    )
+    if catalog["schema"] != CANDIDATE_CATALOG_SCHEMA:
+        _fail(EXIT_SCHEMA, "candidate track catalog schema mismatch")
+    if catalog["series_name"] != CANDIDATE_SERIES:
+        _fail(EXIT_SCHEMA, "candidate track catalog series_name mismatch")
+    base_release = _require_exact_keys(
+        catalog["base_release"],
+        CANDIDATE_TRACK_CATALOG_BASE_KEYS,
+        "candidate track catalog base_release",
+    )
+    if base_release != {
+        "release_id": PROJECT_RELEASE_ID,
+        "release_lock_sha256": PROJECT_RELEASE_SHA256,
+        "playlist_job_path": "jobs/02_playlist.json",
+        "playlist_job_sha256": CANDIDATE_CATALOG_PLAYLIST_JOB_SHA256,
+        "source_bundle_lock_sha256": CANDIDATE_CATALOG_SOURCE_BUNDLE_SHA256,
+    }:
+        _fail(EXIT_HASH, "candidate track catalog base release anchors mismatch")
+
+    raw_tracks = catalog["tracks"]
+    if type(raw_tracks) is not list or len(raw_tracks) != len(CANDIDATE_TRACK_SEQUENCES):
+        _fail(EXIT_SCHEMA, "candidate track catalog must contain exactly tracks 08..26")
+    tracks_by_sequence: dict[int, dict[str, Any]] = {}
+    for offset, raw_track in enumerate(raw_tracks):
+        label = f"candidate track catalog tracks[{offset}]"
+        track = _require_exact_keys(raw_track, CANDIDATE_TRACK_KEYS, label)
+        sequence = _require_positive_int(track["sequence"], f"{label}.sequence")
+        expected_sequence = CANDIDATE_TRACK_SEQUENCES[offset]
+        if sequence != expected_sequence:
+            _fail(EXIT_SCHEMA, "candidate track catalog sequences must be ordered 08..26")
+        _require_positive_int(track["hymn_number"], f"{label}.hymn_number")
+        _require_nonempty_string(track["title"], f"{label}.title")
+        for key in ("audio_object_id", "captions_object_id"):
+            object_id = _require_nonempty_string(track[key], f"{label}.{key}")
+            if OBJECT_ID_RE.fullmatch(object_id) is None:
+                _fail(EXIT_SCHEMA, f"{label}.{key} must match sha256:<64hex>")
+        samples = _require_positive_int(track["samples"], f"{label}.samples")
+        expected_pcm_sha256 = _require_sha256(
+            track["pcm_f32le_sha256"], f"{label}.pcm_f32le_sha256"
+        )
+        frame_count = _require_positive_int(track["frame_count"], f"{label}.frame_count")
+        playlist_offset = offset + 2
+        if (
+            samples != PLAYLIST_SAMPLES[playlist_offset]
+            or expected_pcm_sha256 != PLAYLIST_PCM_SHA256[playlist_offset]
+        ):
+            _fail(EXIT_HASH, f"candidate track {sequence:02d} PCM approval anchor mismatch")
+        if frame_count != (samples * 30 + 44099) // 44100:
+            _fail(EXIT_SCHEMA, f"candidate track {sequence:02d} frame count mismatch")
+        tracks_by_sequence[sequence] = track
+    return catalog_path, catalog_sha256, tracks_by_sequence
+
+
+def _resolve_candidate_json_reference(
+    run_root: Path,
+    raw_reference: Any,
+    label: str,
+) -> tuple[Path, str, Any]:
+    reference = _require_exact_keys(raw_reference, CANDIDATE_REFERENCE_KEYS, label)
+    relative = _safe_release_relative_path(reference["path"], f"{label}.path")
+    expected_sha256 = _require_sha256(reference["sha256"], f"{label}.sha256")
+    candidate = run_root / _safe_relative_path_to_path(relative)
+    _reject_unsafe_symlink_components(candidate, label)
+    if not os.path.lexists(candidate):
+        _fail(EXIT_MISSING, f"{label} does not exist: {relative}")
+    try:
+        resolved = candidate.resolve(strict=True)
+    except OSError as exc:
+        _fail(EXIT_MISSING, f"cannot resolve {label}: {exc}")
+    if not _path_within(resolved, run_root):
+        _fail(EXIT_UNSAFE, f"{label} escapes candidate run root: {relative}")
+    if not resolved.is_file():
+        _fail(EXIT_MISSING, f"{label} is not a regular file: {relative}")
+    value, actual_sha256 = _load_json_with_sha256(resolved, label)
+    if actual_sha256 != expected_sha256:
+        _fail(
+            EXIT_HASH,
+            f"{label} SHA mismatch: expected {expected_sha256}, got {actual_sha256}",
+        )
+    return resolved, actual_sha256, value
+
+
+def _validate_candidate_job(
+    raw_job: Any,
+    episode: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, list[str]]]:
+    job = _require_exact_keys(raw_job, JOB_KEYS, "candidate job")
+    if job["schema"] != JOB_SCHEMA:
+        _fail(EXIT_SCHEMA, f"invalid candidate job schema: {job['schema']!r}")
+    if job["release_id"] != PROJECT_RELEASE_ID:
+        _fail(EXIT_SCHEMA, "candidate job release_id does not match the base release")
+    if job["episode_id"] != episode["episode_id"]:
+        _fail(EXIT_SCHEMA, "candidate job episode_id does not match candidate lock")
+    if job["profile"] != episode["profile"]:
+        _fail(EXIT_SCHEMA, "candidate job profile does not match candidate lock")
+    profile = job["profile"]
+    if profile not in {"testimony-static/v1", "hymn-lyrics/v1"}:
+        _fail(EXIT_UNSUPPORTED, f"unsupported candidate profile: {profile!r}")
+
+    inputs = job["inputs"]
+    if type(inputs) is not dict:
+        _fail(EXIT_SCHEMA, "candidate job.inputs must be an object")
+    for key in inputs:
+        if not INPUT_KEY_RE.fullmatch(key):
+            _fail(EXIT_SCHEMA, f"invalid candidate job input key: {key!r}")
+    normalized_inputs = _normalize_job_inputs(profile, inputs)
+    if profile == "testimony-static/v1":
+        settings = _require_exact_keys(
+            job["settings"],
+            PROFILE_CONTRACTS[profile]["settings_keys"],
+            "candidate job.settings",
+        )
+        if (
+            settings["style"] != "center"
+            or settings["restore_audio_edit"] is not True
+            or settings["video_track_timescale"] != 15360
+        ):
+            _fail(EXIT_SCHEMA, "candidate testimony settings differ from the renderer contract")
+        _require_positive_int(
+            settings["movie_timescale"], "candidate job.settings.movie_timescale"
+        )
+    else:
+        _validate_settings(job, normalized_inputs)
+
+    output = _require_exact_keys(job["output"], OUTPUT_KEYS, "candidate job.output")
+    filename = _require_nonempty_string(output["filename"], "candidate job.output.filename")
+    thumbnail_filename = _require_nonempty_string(
+        output["thumbnail_filename"], "candidate job.output.thumbnail_filename"
+    )
+    if not OUTPUT_FILENAME_RE.fullmatch(filename):
+        _fail(EXIT_SCHEMA, "candidate job.output.filename must be a safe .mp4 basename")
+    if not THUMBNAIL_FILENAME_RE.fullmatch(thumbnail_filename):
+        _fail(
+            EXIT_SCHEMA,
+            "candidate job.output.thumbnail_filename must be a safe .jpg/.jpeg/.png basename",
+        )
+    sequence_prefix = f"{episode['sequence']:02d}_"
+    if not filename.startswith(sequence_prefix) or not thumbnail_filename.startswith(sequence_prefix):
+        _fail(EXIT_SCHEMA, "candidate output filenames must start with the episode sequence")
+    if (
+        output["container"] != "mp4"
+        or output["audio_codec"] != "aac"
+        or output["audio_profile"] != "LC"
+    ):
+        _fail(EXIT_SCHEMA, "candidate output must be MP4 with AAC-LC audio")
+    _require_positive_int(output["frame_count"], "candidate job.output.frame_count")
+    return job, normalized_inputs
+
+
+def _validate_candidate_source_bundle(
+    raw_bundle: Any,
+    run_root: Path,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Path], dict[Path, str]]:
+    bundle = _require_exact_keys(raw_bundle, SOURCE_BUNDLE_KEYS, "candidate source bundle")
+    if bundle["schema"] != CANDIDATE_SOURCE_BUNDLE_SCHEMA:
+        _fail(EXIT_SCHEMA, f"invalid candidate source bundle schema: {bundle['schema']!r}")
+    if bundle["release_id"] != PROJECT_RELEASE_ID:
+        _fail(EXIT_SCHEMA, "candidate source bundle release_id does not match base release")
+    if bundle["storage_layout"] != "objects/sha256/<prefix>/<digest-rest>":
+        _fail(EXIT_SCHEMA, "candidate source bundle storage_layout is not canonical")
+    raw_objects = bundle["objects"]
+    if type(raw_objects) is not dict or not raw_objects:
+        _fail(EXIT_SCHEMA, "candidate source bundle objects must be a non-empty object")
+
+    object_map: dict[str, dict[str, Any]] = {}
+    expected_relative_paths: set[str] = set()
+    for object_id, raw_entry in raw_objects.items():
+        match = OBJECT_ID_RE.fullmatch(object_id)
+        if match is None:
+            _fail(EXIT_SCHEMA, f"invalid candidate source object id: {object_id!r}")
+        entry = _require_exact_keys(
+            raw_entry, SOURCE_OBJECT_KEYS, f"candidate source bundle object {object_id}"
+        )
+        digest = _require_sha256(
+            entry["sha256"], f"candidate source bundle object {object_id}.sha256"
+        )
+        if digest != match.group(1):
+            _fail(EXIT_SCHEMA, f"candidate source object id/SHA mismatch: {object_id}")
+        size = _require_byte_size(
+            entry["size"], f"candidate source bundle object {object_id}.size"
+        )
+        filenames = entry["filenames"]
+        roles = entry["roles"]
+        if type(filenames) is not list or not filenames:
+            _fail(EXIT_SCHEMA, f"candidate source object filenames missing: {object_id}")
+        if type(roles) is not list or not roles:
+            _fail(EXIT_SCHEMA, f"candidate source object roles missing: {object_id}")
+        for index, filename in enumerate(filenames):
+            name = _require_nonempty_string(
+                filename, f"candidate source object {object_id}.filenames[{index}]"
+            )
+            if any(character in name for character in ("/", "\\", "\x00", "\r", "\n")):
+                _fail(EXIT_UNSAFE, f"candidate source object filename is not a basename: {name!r}")
+        for index, role in enumerate(roles):
+            _require_nonempty_string(
+                role, f"candidate source object {object_id}.roles[{index}]"
+            )
+        object_map[object_id] = {
+            "sha256": digest,
+            "size": size,
+            "filenames": filenames,
+            "roles": roles,
+        }
+        expected_relative_paths.add(f"objects/sha256/{digest[:2]}/{digest[2:]}")
+
+    objects_root = run_root / "objects"
+    digest_root = objects_root / "sha256"
+    for path, label in ((objects_root, "candidate objects root"), (digest_root, "candidate SHA-256 root")):
+        _reject_unsafe_symlink_components(path, label)
+        if not os.path.lexists(path) or not path.is_dir():
+            _fail(EXIT_MISSING, f"{label} is missing or not a directory: {path}")
+    root_entries = {entry.name for entry in objects_root.iterdir()}
+    if root_entries != {"sha256"}:
+        _fail(EXIT_UNSAFE, "candidate objects root must contain only the sha256 directory")
+
+    expected_prefixes = {PurePosixPath(relative).parts[2] for relative in expected_relative_paths}
+    actual_prefixes: set[str] = set()
+    actual_relative_paths: set[str] = set()
+    for prefix_path in digest_root.iterdir():
+        if prefix_path.is_symlink() or not prefix_path.is_dir():
+            _fail(EXIT_UNSAFE, f"candidate digest prefix is not a regular directory: {prefix_path}")
+        if re.fullmatch(r"[0-9a-f]{2}", prefix_path.name) is None:
+            _fail(EXIT_UNSAFE, f"invalid candidate digest prefix directory: {prefix_path.name!r}")
+        actual_prefixes.add(prefix_path.name)
+        for object_path in prefix_path.iterdir():
+            if object_path.is_symlink() or not object_path.is_file():
+                _fail(EXIT_UNSAFE, f"candidate source object is not a regular file: {object_path}")
+            if re.fullmatch(r"[0-9a-f]{62}", object_path.name) is None:
+                _fail(EXIT_UNSAFE, f"invalid candidate source object filename: {object_path.name!r}")
+            actual_relative_paths.add(
+                f"objects/sha256/{prefix_path.name}/{object_path.name}"
+            )
+    missing_relative_paths = expected_relative_paths - actual_relative_paths
+    if missing_relative_paths:
+        _fail(
+            EXIT_MISSING,
+            f"candidate source object tree is missing locked objects: {sorted(missing_relative_paths)}",
+        )
+    if actual_prefixes != expected_prefixes or actual_relative_paths != expected_relative_paths:
+        _fail(EXIT_HASH, "candidate source object tree does not exactly match its bundle lock")
+
+    object_paths: dict[str, Path] = {}
+    stable_hashes: dict[Path, str] = {}
+    for object_id, entry in object_map.items():
+        digest = entry["sha256"]
+        object_path = run_root / "objects" / "sha256" / digest[:2] / digest[2:]
+        _reject_unsafe_symlink_components(object_path, f"candidate source object {object_id}")
+        resolved = object_path.resolve(strict=True)
+        if not _path_within(resolved, run_root):
+            _fail(EXIT_UNSAFE, f"candidate source object escapes run root: {object_id}")
+        data = _read_stable_bytes(resolved, f"candidate source object {object_id}")
+        actual_sha256 = hashlib.sha256(data).hexdigest()
+        if actual_sha256 != digest or len(data) != entry["size"]:
+            _fail(EXIT_HASH, f"candidate source object hash/size mismatch: {object_id}")
+        object_paths[object_id] = resolved
+        stable_hashes[resolved] = actual_sha256
+    return object_map, object_paths, stable_hashes
+
+
+def _validate_candidate_input_reference(
+    raw_reference: Any,
+    label: str,
+    object_map: dict[str, dict[str, Any]],
+) -> str:
+    reference = _require_exact_keys(raw_reference, CANDIDATE_INPUT_REFERENCE_KEYS, label)
+    object_id = _require_nonempty_string(reference["object_id"], f"{label}.object_id")
+    match = OBJECT_ID_RE.fullmatch(object_id)
+    if match is None:
+        _fail(EXIT_SCHEMA, f"{label}.object_id must match sha256:<64hex>")
+    digest = _require_sha256(reference["sha256"], f"{label}.sha256")
+    if digest != match.group(1):
+        _fail(EXIT_SCHEMA, f"{label} object_id/SHA mismatch")
+    size = _require_byte_size(reference["size"], f"{label}.size")
+    original_filename = _require_nonempty_string(
+        reference["original_filename"], f"{label}.original_filename"
+    )
+    if any(
+        character in original_filename
+        for character in ("/", "\\", "\x00", "\r", "\n")
+    ) or original_filename in {".", ".."}:
+        _fail(EXIT_UNSAFE, f"{label}.original_filename must be a safe basename")
+    bundle_entry = object_map.get(object_id)
+    if bundle_entry is None:
+        _fail(EXIT_HASH, f"{label} is missing from the candidate source bundle: {object_id}")
+    if bundle_entry["sha256"] != digest or bundle_entry["size"] != size:
+        _fail(EXIT_HASH, f"{label} metadata does not match the candidate source bundle")
+    return object_id
+
+
+def _validate_candidate_narration_receipt(
+    receipt_path: Path,
+    approvals: dict[str, Any],
+    approved_script_sha256: str,
+    narration_sha256: str,
+) -> None:
+    raw_receipt, _receipt_sha256 = _load_json_with_sha256(
+        receipt_path, "candidate narration receipt"
+    )
+    common_keys = {
+        "schema", "narration_mode", "approved_script_sha256", "result_sha256",
+        "script_approved", "human_approval_receipt", "human_listening_approved",
+    }
+    narration_mode = approvals["narration_mode"]
+    expected_keys = set(common_keys)
+    if narration_mode == "synthesized":
+        expected_keys.update(
+            {
+                "reference_authorized", "public_use_authorized", "provider", "model",
+                "settings", "provenance_receipt",
+            }
+        )
+    receipt = _require_exact_keys(raw_receipt, expected_keys, "candidate narration receipt")
+    if receipt["schema"] != CANDIDATE_NARRATION_SCHEMA:
+        _fail(EXIT_SCHEMA, "candidate narration receipt schema mismatch")
+    if receipt["narration_mode"] != narration_mode:
+        _fail(EXIT_SCHEMA, "candidate narration mode differs between intake and narration receipt")
+    if (
+        _require_sha256(
+            receipt["approved_script_sha256"],
+            "candidate narration receipt.approved_script_sha256",
+        )
+        != approved_script_sha256
+    ):
+        _fail(EXIT_HASH, "candidate narration receipt does not bind the approved script")
+    if (
+        _require_sha256(
+            receipt["result_sha256"], "candidate narration receipt.result_sha256"
+        )
+        != narration_sha256
+    ):
+        _fail(EXIT_HASH, "candidate narration receipt does not bind the narration audio")
+    for key in ("script_approved", "human_approval_receipt", "human_listening_approved"):
+        if receipt[key] is not True or approvals[key] is not True:
+            _fail(EXIT_SCHEMA, f"candidate testimony requires {key}=true")
+    if narration_mode == "synthesized":
+        for key in ("reference_authorized", "public_use_authorized"):
+            if receipt[key] is not True or approvals[key] is not True:
+                _fail(EXIT_SCHEMA, f"synthesized narration requires {key}=true")
+        for key in ("provider", "model", "provenance_receipt"):
+            receipt_value = _require_nonempty_string(
+                receipt[key], f"candidate narration receipt.{key}"
+            )
+            approval_value = _require_nonempty_string(
+                approvals[key], f"candidate intake approvals.{key}"
+            )
+            if receipt_value != approval_value:
+                _fail(EXIT_SCHEMA, f"candidate synthesized narration {key} provenance drift")
+        if type(receipt["settings"]) is not dict or not receipt["settings"]:
+            _fail(EXIT_SCHEMA, "candidate narration receipt.settings must be a non-empty object")
+        if receipt["settings"] != approvals["settings"]:
+            _fail(EXIT_SCHEMA, "candidate synthesized narration settings provenance drift")
+        if (
+            _require_sha256(
+                approvals["result_sha256"], "candidate intake approvals.result_sha256"
+            )
+            != narration_sha256
+        ):
+            _fail(EXIT_HASH, "candidate synthesized approval does not bind narration audio")
+
+
+def _validate_candidate_speech_master_report(
+    report_path: Path,
+    narration_sha256: str,
+) -> None:
+    raw_report, _report_sha256 = _load_json_with_sha256(
+        report_path, "candidate speech-master report"
+    )
+    if type(raw_report) is not dict:
+        _fail(EXIT_SCHEMA, "candidate speech-master report must be an object")
+    if raw_report.get("schema") != "godowon.hymn-letter.speech-master-report/1":
+        _fail(EXIT_SCHEMA, "candidate speech-master report schema mismatch")
+    if raw_report.get("status") != "PASS":
+        _fail(EXIT_SCHEMA, "candidate speech-master report status must be PASS")
+    profile = raw_report.get("profile")
+    if type(profile) is not dict or profile.get("id") != "hymn-letter-speech-master-v1":
+        _fail(EXIT_SCHEMA, "candidate speech-master report profile mismatch")
+    output = profile.get("output")
+    if type(output) is not dict or any(
+        output.get(key) != value
+        for key, value in {
+            "container": "M4A",
+            "codec": "AAC-LC",
+            "sample_rate": 48000,
+            "channels": 2,
+            "bitrate": "192k",
+        }.items()
+    ):
+        _fail(EXIT_SCHEMA, "candidate speech-master output profile mismatch")
+    qc = raw_report.get("qc")
+    if type(qc) is not dict or qc.get("pass") is not True:
+        _fail(EXIT_SCHEMA, "candidate speech-master QC must pass")
+    artifacts = raw_report.get("artifacts")
+    output_artifact = artifacts.get("output") if type(artifacts) is dict else None
+    if type(output_artifact) is not dict:
+        _fail(EXIT_SCHEMA, "candidate speech-master output artifact is missing")
+    if (
+        _require_sha256(
+            output_artifact.get("sha256"),
+            "candidate speech-master report.artifacts.output.sha256",
+        )
+        != narration_sha256
+    ):
+        _fail(EXIT_HASH, "candidate speech-master report does not bind narration audio")
+
+
+def _validate_candidate_intake_receipt(
+    raw_intake: Any,
+    episode: dict[str, Any],
+    base_release: dict[str, Any],
+    job: dict[str, Any],
+    job_inputs: dict[str, list[str]],
+    object_map: dict[str, dict[str, Any]],
+    object_paths: dict[str, Path],
+    catalog_sha256: str,
+    catalog_tracks: dict[int, dict[str, Any]],
+) -> dict[str, Any]:
+    intake = _require_exact_keys(raw_intake, CANDIDATE_INTAKE_KEYS, "candidate intake receipt")
+    if intake["schema"] != CANDIDATE_INTAKE_SCHEMA:
+        _fail(EXIT_SCHEMA, "candidate intake receipt schema mismatch")
+    if intake["status"] != CANDIDATE_STATUS:
+        _fail(EXIT_UNSUPPORTED, "candidate intake receipt status is not CANDIDATE_UNAPPROVED")
+    if intake["series_name"] != CANDIDATE_SERIES:
+        _fail(EXIT_SCHEMA, "candidate intake receipt series_name mismatch")
+    if intake["base_release"] != base_release:
+        _fail(EXIT_HASH, "candidate intake receipt base release binding mismatch")
+    if intake["episode"] != episode:
+        _fail(EXIT_SCHEMA, "candidate intake receipt episode binding mismatch")
+
+    expected_input_keys = (
+        {
+            "approved_script", "narration_audio", "captions", "backplate", "thumbnail",
+            "font", "narration_receipt", "speech_master_report",
+        }
+        if episode["profile"] == "testimony-static/v1"
+        else {"audio", "captions", "backplate", "thumbnail", "font"}
+    )
+    inputs = _require_exact_keys(intake["inputs"], expected_input_keys, "candidate intake inputs")
+    intake_object_ids = {
+        key: _validate_candidate_input_reference(
+            inputs[key], f"candidate intake inputs.{key}", object_map
+        )
+        for key in sorted(expected_input_keys)
+    }
+    job_to_intake = {
+        "audio": "narration_audio" if episode["profile"] == "testimony-static/v1" else "audio",
+        "captions": "captions",
+        "backplate": "backplate",
+        "thumbnail": "thumbnail",
+        "font": "font",
+    }
+    for job_key, intake_key in job_to_intake.items():
+        values = job_inputs.get(job_key)
+        if values != [intake_object_ids[intake_key]]:
+            _fail(EXIT_HASH, f"candidate job input {job_key!r} differs from intake receipt")
+
+    approvals = intake["approvals"]
+    if episode["profile"] == "hymn-lyrics/v1":
+        approval = _require_exact_keys(
+            approvals, {"catalog_audio_sha_match"}, "candidate intake approvals"
+        )
+        if approval["catalog_audio_sha_match"] is not True:
+            _fail(EXIT_SCHEMA, "candidate hymn catalog-match assertion must be true")
+    else:
+        if type(approvals) is not dict:
+            _fail(EXIT_SCHEMA, "candidate intake approvals must be an object")
+        narration_mode = approvals.get("narration_mode")
+        common_approval_keys = {
+            "narration_mode", "script_approved", "human_approval_receipt",
+            "human_listening_approved",
+        }
+        expected_approval_keys = set(common_approval_keys)
+        if narration_mode == "synthesized":
+            expected_approval_keys.update(
+                {
+                    "reference_authorized", "public_use_authorized", "provider", "model",
+                    "settings", "provenance_receipt", "result_sha256",
+                }
+            )
+        elif narration_mode != "recorded":
+            _fail(EXIT_SCHEMA, "candidate narration_mode must be recorded or synthesized")
+        approvals = _require_exact_keys(
+            approvals, expected_approval_keys, "candidate intake approvals"
+        )
+        if narration_mode == "synthesized" and (
+            type(approvals["settings"]) is not dict or not approvals["settings"]
+        ):
+            _fail(EXIT_SCHEMA, "candidate synthesized narration settings must be non-empty")
+        script_sha256 = inputs["approved_script"]["sha256"]
+        narration_sha256 = inputs["narration_audio"]["sha256"]
+        _validate_candidate_narration_receipt(
+            object_paths[intake_object_ids["narration_receipt"]],
+            approvals,
+            script_sha256,
+            narration_sha256,
+        )
+        _validate_candidate_speech_master_report(
+            object_paths[intake_object_ids["speech_master_report"]], narration_sha256
+        )
+
+    probe = _require_exact_keys(intake["probe"], CANDIDATE_PROBE_KEYS, "candidate intake probe")
+    _require_sha256(probe["ffprobe_sha256"], "candidate intake probe.ffprobe_sha256")
+    _require_nonempty_string(probe["ffprobe_version"], "candidate intake probe.ffprobe_version")
+    audio_probe = _require_exact_keys(
+        probe["audio"], CANDIDATE_AUDIO_PROBE_KEYS, "candidate intake probe.audio"
+    )
+    codec_name = _require_nonempty_string(
+        audio_probe["codec_name"], "candidate intake probe.audio.codec_name"
+    ).lower()
+    profile = _require_nonempty_string(
+        audio_probe["profile"], "candidate intake probe.audio.profile"
+    )
+    sample_rate = _require_positive_int(
+        audio_probe["sample_rate"], "candidate intake probe.audio.sample_rate"
+    )
+    channels = _require_positive_int(
+        audio_probe["channels"], "candidate intake probe.audio.channels"
+    )
+    duration_ms = _require_positive_int(
+        audio_probe["duration_ms"], "candidate intake probe.audio.duration_ms"
+    )
+    render_frame_count = _require_positive_int(
+        audio_probe["render_frame_count"],
+        "candidate intake probe.audio.render_frame_count",
+    )
+    if render_frame_count != job["output"]["frame_count"]:
+        _fail(
+            EXIT_SCHEMA,
+            "candidate job output frame_count does not match the intake audio probe",
+        )
+    movie_timescale = audio_probe["movie_timescale"]
+    if episode["profile"] == "testimony-static/v1":
+        if codec_name != "aac" or profile.upper() not in {"LC", "AAC LC", "LOW COMPLEXITY"}:
+            _fail(EXIT_SCHEMA, "candidate testimony narration must be AAC-LC")
+        if sample_rate != 48000 or channels != 2:
+            _fail(EXIT_SCHEMA, "candidate testimony narration must be stereo 48 kHz")
+        probe_movie_timescale = _require_positive_int(
+            movie_timescale, "candidate intake probe.audio.movie_timescale"
+        )
+        if probe_movie_timescale != job["settings"]["movie_timescale"]:
+            _fail(
+                EXIT_SCHEMA,
+                "candidate testimony job movie_timescale does not match the audio probe",
+            )
+    else:
+        if codec_name != "mp3" or sample_rate != 44100 or channels != 2:
+            _fail(EXIT_SCHEMA, "candidate hymn audio must be stereo MP3 at 44.1 kHz")
+        if movie_timescale is not None:
+            _fail(EXIT_SCHEMA, "candidate hymn audio probe.movie_timescale must be null")
+    caption_probe = _require_exact_keys(
+        probe["captions"], CANDIDATE_CAPTION_PROBE_KEYS, "candidate intake probe.captions"
+    )
+    _require_positive_int(caption_probe["cue_count"], "candidate intake probe.captions.cue_count")
+    last_end_ms = _require_positive_int(
+        caption_probe["last_end_ms"], "candidate intake probe.captions.last_end_ms"
+    )
+    if last_end_ms > duration_ms:
+        _fail(EXIT_SCHEMA, "candidate captions extend beyond the approved audio")
+
+    catalog = _require_exact_keys(
+        intake["catalog"], CANDIDATE_CATALOG_KEYS, "candidate intake catalog"
+    )
+    if catalog["schema"] != CANDIDATE_CATALOG_SCHEMA:
+        _fail(EXIT_SCHEMA, "candidate intake catalog schema mismatch")
+    receipt_catalog_sha256 = _require_sha256(
+        catalog["sha256"], "candidate intake catalog.sha256"
+    )
+    if receipt_catalog_sha256 != catalog_sha256:
+        _fail(EXIT_HASH, "candidate intake catalog SHA does not match the immutable catalog")
+    expected_track_sequence = (
+        episode["sequence"] + 1
+        if episode["profile"] == "testimony-static/v1"
+        else episode["sequence"]
+    )
+    if catalog["track_sequence"] != expected_track_sequence:
+        _fail(EXIT_SCHEMA, "candidate intake catalog track_sequence parity mismatch")
+    approved_track = catalog_tracks.get(expected_track_sequence)
+    if approved_track is None:
+        _fail(EXIT_UNSUPPORTED, "candidate intake references an unregistered catalog track")
+    if (
+        episode["hymn_number"] != approved_track["hymn_number"]
+        or episode["title"] != approved_track["title"]
+    ):
+        _fail(EXIT_HASH, "candidate episode hymn number/title differs from approved track")
+    if episode["profile"] == "hymn-lyrics/v1":
+        if intake_object_ids["audio"] != approved_track["audio_object_id"]:
+            _fail(EXIT_HASH, "candidate hymn audio object differs from approved track")
+        if intake_object_ids["captions"] != approved_track["captions_object_id"]:
+            _fail(EXIT_HASH, "candidate hymn captions object differs from approved track")
+        if job["output"]["frame_count"] != approved_track["frame_count"]:
+            _fail(EXIT_HASH, "candidate hymn frame count differs from approved track")
+    return approved_track
+
+
+def validate_candidate(run_root_argument: Path) -> dict[str, Any]:
+    raw_run_root = _require_absolute_path(str(run_root_argument), "candidate run root")
+    run_root = _normalize_existing_directory(raw_run_root, "candidate run root")
+    lock_path = run_root / "candidate.lock.json"
+    _reject_unsafe_symlink_components(lock_path, "candidate lock")
+    if not os.path.lexists(lock_path):
+        _fail(EXIT_MISSING, f"candidate lock does not exist: {lock_path}")
+    resolved_lock_path = lock_path.resolve(strict=True)
+    if not _path_within(resolved_lock_path, run_root) or not resolved_lock_path.is_file():
+        _fail(EXIT_UNSAFE, "candidate lock must be a regular file inside the run root")
+    raw_lock, lock_sha256 = _load_json_with_sha256(resolved_lock_path, "candidate lock")
+    lock = _require_exact_keys(raw_lock, CANDIDATE_LOCK_KEYS, "candidate lock")
+    if lock["schema"] != CANDIDATE_LOCK_SCHEMA:
+        _fail(EXIT_SCHEMA, f"invalid candidate lock schema: {lock['schema']!r}")
+    if lock["status"] != CANDIDATE_STATUS:
+        _fail(EXIT_UNSUPPORTED, "candidate lock status is not CANDIDATE_UNAPPROVED")
+    if lock["series_name"] != CANDIDATE_SERIES:
+        _fail(EXIT_SCHEMA, "candidate lock series_name mismatch")
+    base_release = _require_exact_keys(
+        lock["base_release"], CANDIDATE_BASE_RELEASE_KEYS, "candidate base release"
+    )
+    if (
+        base_release["release_id"] != PROJECT_RELEASE_ID
+        or base_release["release_lock_sha256"] != PROJECT_RELEASE_SHA256
+    ):
+        _fail(EXIT_HASH, "candidate base release does not match the compiled v4 trust anchor")
+
+    episode = _require_exact_keys(
+        lock["episode"], CANDIDATE_EPISODE_KEYS, "candidate episode"
+    )
+    expected_kind, expected_profile = _candidate_sequence_contract(episode["sequence"])
+    episode_id = _require_nonempty_string(episode["episode_id"], "candidate episode.episode_id")
+    if not EPISODE_ID_RE.fullmatch(episode_id):
+        _fail(EXIT_SCHEMA, f"invalid candidate episode_id: {episode_id!r}")
+    if not episode_id.startswith(f"{episode['sequence']:02d}-"):
+        _fail(EXIT_SCHEMA, "candidate episode_id prefix does not match sequence")
+    if episode["kind"] != expected_kind or episode["profile"] != expected_profile:
+        _fail(EXIT_UNSUPPORTED, "candidate episode kind/profile does not match registered sequence parity")
+    _require_positive_int(episode["hymn_number"], "candidate episode.hymn_number")
+    _require_nonempty_string(episode["title"], "candidate episode.title")
+
+    catalog_path, catalog_sha256, catalog_tracks = _load_candidate_track_catalog()
+
+    resolved_references: dict[str, tuple[Path, str, Any]] = {}
+    for key in ("job", "source_bundle", "intake_receipt"):
+        resolved_references[key] = _resolve_candidate_json_reference(
+            run_root, lock[key], f"candidate {key.replace('_', ' ')}"
+        )
+    reference_paths = [item[0] for item in resolved_references.values()]
+    if len(set(reference_paths)) != len(reference_paths) or resolved_lock_path in reference_paths:
+        _fail(EXIT_SCHEMA, "candidate lock references must identify distinct JSON files")
+
+    job_path, job_sha256, raw_job = resolved_references["job"]
+    bundle_path, bundle_sha256, raw_bundle = resolved_references["source_bundle"]
+    intake_path, intake_sha256, raw_intake = resolved_references["intake_receipt"]
+    job, normalized_inputs = _validate_candidate_job(raw_job, episode)
+    object_map, object_paths, stable_object_hashes = _validate_candidate_source_bundle(
+        raw_bundle, run_root
+    )
+    for input_key, object_ids in normalized_inputs.items():
+        for object_id in object_ids:
+            if object_id not in object_map:
+                _fail(
+                    EXIT_HASH,
+                    f"candidate job input {input_key!r} references missing object: {object_id}",
+                )
+    approved_track = _validate_candidate_intake_receipt(
+        raw_intake,
+        episode,
+        base_release,
+        job,
+        normalized_inputs,
+        object_map,
+        object_paths,
+        catalog_sha256,
+        catalog_tracks,
+    )
+
+    stable_hashes = {
+        resolved_lock_path: lock_sha256,
+        job_path: job_sha256,
+        bundle_path: bundle_sha256,
+        intake_path: intake_sha256,
+        catalog_path: catalog_sha256,
+        **stable_object_hashes,
+    }
+    for path, expected_sha256 in stable_hashes.items():
+        if _sha256_file(path) != expected_sha256:
+            _fail(EXIT_UNSAFE, f"candidate graph changed during validation: {path}")
+
+    return {
+        "command": "validate-candidate",
+        "status": "ok",
+        "candidate_status": CANDIDATE_STATUS,
+        "series_name": CANDIDATE_SERIES,
+        "episode_id": episode_id,
+        "sequence": episode["sequence"],
+        "kind": episode["kind"],
+        "profile": episode["profile"],
+        "candidate_lock": str(resolved_lock_path),
+        "candidate_lock_sha256": lock_sha256,
+        "job_sha256": job_sha256,
+        "source_bundle_sha256": bundle_sha256,
+        "intake_receipt_sha256": intake_sha256,
+        "catalog_sha256": catalog_sha256,
+        "catalog_track_sequence": approved_track["sequence"],
+        "expected_pcm_f32le_sha256": approved_track["pcm_f32le_sha256"],
+        "approved_frame_count": approved_track["frame_count"],
+        "verified_object_count": len(object_map),
+        "execution_authorized": False,
+    }
 
 
 def _load_job(job_argument: Path, release_path: Path, release_hash: str, release: dict[str, Any]) -> tuple[Path, str, dict[str, Any]]:
@@ -3080,6 +3856,9 @@ def _build_parser() -> argparse.ArgumentParser:
     validate_parser.add_argument("--job", required=True, type=Path)
     validate_parser.add_argument("--release", required=True, type=Path)
 
+    candidate_parser = subparsers.add_parser("validate-candidate")
+    candidate_parser.add_argument("--run-root", required=True, type=Path)
+
     verify_parser = subparsers.add_parser("verify-source-bundle")
     verify_parser.add_argument("--job", required=True, type=Path)
     verify_parser.add_argument("--release", required=True, type=Path)
@@ -3132,6 +3911,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "validate-job":
             result = validate_job(args.job, args.release)
+        elif args.command == "validate-candidate":
+            result = validate_candidate(args.run_root)
         elif args.command == "verify-source-bundle":
             result, _state = verify_source_bundle(args.job, args.release, args.source_root)
         elif args.command == "verify-upload-ready":

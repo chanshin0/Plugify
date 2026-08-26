@@ -20,6 +20,7 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
 
 - Read [references/workflow.md](references/workflow.md) for any production, review, package, or delivery task.
 - For the portable v3 path, read [references/job-manifest.v2.schema.json](references/job-manifest.v2.schema.json), [references/episode-inventory.v2.json](references/episode-inventory.v2.json), [references/source-bundle.schema.json](references/source-bundle.schema.json), [references/release-lock.schema.json](references/release-lock.schema.json), and [references/run-receipt.schema.json](references/run-receipt.schema.json). The Plugify filenames stay the same, but the actual producer schemas are office-native: `godowon.hymn-letter.v3-job/1`, `godowon.hymn-letter.v3-release-lock/1`, and `godowon.hymn-letter.source-bundle/1`. `run-receipt.schema.json` describes only the Plugify invocation wrapper `plugify.hymn-letter.run-receipt/1`; it does not replace the office-native render/QC receipt schemas `godowon.hymn-letter.v3-render-receipt/1` and `godowon.hymn-letter.v3-qc-receipt/1`.
+- For an unapproved 07–26 episode candidate, also read [references/candidate-lock.schema.json](references/candidate-lock.schema.json), [references/candidate-job.schema.json](references/candidate-job.schema.json), [references/candidate-intake.schema.json](references/candidate-intake.schema.json), [references/candidate-source-bundle.schema.json](references/candidate-source-bundle.schema.json), and the immutable [references/hymn-letter-track-catalog.v1.json](references/hymn-letter-track-catalog.v1.json). This is a separate, read-only admission contract; it does not extend or rewrite the production v4 release.
 - Keep [references/job-manifest.schema.json](references/job-manifest.schema.json) and [references/episode-inventory.json](references/episode-inventory.json) only for the historical v1 primitive path and already-built legacy review packages.
 - Read [references/qc-contract.md](references/qc-contract.md) before rendering, reviewing, promoting, or packaging media.
 - Read [references/authority-boundaries.md](references/authority-boundaries.md) before any render execution or external mutation.
@@ -42,15 +43,16 @@ Only these profiles may appear in a portable v3 job:
 - `testimony-static/v1`: sequences 03 and 05, MP4 + AAC-LC; approved AAC-LC stream copy.
 - `hymn-lyrics/v1`: sequences 04 and 06, MP4 + AAC-LC; approved standalone MP3 → AAC-LC 256k.
 
-The current v3 inventory is deliberately narrow: `01-start`, `02-playlist`, `03-491-testimony`, `04-491-hymn`, `05-370-testimony`, and `06-370-hymn`. Adding another episode still requires an approved inventory update, a new inventory hash, and regression validation.
+The current v3 production inventory is deliberately narrow: `01-start`, `02-playlist`, `03-491-testimony`, `04-491-hymn`, `05-370-testimony`, and `06-370-hymn`. Adding another episode to that production release still requires an approved inventory update, a new inventory hash, and regression validation. The separate 07–26 `validate-candidate` path does not add an episode to that release or bypass this gate.
 
 ## Operating workflow
 
 1. Confirm that the request belongs to this 26-video project and identify the exact episode kind/profile.
 2. Inventory approved inputs and ask only for missing human-owned choices or authority. Do not ask the user to perform routine checks the CLI can perform.
 3. Create a manifest with the exact schema, hash every input, and run `validate-job`.
+   For a prepared 07–26 run, run `validate-candidate --run-root` instead. It admits only `CANDIDATE_UNAPPROVED`, exact-binds the current v4 base release, job, intake receipt, and complete content-addressed object tree, and never grants render or delivery authority.
 4. For v3 work, verify the content-addressed source bundle and release lock first. The renderer/QC wrapper is portable; the actual office renderer/QC remains tracked in the sibling `godowon-office` repository.
-5. For portable v3, invoke `hymn_video_flow_v3.py render`; it verifies the release, job, content objects, runtime, and tracked office renderer before producing the 30fps raster timeline and final media. Use legacy `build-timeline` only for historical v1 jobs.
+5. For the exact production release, invoke `hymn_video_flow_v3.py render`; it verifies the release, job, content objects, runtime, and tracked office renderer before producing the 30fps raster timeline and final media. Never pass a candidate lock as `--release`; candidate rendering requires its own authorized handoff after read-only admission. Use legacy `build-timeline` only for historical v1 jobs.
 6. Render only with `render.execute` authority and the profile's explicit `audio_policy`, then run the full QC contract against the final muxed H.264 MP4 + AAC-LC.
 7. Require separate automated QC and human visual-review receipts before final promotion.
 8. Run `verify-upload-ready`, then build a new deterministic package from the approved office package plan and run v3 `verify-package`.
@@ -65,6 +67,7 @@ export LANG=C
 export LC_ALL=C
 export LC_CTYPE=C
 python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" validate-job --job /absolute/path/jobs/02_playlist.json --release /absolute/path/release.lock.json
+python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" validate-candidate --run-root /absolute/path/new-candidate-run
 python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" verify-source-bundle --job /absolute/path/jobs/02_playlist.json --release /absolute/path/release.lock.json --source-root /absolute/path/SOURCE_ROOT
 python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" render --job /absolute/path/jobs/02_playlist.json --release /absolute/path/release.lock.json --source-root /absolute/path/SOURCE_ROOT --run-root /absolute/path/new-run --runtime-python "$HYMN_LETTER_RUNTIME_PYTHON"
 python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" qc --job /absolute/path/jobs/02_playlist.json --release /absolute/path/release.lock.json --source-root /absolute/path/SOURCE_ROOT --run-root /absolute/path/run-root --gate semantic-equivalent --runtime-python "$HYMN_LETTER_RUNTIME_PYTHON"
@@ -95,6 +98,10 @@ Without QuickTime output capture, codec versus interleave/nearby H.264 keyframe 
 The safe path removes both per-track MP3 trim metadata loss and MOV+MP3 playback risk.
 
 The three legacy v1 commands are low-level primitives. The v3 `render` and `qc` commands do execute the tracked office producer and create hash-bound receipts; neither command grants external delivery authority.
+
+`validate-candidate` is different from every production release command. It is read-only and never invokes a renderer, ffprobe, QC, package builder, or uploader. It pins the immutable track catalog to SHA-256 `676407cca40e2fdbac024400dfbdf8c83867e6e33388dee9507c7c5a5bc7ff72`; the intake `catalog_audio_sha_match` boolean is only a producer assertion. The validator itself binds the paired track sequence, hymn number/title, approved audio and caption object IDs, production PCM anchor, and hymn frame count to that catalog. Every candidate also exact-binds positive `intake.probe.audio.render_frame_count` to `job.output.frame_count`; the office intake preflight remains responsible for deriving that probe value from the real media. A candidate testimony keeps `restore_audio_edit: true` but binds its positive `settings.movie_timescale` to the already-recorded `intake.probe.audio.movie_timescale`; do not copy production 03/05's `384000` onto a fresh M4A. Hymn candidates keep the exact current settings and record probe `movie_timescale: null`. Production `validate-job`, `render`, `qc`, `verify-upload-ready`, `package`, and `verify-package` remain bound to the exact six-episode v4 release and reject a candidate lock passed as `--release`.
+
+The candidate contract now includes one real speech-master-style M4A pre-render observation: it exposed that a fresh file's movie timescale cannot be copied from production 03/05 and must be probe-bound. That is not a completed pair observation. Do not call it production-ready from `validate-candidate` alone: the first real pair must still complete intake preflight, candidate render, semantic QC, human listening/visual approval, and an independent re-render comparison under fresh review. Missing real inputs, visual-asset choice, or voice authority means this observation remains open rather than silently assumed.
 
 ## Authority boundaries
 

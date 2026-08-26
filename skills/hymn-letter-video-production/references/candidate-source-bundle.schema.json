@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plugify.local/schemas/hymn-letter-candidate-source-bundle-v1.json",
+  "title": "Godowon Hymn Letter candidate content-addressed source bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "release_id", "storage_layout", "objects"],
+  "properties": {
+    "schema": {"const": "godowon.hymn-letter.candidate-source-bundle/1"},
+    "release_id": {"const": "hymn-letter-caption-v4-interview-soft-20260826"},
+    "storage_layout": {"const": "objects/sha256/<prefix>/<digest-rest>"},
+    "objects": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "patternProperties": {
+        "^sha256:[0-9a-f]{64}$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sha256", "size", "filenames", "roles"],
+          "properties": {
+            "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "size": {"type": "integer", "minimum": 1},
+            "filenames": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "roles": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    }
+  }
+}

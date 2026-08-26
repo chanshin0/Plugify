@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plugify.local/schemas/hymn-letter-candidate-job-v1.json",
+  "title": "Godowon Hymn Letter renderer-compatible candidate job",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "release_id", "episode_id", "profile", "inputs", "settings", "output"],
+  "properties": {
+    "schema": {"const": "godowon.hymn-letter.v3-job/1"},
+    "release_id": {"const": "hymn-letter-caption-v4-interview-soft-20260826"},
+    "episode_id": {"type": "string", "pattern": "^(0[7-9]|1[0-9]|2[0-6])-[a-z0-9][a-z0-9-]*$"},
+    "profile": {"enum": ["testimony-static/v1", "hymn-lyrics/v1"]},
+    "inputs": {"type": "object"},
+    "settings": {"type": "object"},
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"],
+      "properties": {
+        "filename": {"type": "string", "pattern": "^[^/\\\\\\u0000\\r\\n]{1,176}\\.mp4$"},
+        "thumbnail_filename": {"type": "string", "pattern": "^[^/\\\\\\u0000\\r\\n]{1,176}\\.(jpg|jpeg|png)$"},
+        "container": {"const": "mp4"},
+        "audio_codec": {"const": "aac"},
+        "audio_profile": {"const": "LC"},
+        "frame_count": {"type": "integer", "minimum": 1}
+      }
+    }
+  },
+  "$defs": {
+    "object_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "common_inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["audio_policy", "backplate", "audio", "captions", "font", "thumbnail"],
+      "properties": {
+        "audio_policy": {"type": "string"},
+        "backplate": {"$ref": "#/$defs/object_id"},
+        "audio": {"$ref": "#/$defs/object_id"},
+        "captions": {"$ref": "#/$defs/object_id"},
+        "font": {"$ref": "#/$defs/object_id"},
+        "thumbnail": {"$ref": "#/$defs/object_id"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"profile": {"const": "testimony-static/v1"}}, "required": ["profile"]},
+      "then": {
+        "properties": {
+          "inputs": {
+            "allOf": [
+              {"$ref": "#/$defs/common_inputs"},
+              {"properties": {"audio_policy": {"const": "stream-copy-approved-aac/v1"}}}
+            ]
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["style", "restore_audio_edit", "movie_timescale", "video_track_timescale"],
+            "properties": {
+              "style": {"const": "center"},
+              "restore_audio_edit": {"const": true},
+              "movie_timescale": {"type": "integer", "minimum": 1},
+              "video_track_timescale": {"const": 15360}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"profile": {"const": "hymn-lyrics/v1"}}, "required": ["profile"]},
+      "then": {
+        "properties": {
+          "inputs": {
+            "allOf": [
+              {"$ref": "#/$defs/common_inputs"},
+              {"properties": {"audio_policy": {"const": "approved-mp3-to-aac-lc-256k/v1"}}}
+            ]
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["style", "movie_timescale", "video_track_timescale"],
+            "properties": {
+              "style": {"const": "center"},
+              "movie_timescale": {"const": 44100},
+              "video_track_timescale": {"const": 15360}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

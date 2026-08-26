@@ -1,0 +1,113 @@
+{
+  "schema": "godowon.hymn-letter.track-catalog/1",
+  "series_name": "'고도원의 찬송편지'",
+  "base_release": {
+    "release_id": "hymn-letter-caption-v4-interview-soft-20260826",
+    "release_lock_sha256": "24867e11a54c33f69005ed7b033f3996200597697fa99657bb4764ea9ddff7e6",
+    "playlist_job_path": "jobs/02_playlist.json",
+    "playlist_job_sha256": "f7ca7704a6e89ca3b5d3756447d3a73f8a9ff1baab44b627e6dd3afd32b2d226",
+    "source_bundle_lock_sha256": "9ff852c1c48f9b7d8b3656f35ac8a3589d6739f971eb702078aafaec242c3eb1"
+  },
+  "tracks": [
+    {
+      "sequence": 8,
+      "hymn_number": 387,
+      "title": "멀리멀리 갔더니",
+      "audio_object_id": "sha256:29c6d3c7b55dd620d10c162a15246e68225c0ebe8a93f41d50a25a2e395dea01",
+      "captions_object_id": "sha256:721671589e3a4da1e1219115e903a8ed800ee81e8ee8411d6b777781d295f462",
+      "samples": 9024624,
+      "pcm_f32le_sha256": "adc913656cda1e9d39959896368c72b33e2a2f25a42e34a321bd37ee2459ffc2",
+      "frame_count": 6140
+    },
+    {
+      "sequence": 10,
+      "hymn_number": 438,
+      "title": "내 영혼이 은총 입어",
+      "audio_object_id": "sha256:f0e32b97aab7b1472d023dc28d01c12498a0a0325648a28b6a588c068a5942b0",
+      "captions_object_id": "sha256:b79b1b1eb185cf060079cdb55427f3c5165b708dfd426af09757b6269c8ca467",
+      "samples": 8745912,
+      "pcm_f32le_sha256": "8192251ddbb406f422ea15522d063699dde56c2986f5b4c824b4fabb0018696a",
+      "frame_count": 5950
+    },
+    {
+      "sequence": 12,
+      "hymn_number": 458,
+      "title": "너희 마음에 슬픔이 가득 차도",
+      "audio_object_id": "sha256:fca17781cab226d1be2989ed24958d3773666d18fbbf485c226747957b9dd41e",
+      "captions_object_id": "sha256:a8ee314a5e050bd55281f1136487e91c433a8eb520752387e2f5a1740c326a1d",
+      "samples": 8148798,
+      "pcm_f32le_sha256": "3112d455f4377839542be1c30694402be54225ad694661b46715024155747a0b",
+      "frame_count": 5544
+    },
+    {
+      "sequence": 14,
+      "hymn_number": 490,
+      "title": "주여 지난 밤 내 꿈에",
+      "audio_object_id": "sha256:c77ba5ec4a65dcbad6aa0f1090f82e41410293276dba3a738210d85a1aa0f1e9",
+      "captions_object_id": "sha256:0b7131bc17045e92f994c623e97da8ab3006c2f0ed60df6bcc1a8dffa3205718",
+      "samples": 9336852,
+      "pcm_f32le_sha256": "d551ce8dd85993de2d61f78f7ed074a40367ae6ff5654230d6956b41e0b0693e",
+      "frame_count": 6352
+    },
+    {
+      "sequence": 16,
+      "hymn_number": 439,
+      "title": "십자가로 가까이",
+      "audio_object_id": "sha256:5553c9ddb41ec9085cefe84b94fd6a5b4ff70bfe241324b670968aa2fff032b7",
+      "captions_object_id": "sha256:c2c2ff652a8fc2c7436f7a5d0a7d89f7246482028793789b206f854aa04810a7",
+      "samples": 10984428,
+      "pcm_f32le_sha256": "3c9c2f5f19d47f4eec55df50dbdbe3efa5520e7eff4f45d3a5c705d4d39ddb44",
+      "frame_count": 7473
+    },
+    {
+      "sequence": 18,
+      "hymn_number": 540,
+      "title": "주의 음성을 내가 들으니",
+      "audio_object_id": "sha256:855b9a8771a9d9603abe14ac9289633b14c7909e83e92ffea86416b81886d12b",
+      "captions_object_id": "sha256:b82a8d1552297457cd0a5cc9178b70e47ae6a2fc53480545dcdf99157e4387d0",
+      "samples": 9296280,
+      "pcm_f32le_sha256": "a7bc445567c09f882624b779555a1f4173b27e30c264a006d359905ee906f434",
+      "frame_count": 6324
+    },
+    {
+      "sequence": 20,
+      "hymn_number": 394,
+      "title": "이 세상의 친구들",
+      "audio_object_id": "sha256:9b499e70956a05ba2e928fbe8ddb321ba246d3da9a4511fcd2c361a57aaa5a5a",
+      "captions_object_id": "sha256:d54b24fd12d121aa2dbbe57b36489e0b1ee2bd96da03eae399a959136c743ccb",
+      "samples": 7821576,
+      "pcm_f32le_sha256": "42d0bc4720f8f1c1f73689c6bee42fe134f668cb8af08fe370d71b7b84ad9a87",
+      "frame_count": 5321
+    },
+    {
+      "sequence": 22,
+      "hymn_number": 382,
+      "title": "너 근심 걱정 말아라",
+      "audio_object_id": "sha256:a43cc3bde88fa08cd16f5edd228879ac956f82599a4146fe979fa5b8974a2552",
+      "captions_object_id": "sha256:beb869dac5c57c686f953f7300bb81a1fad3859d35eb134a170327a4b29421c3",
+      "samples": 10143882,
+      "pcm_f32le_sha256": "07d3ad1465f82b004de2fedbaf098d47d7b16e802185b4c3502891cddde35062",
+      "frame_count": 6901
+    },
+    {
+      "sequence": 24,
+      "hymn_number": 386,
+      "title": "만세반석 열린 곳에",
+      "audio_object_id": "sha256:93a210daad487d85a22161a5a9949ddd73ec31ed1c2fc0e3c443ca31626f3fc0",
+      "captions_object_id": "sha256:aee10fd8017a4a9c75056edc7182ffff3e4d22ae76e357486481ade9496ff6b1",
+      "samples": 10369674,
+      "pcm_f32le_sha256": "6b6812d6c0b3e2d20f68f553f35d34ff315156730af6d83c6bfe23eb5676b927",
+      "frame_count": 7055
+    },
+    {
+      "sequence": 26,
+      "hymn_number": 606,
+      "title": "날빛보다 더 밝은 천국",
+      "audio_object_id": "sha256:5a6c2d45907191654ca4481f28d70012ee24cad7b4933ca947258ecdfce5b4a0",
+      "captions_object_id": "sha256:29560bc38e1767dc193bf95beea6b6afd0b7a0c4d1b9000ec4d58f127de88760",
+      "samples": 10063872,
+      "pcm_f32le_sha256": "70c695311746b26f2d35d1e8e4091ab51a47ee7074d7c432a9e70316d157a556",
+      "frame_count": 6847
+    }
+  ]
+}

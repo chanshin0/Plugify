@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plugify.local/schemas/hymn-letter-candidate-lock-v1.json",
+  "title": "Godowon Hymn Letter unapproved episode candidate lock",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "series_name",
+    "base_release",
+    "episode",
+    "job",
+    "source_bundle",
+    "intake_receipt"
+  ],
+  "properties": {
+    "schema": {"const": "godowon.hymn-letter.candidate-lock/1"},
+    "status": {"const": "CANDIDATE_UNAPPROVED"},
+    "series_name": {"const": "'고도원의 찬송편지'"},
+    "base_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["release_id", "release_lock_sha256"],
+      "properties": {
+        "release_id": {"const": "hymn-letter-caption-v4-interview-soft-20260826"},
+        "release_lock_sha256": {"const": "24867e11a54c33f69005ed7b033f3996200597697fa99657bb4764ea9ddff7e6"}
+      }
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "episode_id", "kind", "profile", "hymn_number", "title"],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 7, "maximum": 26},
+        "episode_id": {"type": "string", "pattern": "^[0-9]{2}-[a-z0-9][a-z0-9-]*$"},
+        "kind": {"enum": ["testimony_intro", "hymn_lyrics"]},
+        "profile": {"enum": ["testimony-static/v1", "hymn-lyrics/v1"]},
+        "hymn_number": {"type": "integer", "minimum": 1},
+        "title": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"sequence": {"enum": [7, 9, 11, 13, 15, 17, 19, 21, 23, 25]}}, "required": ["sequence"]},
+          "then": {"properties": {"kind": {"const": "testimony_intro"}, "profile": {"const": "testimony-static/v1"}}}
+        },
+        {
+          "if": {"properties": {"sequence": {"enum": [8, 10, 12, 14, 16, 18, 20, 22, 24, 26]}}, "required": ["sequence"]},
+          "then": {"properties": {"kind": {"const": "hymn_lyrics"}, "profile": {"const": "hymn-lyrics/v1"}}}
+        }
+      ]
+    },
+    "job": {"$ref": "#/$defs/relative_sha_reference"},
+    "source_bundle": {"$ref": "#/$defs/relative_sha_reference"},
+    "intake_receipt": {"$ref": "#/$defs/relative_sha_reference"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "relative_sha_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000\\r\\n]+$"
+        },
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

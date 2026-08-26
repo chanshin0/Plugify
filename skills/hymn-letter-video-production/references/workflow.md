@@ -97,6 +97,28 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" validate-job \
   --release /absolute/path/release.lock.json
 ```
 
+### `validate-candidate` (07–26, read-only)
+
+후속 회차는 production v4 release를 바꾸지 않고 별도 candidate run root로 받는다.
+
+```bash
+python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" validate-candidate \
+  --run-root /absolute/path/new-candidate-run
+```
+
+run root의 `candidate.lock.json`은 `godowon.hymn-letter.candidate-lock/1` exact shape이며 다음을 잠근다.
+
+- `status: CANDIDATE_UNAPPROVED`와 ASCII 작은따옴표까지 포함한 `series_name: '고도원의 찬송편지'`;
+- current v4 `release_id`와 compiled release SHA;
+- 07–26 sequence, sequence와 같은 두 자리 episode ID prefix, 홀수 간증/짝수 찬송의 kind/profile parity;
+- run-root-relative job, candidate source bundle, intake receipt path와 각 exact SHA.
+
+validator는 모든 manifest를 stable-read하고 symlink·`..`·run-root escape를 거부한다. `objects/sha256/<prefix>/<digest-rest>` 트리는 bundle의 exact object set이어야 하며 모든 파일의 SHA와 size를 다시 계산한다. job은 current renderer가 실제 받는 두 profile만 허용한다. 간증은 speech-master PASS AAC-LC M4A 48 kHz stereo, `style: center`, `restore_audio_edit: true`, `video_track_timescale: 15360`을 고정하되 `movie_timescale`은 실제 M4A probe의 양의 정수와 exact-match한다. production 03·05 job의 `movie_timescale: 384000` 고정은 그대로다. 찬송은 catalog exact-match MP3와 production-exact `hymn-lyrics/v1` 설정을 유지하고 intake probe의 `movie_timescale`은 `null`이어야 한다. intake와 narration receipt의 approved-script/narration SHA, speech-master report, job input object ID가 같은 source object graph에 결속되어야 한다.
+
+후보 카탈로그 정본은 [hymn-letter-track-catalog.v1.json](hymn-letter-track-catalog.v1.json), 고정 SHA-256은 `676407cca40e2fdbac024400dfbdf8c83867e6e33388dee9507c7c5a5bc7ff72`다. `catalog_audio_sha_match: true`는 비권위 producer assertion일 뿐이며, validator는 카탈로그 bytes/SHA와 02 playlist의 samples·PCM SHA를 먼저 고정한 뒤 paired track sequence, episode kind/profile, hymn number/title, exact audio/caption object ID, hymn output frame count를 source graph와 직접 대조한다. 따라서 임의 MP3에 boolean만 붙이거나 intake의 catalog SHA·track metadata를 바꾸어도 통과하지 않는다. 간증편은 다음 짝수 찬송 chapter의 번호·제목·sequence에만 결속하고, 간증 narration/captions를 찬송 MP3/SRT와 같다고 요구하지 않는다. 모든 후보의 positive `probe.audio.render_frame_count`는 `job.output.frame_count`와 exact-match해야 한다. Plugify는 ffprobe를 실행하지 않으므로 두 값을 함께 변조한 경우까지 독립 탐지하지 않으며, 실제 media에서 frame count를 다시 산출하는 office intake preflight가 그 외부 사실성을 책임진다.
+
+이 명령은 renderer·ffprobe·QC·package·upload를 실행하거나 위임하지 않고 `render.execute`도 부여하지 않는다. candidate lock을 production `--release` 자리에 넣으면 `validate-job`, render, QC, upload-ready, package 모두 compiled v4 trust gate에서 거부해야 한다.
+
 portable v3는 source bundle 검증 뒤 office-native contract를 변환 없이 render/QC에 넘긴다. `--runtime-python`은 명시적으로 잠가 wrapper receipt에 경로·SHA·버전을 기록한다.
 
 ```bash
@@ -323,4 +345,4 @@ DRAFT → VALIDATED → INPUTS_LOCKED → RENDER_AUTHORIZED
 - 외부 계정·채널·폴더·수신자 불일치
 - mutation 성공 여부가 불명확함
 
-스킬 출하 후 첫 실제 찬송편지 run은 관찰 대상으로 남긴다. 실제 CLI/QC/remote receipt를 대조하고 fresh review가 누락을 확인해야 공정을 닫는다.
+스킬 출하 후 첫 실제 후속편 한 쌍은 관찰 대상으로 남긴다. 실제 speech-master-style M4A의 pre-render 관찰에서 production 03·05의 `movie_timescale: 384000`을 복사할 수 없다는 점은 확인했고 후보 계약을 probe-bound 값으로 고쳤지만, 이것은 한 쌍의 완주 증거가 아니다. 실제 승인 대본·speech-master AAC-LC 또는 catalog MP3·실제 시각 자산으로 intake preflight → candidate render → semantic QC → 사람 청취/화면 승인 → 독립 재렌더 비교를 완료하고, exact CLI/QC receipt를 대조한 fresh review가 누락을 확인해야 공정을 닫는다. 음성 방식·시각 자산 또는 권한이 미정이면 첫 실전 관찰은 열린 제한사항으로 보고한다.
