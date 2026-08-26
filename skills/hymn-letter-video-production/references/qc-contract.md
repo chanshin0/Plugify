@@ -6,10 +6,10 @@
 
 ## 현재 portable v3 기준선
 
-- tracked release: sibling `godowon-office/godo-hymns/releases/hymn-letter-caption-v3-gapless-aac-20260824/release.lock.json`
+- tracked release: sibling `godowon-office/godo-hymns/releases/hymn-letter-caption-v4-interview-soft-20260826/release.lock.json`
 - renderer modules: release lock의 repo-relative path와 SHA-256을 매 실행 전에 재검산
-- template version: `godowon-hymn-caption-v3/1`
-- styles: center 68px·최대 2줄, dense 60px·최대 3줄
+- template version: `godowon-hymn-caption-v4/1`
+- styles: interview-soft 68px·최대 2줄·outline 0px·shadow offset 2,3/blur 2.2/opacity 155; center 68px·최대 2줄·outline 6px; dense 60px·최대 3줄·outline 6px
 - frame rule: `start=ceil(start_ms*30/1000)`, `end=ceil(end_ms*30/1000)-1`
 - output baseline: MP4 + AAC-LC, 1920×1080, 30fps, H.264 High, yuv420p, Rec.709
 
@@ -38,7 +38,7 @@
 - module path/SHA, template version, bundle lock SHA, config SHA, base/header/font asset SHA를 렌더 전에 확인한다.
 - 자산이나 lock을 한 바이트라도 변조한 fixture가 거부되는지 회귀검사한다.
 - 에피소드별 좌표, 폰트, safe area, 줄맞춤, framerate override는 허용하지 않는다.
-- 자막 raster는 공통 모듈의 Pillow actual-pixel renderer로만 만든다. center 최대 2줄, dense 최대 3줄, safe area, 배경 비겹침, 실제 glyph bbox를 검사한다.
+- 자막 raster는 공통 모듈의 Pillow actual-pixel renderer로만 만든다. interview-soft·center 최대 2줄, dense 최대 3줄, style별 outline/shadow, safe area, 배경 비겹침, 실제 glyph·shadow bbox를 검사한다.
 
 ### 3. 대본·자막 불변
 

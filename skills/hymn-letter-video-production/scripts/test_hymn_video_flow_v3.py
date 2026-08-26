@@ -228,7 +228,7 @@ class V3FixtureMixin:
 
     def _settings_for(self, episode: dict) -> dict:
         if episode["profile"] == "start-hybrid/v1":
-            return {"intro_frames": 723, "intro_style": "center", "post_style": "dense"}
+            return {"intro_frames": 723, "intro_style": "interview-soft", "post_style": "dense"}
         if episode["profile"] == "playlist/v1":
             starts = [track[4] for track in PRODUCTION_PLAYLIST_TRACKS]
             return {
@@ -578,6 +578,25 @@ class ValidateJobV3Tests(V3FixtureMixin, PortableCliTestCase):
             2,
         )
 
+    def test_rejects_episode_01_legacy_outline_style(self) -> None:
+        fixture = self.make_fixture("01-start")
+        job = json.loads(fixture["job"].read_text(encoding="utf-8"))
+        job["settings"]["intro_style"] = "center"
+        write_json(fixture["job"], job)
+        release = json.loads(fixture["release"].read_text(encoding="utf-8"))
+        release["jobs"][0]["sha256"] = sha256(fixture["job"])
+        write_json(fixture["release"], release)
+        self.assert_failure(
+            self.run_cli(
+                "validate-job",
+                "--job",
+                fixture["job"],
+                "--release",
+                fixture["release"],
+            ),
+            2,
+        )
+
 
 class SchemaLockShapeV3Tests(unittest.TestCase):
     def test_release_jobs_and_playlist_vector_use_closed_prefix_items(self) -> None:
@@ -606,6 +625,16 @@ class SchemaLockShapeV3Tests(unittest.TestCase):
         self.assertEqual(
             [variant["properties"]["episode_id"]["const"] for variant in variants],
             [episode["episode_id"] for episode in INVENTORY],
+        )
+        start_branch = next(
+            branch
+            for branch in job_schema["allOf"]
+            if branch.get("if", {}).get("properties", {}).get("profile", {}).get("const")
+            == "start-hybrid/v1"
+        )
+        self.assertEqual(
+            start_branch["then"]["properties"]["settings"]["properties"]["intro_style"]["const"],
+            "interview-soft",
         )
         playlist_branch = next(
             branch

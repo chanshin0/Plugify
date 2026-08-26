@@ -1,6 +1,6 @@
 # 고도원 찬송편지 26편 제작 워크플로우
 
-> 2026-08-24 현재 portable v3 정본은 `godowon-office/godo-hymns/releases/hymn-letter-caption-v3-gapless-aac-20260824/`의 office-native release/job/source-bundle lock이다. Plugify의 `hymn_video_flow_v3.py`는 그 tracked JSON을 **변환 없이 그대로** 검증하고 office renderer/QC/package에 위임한 뒤 독립 검증한다. 아래 `hymn_video_flow.py` 문단은 역사적 v1 primitive 설명이다.
+> 2026-08-26 현재 portable v3 정본은 `godowon-office/godo-hymns/releases/hymn-letter-caption-v4-interview-soft-20260826/`의 office-native release/job/source-bundle lock이다. v4는 01의 첫 723프레임에만 68px 무테두리·약한 그림자의 `interview-soft`를 선택하고 기존 `center`·`dense` 픽셀은 보존한다. Plugify의 `hymn_video_flow_v3.py`는 그 tracked JSON을 **변환 없이 그대로** 검증하고 office renderer/QC/package에 위임한 뒤 독립 검증한다. 아래 `hymn_video_flow.py` 문단은 역사적 v1 primitive 설명이다.
 
 ## 범위와 완성 구조
 
@@ -17,7 +17,7 @@
 
 | episode kind | profile | 현재 상태 |
 |---|---|---|
-| `start` | `start-hybrid/v1` | v17 시작편으로 증거 있음. 승인 interview/program video + 승인 audio + captions 필요 |
+| `start` | `start-hybrid/v1` | v4 01 시작편으로 증거 있음. 첫 723프레임은 interview-soft, 이후는 dense. 승인 interview/program video + 승인 audio + captions 필요 |
 | `testimony_intro` | `testimony-static/v1` | v17 491·370으로 증거 있음. 승인 audio + captions 필요 |
 | `hymn_lyrics` | `hymn-lyrics/v1` | v3 release에 잠긴 04·06만 지원 |
 | `playlist` | `playlist/v1` | 수정된 제목 순서와 golden이 잠긴 02만 지원 |
@@ -175,7 +175,7 @@ The exact plan contract has only `schema`, `release`, `source_root`, and `episod
 
 최종 package에는 01–06 MP4·thumbnail, upload authority/receipt, 별도 human approval receipt, release lock·6 jobs·environment/golden/source-bundle lock, release가 참조하는 모든 content-addressed object, SHA로 잠긴 office renderer/QC/package 8 modules, Plugify wrapper/validator/schema/docs snapshot, canonical delegation-input lock, snapshot과 byte-equal한 12 office-native producer receipt가 들어간다. 절대경로·locale·mtime은 manifest bytes에 기록하지 않는다. fresh machine은 같은 repo commit의 외부 trusted release/approval receipt와 package의 `00_재현자료/source_bundle`만으로 source bytes를 복원하고 exact-set을 검증할 수 있어야 한다. 외부 서명/attestation이 없으므로 historical office delegate origin은 `UNATTESTED`로 보고하며, artifact/evidence integrity PASS나 human approval과 혼동하지 않는다.
 
-renderer module SHA가 하나라도 64-zero sentinel이면 모든 render/QC/upload/package 실행을 막는다. 모든 module pin이 nonzero인 상태에서 golden lock이 `BOOTSTRAP_REQUIRED`이거나 `reference_output_sha256`가 `null`이거나 output SHA가 64-zero이면 첫 render와 semantic QC만 가능하고, reference-bit-exact QC·upload-ready promotion·package는 막는다. 현재 production trust anchor는 corrected 02 measured golden을 포함한 release SHA `65f7478f59ef4152febc9522f40a7444d3fcccc7dcee4e1c663f5cbcc051824a`이며 golden SHA는 `cdc5a492a66bb06e38a156ae700462ff489e9c71ac64918ae681bd677bf96269`다. 사용자가 실제 오디오를 듣지 못한 run은 기술 QC가 PASS해도 local 검토본·`promotion_pending`이며 사람 승인 receipt를 만들지 않는다.
+renderer module SHA가 하나라도 64-zero sentinel이면 모든 render/QC/upload/package 실행을 막는다. 모든 module pin이 nonzero인 상태에서 golden lock이 `BOOTSTRAP_REQUIRED`이거나 `reference_output_sha256`가 `null`이거나 output SHA가 64-zero이면 첫 render와 semantic QC만 가능하고, reference-bit-exact QC·upload-ready promotion·package는 막는다. 현재 production trust anchor는 episode 01 interview-soft measured golden을 포함한 release SHA `24867e11a54c33f69005ed7b033f3996200597697fa99657bb4764ea9ddff7e6`이며 golden SHA는 `439eaf514eec51281b0e597d03fc5239b59e3940f31114d64644ef5af84fbcd4`다. 사용자가 실제 오디오를 듣지 못한 run은 기술 QC가 PASS해도 local 검토본·`promotion_pending`이며 사람 승인 receipt를 만들지 않는다.
 
 legacy v1 primitive:
 

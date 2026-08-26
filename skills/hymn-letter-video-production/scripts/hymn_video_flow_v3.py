@@ -90,13 +90,13 @@ ALLOWED_SYSTEM_SYMLINK_COMPONENTS = {Path("/tmp"), Path("/var")}
 SCRIPT_PATH = Path(__file__).resolve()
 SCRIPT_SHA256 = _sha256_file(SCRIPT_PATH)
 UPLOAD_READY_VALIDATOR_PATH = SCRIPT_PATH.with_name("upload_ready_validator.py")
-UPLOAD_READY_VALIDATOR_SHA256 = "e13006d74dced7cf9670739649cb58e770d50170345f52f1bf8c036dc9a1872f"
+UPLOAD_READY_VALIDATOR_SHA256 = "32de77d1ecb4d6ee69137c4deee8c3a484d46523334f170c6459ff8c35729a71"
 SKILL_DIR = SCRIPT_PATH.parent.parent
 REFERENCE_DIR = SKILL_DIR / "references"
 INVENTORY_PATH = REFERENCE_DIR / "episode-inventory.v2.json"
-INVENTORY_SHA256 = "9e634d9d5a59b5e6be338778bd0e70f0a9f7dc53fb8340e295ae18ed18a6da94"
-PROJECT_RELEASE_ID = "hymn-letter-caption-v3-gapless-aac-20260824"
-PROJECT_RELEASE_SHA256 = "65f7478f59ef4152febc9522f40a7444d3fcccc7dcee4e1c663f5cbcc051824a"
+INVENTORY_SHA256 = "752fecfe218fa4f485c02c2795d9667344920f2a2f513bac26c2eecb7519acc6"
+PROJECT_RELEASE_ID = "hymn-letter-caption-v4-interview-soft-20260826"
+PROJECT_RELEASE_SHA256 = "24867e11a54c33f69005ed7b033f3996200597697fa99657bb4764ea9ddff7e6"
 GOLDEN_SCHEMA = "godowon.hymn-letter.v3-golden-lock/1"
 ENVIRONMENT_SCHEMA = "godowon.hymn-letter.environment-lock/1"
 PACKAGE_PLAN_SCHEMA = "godowon.hymn-letter.upload-ready-package-plan/1"
@@ -936,7 +936,7 @@ def _validate_settings(job: dict[str, Any], required_input_values: dict[str, lis
             f"job.settings keys mismatch for {profile!r}; missing={sorted(expected_keys - actual_keys)}, extra={sorted(actual_keys - expected_keys)}",
         )
     if profile == "start-hybrid/v1":
-        if settings != {"intro_frames": 723, "intro_style": "center", "post_style": "dense"}:
+        if settings != {"intro_frames": 723, "intro_style": "interview-soft", "post_style": "dense"}:
             _fail(EXIT_SCHEMA, "start-hybrid settings differ from the locked production contract")
     elif profile == "playlist/v1":
         if settings["style"] != "dense" or settings["active_row_state"] != "yellow":

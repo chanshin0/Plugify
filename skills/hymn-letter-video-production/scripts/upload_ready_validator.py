@@ -25,7 +25,7 @@ EXPECTED_APPROVAL_AUTHORITIES = {
     for sequence in range(1, 7)
 }
 FROZEN_FIXTURE_RELEASE_ID = "hymn-letter-caption-v3-20260822"
-SUCCESSOR_RELEASE_ID = "hymn-letter-caption-v3-gapless-aac-20260824"
+SUCCESSOR_RELEASE_ID = "hymn-letter-caption-v4-interview-soft-20260826"
 AUTHORITY_LOCK_SCHEMA = "plugify.hymn-letter.upload-authority-lock/1"
 AUDIO_RECEIPTS_SCHEMA = "plugify.hymn-letter.upload-audio-receipts/1"
 PCM_COMPOSITE_DOMAIN = b"plugify.hymn-letter.ordered-pcm-manifest/v1\0"

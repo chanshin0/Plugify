@@ -7,7 +7,7 @@
   "required": ["schema", "release_id", "episode_id", "profile", "inputs", "settings", "output"],
   "properties": {
     "schema": {"const": "godowon.hymn-letter.v3-job/1"},
-    "release_id": {"const": "hymn-letter-caption-v3-gapless-aac-20260824"},
+    "release_id": {"const": "hymn-letter-caption-v4-interview-soft-20260826"},
     "episode_id": {"enum": ["01-start", "02-playlist", "03-491-testimony", "04-491-hymn", "05-370-testimony", "06-370-hymn"]},
     "profile": {
       "enum": ["start-hybrid/v1", "playlist/v1", "testimony-static/v1", "hymn-lyrics/v1"]
@@ -83,7 +83,7 @@
             "required": ["intro_frames", "intro_style", "post_style"],
             "properties": {
               "intro_frames": {"const": 723},
-              "intro_style": {"const": "center"},
+              "intro_style": {"const": "interview-soft"},
               "post_style": {"const": "dense"}
             }
           }

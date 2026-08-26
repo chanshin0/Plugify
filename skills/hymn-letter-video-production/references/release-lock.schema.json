@@ -24,7 +24,7 @@
       "const": "godowon.hymn-letter.v3-release-lock/1"
     },
     "release_id": {
-      "const": "hymn-letter-caption-v3-gapless-aac-20260824"
+      "const": "hymn-letter-caption-v4-interview-soft-20260826"
     },
     "created_at": {
       "type": "string",
