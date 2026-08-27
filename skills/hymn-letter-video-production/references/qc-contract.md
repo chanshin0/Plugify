@@ -31,6 +31,7 @@
 - 입력은 절대경로가 아니라 `sha256:<64hex>` object ID이며, `SOURCE_ROOT/objects/sha256/<prefix>/<rest>` 아래 bytes·size를 다시 검산한다.
 - source와 output은 분리하고 기존 output을 덮어쓰지 않는다.
 - `hymn-lyrics/v1`과 `playlist/v1`은 현재 release에 잠긴 04·06 및 02에 한해 지원한다. inventory 밖 항목은 다른 profile로 우회하지 않는다.
+- 07–26은 별도 candidate profile `testimony-external-srt/v1`·`hymn-listening-external-srt/v1`만 사용한다. 기존 production profile 이름을 재사용해 다른 픽셀/자막 전달 방식을 숨기지 않는다.
 
 ### 2. 공통 시각 SSOT
 
@@ -39,6 +40,7 @@
 - 자산이나 lock을 한 바이트라도 변조한 fixture가 거부되는지 회귀검사한다.
 - 에피소드별 좌표, 폰트, safe area, 줄맞춤, framerate override는 허용하지 않는다.
 - 자막 raster는 공통 모듈의 Pillow actual-pixel renderer로만 만든다. interview-soft·center 최대 2줄, dense 최대 3줄, style별 outline/shadow, safe area, 배경 비겹침, 실제 glyph·shadow bbox를 검사한다.
+- 위 raster 규칙은 01–06 production에만 적용한다. 07–26 external-SRT profile은 승인 backplate 외의 cue별 raster 자산 생성을 금지하고 MP4 subtitle stream도 0개여야 한다.
 
 ### 3. 대본·자막 불변
 
@@ -86,6 +88,8 @@ Profile별 경계 정책:
 | `testimony-static/v1` | 모든 interval의 first/last endpoint와 가능한 각 cue의 `first-1 / first / last / last+1` reference 비교 |
 | `hymn-lyrics/v1` | center style, MP4 + AAC-LC, 모든 interval의 first/last endpoint와 cue boundary 비교 |
 | `playlist/v1` | dense style, active-row PNG state + chapter/gap timing + 제목 카드 12개의 text/원래 timing/장 번호 부재 + actual H.264 boundary 비교 |
+| `testimony-external-srt/v1` | 승인 SRT와 sidecar byte-exact + MP4 subtitle stream 0 + 모든 cue 경계 인접 실제 H.264 frame이 clean backplate와 일치 |
+| `hymn-listening-external-srt/v1` | catalog SRT와 sidecar byte-exact + MP4 subtitle stream 0 + 모든 cue 경계 인접 실제 H.264 frame이 clean backplate와 일치 |
 
 MAE/PSNR threshold, crop, decode batch size는 versioned QC 구현이 소유한다. episode manifest가 완화할 수 없다.
 

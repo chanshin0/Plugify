@@ -22,6 +22,15 @@
 | `hymn_lyrics` | `hymn-lyrics/v1` | v3 release에 잠긴 04·06만 지원 |
 | `playlist` | `playlist/v1` | 수정된 제목 순서와 golden이 잠긴 02만 지원 |
 
+07–26 candidate는 production profile을 재사용하지 않는다.
+
+| episode kind | candidate profile | 자막 전달 |
+|---|---|---|
+| `testimony_intro` | `testimony-external-srt/v1` | clean MP4 + 승인 원문과 byte-exact한 `.ko.srt` |
+| `hymn_lyrics` | `hymn-listening-external-srt/v1` | clean MP4 + catalog SRT와 byte-exact한 `.ko.srt` |
+
+후속편 영상에는 대사·가사를 굽지 않는다. backplate가 이미 소유한 `'고도원의 찬송편지'`와 노래 제목 등 비자막 디자인은 유지한다.
+
 현재 여섯 output은 모두 MP4 + AAC-LC다. 01·03·05는 승인 AAC-LC를 stream-copy하고, 04·06은 승인 standalone MP3를 filter 없이 AAC-LC 256k/44.1kHz/stereo로 변환한다. 02는 승인 standalone MP3 12개를 순서대로 각각 gapless decode해 continuous PCM으로 이어 붙인 뒤 같은 AAC-LC 규격으로 한 번만 encode한다. MOV+MP3 output은 금지한다.
 
 inventory 밖 profile/episode를 유사한 지원 항목으로 바꾸어 실행하지 않는다. 필요한 authoritative source와 승인만 요청하고 멈춘다.
@@ -113,7 +122,7 @@ run root의 `candidate.lock.json`은 `godowon.hymn-letter.candidate-lock/1` exac
 - 07–26 sequence, sequence와 같은 두 자리 episode ID prefix, 홀수 간증/짝수 찬송의 kind/profile parity;
 - run-root-relative job, candidate source bundle, intake receipt path와 각 exact SHA.
 
-validator는 모든 manifest를 stable-read하고 symlink·`..`·run-root escape를 거부한다. `objects/sha256/<prefix>/<digest-rest>` 트리는 bundle의 exact object set이어야 하며 모든 파일의 SHA와 size를 다시 계산한다. job은 current renderer가 실제 받는 두 profile만 허용한다. 간증은 speech-master PASS AAC-LC M4A 48 kHz stereo, `style: center`, `restore_audio_edit: true`, `video_track_timescale: 15360`을 고정하되 `movie_timescale`은 실제 M4A probe의 양의 정수와 exact-match한다. production 03·05 job의 `movie_timescale: 384000` 고정은 그대로다. 찬송은 catalog exact-match MP3와 production-exact `hymn-lyrics/v1` 설정을 유지하고 intake probe의 `movie_timescale`은 `null`이어야 한다. intake와 narration receipt의 approved-script/narration SHA, speech-master report, job input object ID가 같은 source object graph에 결속되어야 한다.
+validator는 모든 manifest를 stable-read하고 symlink·`..`·run-root escape를 거부한다. `objects/sha256/<prefix>/<digest-rest>` 트리는 bundle의 exact object set이어야 하며 모든 파일의 SHA와 size를 다시 계산한다. job은 07–26 전용 `testimony-external-srt/v1`·`hymn-listening-external-srt/v1`만 허용하고 `caption_delivery: youtube-sidecar-srt/v1`, `subtitle_language: ko`, MP4와 stem이 같은 `.ko.srt` 출력명을 고정한다. SRT는 UTF-8(no BOM)·LF·final newline·positive/non-overlap cue를 실제 bytes에서 독립 재검증한다. 간증은 speech-master PASS AAC-LC M4A 48 kHz stereo, `restore_audio_edit: true`, `video_track_timescale: 15360`을 고정하되 `movie_timescale`은 실제 M4A probe의 양의 정수와 exact-match한다. production 03·05 job의 `movie_timescale: 384000` 고정은 그대로다. 찬송은 catalog exact-match MP3를 사용하고 intake probe의 `movie_timescale`은 `null`이어야 한다. intake와 narration receipt의 approved-script/narration SHA, speech-master report, job input object ID가 같은 source object graph에 결속되어야 한다.
 
 후보 카탈로그 정본은 [hymn-letter-track-catalog.v1.json](hymn-letter-track-catalog.v1.json), 고정 SHA-256은 `676407cca40e2fdbac024400dfbdf8c83867e6e33388dee9507c7c5a5bc7ff72`다. `catalog_audio_sha_match: true`는 비권위 producer assertion일 뿐이며, validator는 카탈로그 bytes/SHA와 02 playlist의 samples·PCM SHA를 먼저 고정한 뒤 paired track sequence, episode kind/profile, hymn number/title, exact audio/caption object ID, hymn output frame count를 source graph와 직접 대조한다. 따라서 임의 MP3에 boolean만 붙이거나 intake의 catalog SHA·track metadata를 바꾸어도 통과하지 않는다. 간증편은 다음 짝수 찬송 chapter의 번호·제목·sequence에만 결속하고, 간증 narration/captions를 찬송 MP3/SRT와 같다고 요구하지 않는다. 모든 후보의 positive `probe.audio.render_frame_count`는 `job.output.frame_count`와 exact-match해야 한다. Plugify는 ffprobe를 실행하지 않으므로 두 값을 함께 변조한 경우까지 독립 탐지하지 않으며, 실제 media에서 frame count를 다시 산출하는 office intake preflight가 그 외부 사실성을 책임진다.
 
@@ -292,6 +301,8 @@ portable v3 wrapper는 render/QC/upload-ready/package subcommand를 가진다. o
 4. 최종 muxed MP4에서 [qc-contract.md](qc-contract.md)의 자막·오디오·전체 decode·spec 검사를 실행한다.
 5. **최종 H.264를 decode한 실제 cue 경계 검사**가 PASS해야 한다. 생성 PNG나 layout manifest만 검사해서는 안 된다.
 6. 자동 QC와 별도 사람 review receipt가 모두 있은 뒤에만 candidate를 final로 atomic promote한다.
+
+07–26 external-SRT QC는 승인 SRT와 전달 SRT의 byte/SHA exact match, UTF-8/LF 계약, MP4 subtitle stream 0개, H.264 전체 decode, 오디오 불변/승인 변환을 검사한다. 또한 SRT의 모든 cue에 대해 `first-1 / first / last / last+1` 실제 H.264 프레임을 decode하여 같은 clean backplate와 비교한다. 이 경계 검사가 PASS해야 “자막이 영상에 굽히지 않았다”고 보고할 수 있다.
 
 공통 템플릿을 바꿔야 한다면 한 편에 override하지 않는다. 새 template version/lock을 발행하고 영향받는 찬송편지 영상의 golden 회귀와 교차 QC를 다시 수행한다.
 

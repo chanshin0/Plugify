@@ -9,15 +9,16 @@
     "schema": {"const": "godowon.hymn-letter.v3-job/1"},
     "release_id": {"const": "hymn-letter-caption-v4-interview-soft-20260826"},
     "episode_id": {"type": "string", "pattern": "^(0[7-9]|1[0-9]|2[0-6])-[a-z0-9][a-z0-9-]*$"},
-    "profile": {"enum": ["testimony-static/v1", "hymn-lyrics/v1"]},
+    "profile": {"enum": ["testimony-external-srt/v1", "hymn-listening-external-srt/v1"]},
     "inputs": {"type": "object"},
     "settings": {"type": "object"},
     "output": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"],
+      "required": ["filename", "captions_filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"],
       "properties": {
         "filename": {"type": "string", "pattern": "^[^/\\\\\\u0000\\r\\n]{1,176}\\.mp4$"},
+        "captions_filename": {"type": "string", "pattern": "^[^/\\\\\\u0000\\r\\n]{1,176}\\.ko\\.srt$"},
         "thumbnail_filename": {"type": "string", "pattern": "^[^/\\\\\\u0000\\r\\n]{1,176}\\.(jpg|jpeg|png)$"},
         "container": {"const": "mp4"},
         "audio_codec": {"const": "aac"},
@@ -31,20 +32,19 @@
     "common_inputs": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["audio_policy", "backplate", "audio", "captions", "font", "thumbnail"],
+      "required": ["audio_policy", "backplate", "audio", "captions", "thumbnail"],
       "properties": {
         "audio_policy": {"type": "string"},
         "backplate": {"$ref": "#/$defs/object_id"},
         "audio": {"$ref": "#/$defs/object_id"},
         "captions": {"$ref": "#/$defs/object_id"},
-        "font": {"$ref": "#/$defs/object_id"},
         "thumbnail": {"$ref": "#/$defs/object_id"}
       }
     }
   },
   "allOf": [
     {
-      "if": {"properties": {"profile": {"const": "testimony-static/v1"}}, "required": ["profile"]},
+      "if": {"properties": {"profile": {"const": "testimony-external-srt/v1"}}, "required": ["profile"]},
       "then": {
         "properties": {
           "inputs": {
@@ -56,9 +56,10 @@
           "settings": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["style", "restore_audio_edit", "movie_timescale", "video_track_timescale"],
+            "required": ["caption_delivery", "subtitle_language", "restore_audio_edit", "movie_timescale", "video_track_timescale"],
             "properties": {
-              "style": {"const": "center"},
+              "caption_delivery": {"const": "youtube-sidecar-srt/v1"},
+              "subtitle_language": {"const": "ko"},
               "restore_audio_edit": {"const": true},
               "movie_timescale": {"type": "integer", "minimum": 1},
               "video_track_timescale": {"const": 15360}
@@ -68,7 +69,7 @@
       }
     },
     {
-      "if": {"properties": {"profile": {"const": "hymn-lyrics/v1"}}, "required": ["profile"]},
+      "if": {"properties": {"profile": {"const": "hymn-listening-external-srt/v1"}}, "required": ["profile"]},
       "then": {
         "properties": {
           "inputs": {
@@ -80,9 +81,10 @@
           "settings": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["style", "movie_timescale", "video_track_timescale"],
+            "required": ["caption_delivery", "subtitle_language", "movie_timescale", "video_track_timescale"],
             "properties": {
-              "style": {"const": "center"},
+              "caption_delivery": {"const": "youtube-sidecar-srt/v1"},
+              "subtitle_language": {"const": "ko"},
               "movie_timescale": {"const": 44100},
               "video_track_timescale": {"const": 15360}
             }

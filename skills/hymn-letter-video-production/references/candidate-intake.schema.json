@@ -45,8 +45,13 @@
         "captions": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["cue_count", "last_end_ms"],
+          "required": ["format", "encoding", "bom", "line_endings", "ends_with_newline", "cue_count", "last_end_ms"],
           "properties": {
+            "format": {"const": "SubRip"},
+            "encoding": {"const": "UTF-8"},
+            "bom": {"const": false},
+            "line_endings": {"const": "LF"},
+            "ends_with_newline": {"const": true},
             "cue_count": {"type": "integer", "minimum": 1},
             "last_end_ms": {"type": "integer", "minimum": 1}
           }
@@ -74,7 +79,7 @@
         "sequence": {"type": "integer", "minimum": 7, "maximum": 26},
         "episode_id": {"type": "string", "pattern": "^[0-9]{2}-[a-z0-9][a-z0-9-]*$"},
         "kind": {"enum": ["testimony_intro", "hymn_lyrics"]},
-        "profile": {"enum": ["testimony-static/v1", "hymn-lyrics/v1"]},
+        "profile": {"enum": ["testimony-external-srt/v1", "hymn-listening-external-srt/v1"]},
         "hymn_number": {"type": "integer", "minimum": 1},
         "title": {"type": "string", "minLength": 1}
       }
@@ -93,20 +98,19 @@
   },
   "allOf": [
     {
-      "if": {"properties": {"episode": {"properties": {"profile": {"const": "testimony-static/v1"}}, "required": ["profile"]}}, "required": ["episode"]},
+      "if": {"properties": {"episode": {"properties": {"profile": {"const": "testimony-external-srt/v1"}}, "required": ["profile"]}}, "required": ["episode"]},
       "then": {
         "properties": {
           "inputs": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["approved_script", "narration_audio", "captions", "backplate", "thumbnail", "font", "narration_receipt", "speech_master_report"],
+            "required": ["approved_script", "narration_audio", "captions", "backplate", "thumbnail", "narration_receipt", "speech_master_report"],
             "properties": {
               "approved_script": {"$ref": "#/$defs/input"},
               "narration_audio": {"$ref": "#/$defs/input"},
               "captions": {"$ref": "#/$defs/input"},
               "backplate": {"$ref": "#/$defs/input"},
               "thumbnail": {"$ref": "#/$defs/input"},
-              "font": {"$ref": "#/$defs/input"},
               "narration_receipt": {"$ref": "#/$defs/input"},
               "speech_master_report": {"$ref": "#/$defs/input"}
             }
@@ -127,19 +131,18 @@
       }
     },
     {
-      "if": {"properties": {"episode": {"properties": {"profile": {"const": "hymn-lyrics/v1"}}, "required": ["profile"]}}, "required": ["episode"]},
+      "if": {"properties": {"episode": {"properties": {"profile": {"const": "hymn-listening-external-srt/v1"}}, "required": ["profile"]}}, "required": ["episode"]},
       "then": {
         "properties": {
           "inputs": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["audio", "captions", "backplate", "thumbnail", "font"],
+            "required": ["audio", "captions", "backplate", "thumbnail"],
             "properties": {
               "audio": {"$ref": "#/$defs/input"},
               "captions": {"$ref": "#/$defs/input"},
               "backplate": {"$ref": "#/$defs/input"},
-              "thumbnail": {"$ref": "#/$defs/input"},
-              "font": {"$ref": "#/$defs/input"}
+              "thumbnail": {"$ref": "#/$defs/input"}
             }
           },
           "approvals": {

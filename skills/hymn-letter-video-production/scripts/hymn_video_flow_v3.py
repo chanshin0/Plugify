@@ -89,6 +89,7 @@ OBJECT_ID_RE = re.compile(r"^sha256:([0-9a-f]{64})$")
 EPISODE_ID_RE = re.compile(r"^[0-9]{2}-[a-z0-9][a-z0-9-]*$")
 INPUT_KEY_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 OUTPUT_FILENAME_RE = re.compile(r"^[^/\\\x00\r\n]{1,176}\.mp4$")
+CAPTIONS_FILENAME_RE = re.compile(r"^[^/\\\x00\r\n]{1,176}\.ko\.srt$")
 THUMBNAIL_FILENAME_RE = re.compile(r"^[^/\\\x00\r\n]{1,176}\.(jpg|jpeg|png)$")
 GATE_VALUES = {"semantic-equivalent", "reference-bit-exact"}
 EXIT_DELEGATE = 12
@@ -133,6 +134,7 @@ INVENTORY_EPISODE_KEYS = {
 }
 JOB_KEYS = {"schema", "release_id", "episode_id", "profile", "inputs", "settings", "output"}
 OUTPUT_KEYS = {"filename", "thumbnail_filename", "container", "audio_codec", "audio_profile", "frame_count"}
+CANDIDATE_OUTPUT_KEYS = OUTPUT_KEYS | {"captions_filename"}
 RELEASE_KEYS = {
     "schema",
     "release_id",
@@ -182,7 +184,10 @@ CANDIDATE_AUDIO_PROBE_KEYS = {
     "codec_name", "profile", "sample_rate", "channels", "duration_ms",
     "movie_timescale", "render_frame_count",
 }
-CANDIDATE_CAPTION_PROBE_KEYS = {"cue_count", "last_end_ms"}
+CANDIDATE_CAPTION_PROBE_KEYS = {
+    "format", "encoding", "bom", "line_endings", "ends_with_newline",
+    "cue_count", "last_end_ms",
+}
 CANDIDATE_CATALOG_KEYS = {"schema", "sha256", "track_sequence"}
 CANDIDATE_TRACK_CATALOG_KEYS = {"schema", "series_name", "base_release", "tracks"}
 CANDIDATE_TRACK_CATALOG_BASE_KEYS = {
@@ -196,6 +201,10 @@ CANDIDATE_TRACK_KEYS = {
 CANDIDATE_TRACK_SEQUENCES = tuple(range(8, 27, 2))
 CANDIDATE_CATALOG_PLAYLIST_JOB_SHA256 = "f7ca7704a6e89ca3b5d3756447d3a73f8a9ff1baab44b627e6dd3afd32b2d226"
 CANDIDATE_CATALOG_SOURCE_BUNDLE_SHA256 = "9ff852c1c48f9b7d8b3656f35ac8a3589d6739f971eb702078aafaec242c3eb1"
+CANDIDATE_TESTIMONY_PROFILE = "testimony-external-srt/v1"
+CANDIDATE_HYMN_PROFILE = "hymn-listening-external-srt/v1"
+CANDIDATE_CAPTION_DELIVERY = "youtube-sidecar-srt/v1"
+CANDIDATE_SUBTITLE_LANGUAGE = "ko"
 RUN_RECEIPT_KEYS = {
     "schema",
     "release_id",
@@ -1036,8 +1045,88 @@ def _candidate_sequence_contract(sequence: Any) -> tuple[str, str]:
     if value < 7 or value > 26:
         _fail(EXIT_UNSUPPORTED, "candidate episode.sequence must be registered in 07..26")
     if value % 2:
-        return "testimony_intro", "testimony-static/v1"
-    return "hymn_lyrics", "hymn-lyrics/v1"
+        return "testimony_intro", CANDIDATE_TESTIMONY_PROFILE
+    return "hymn_lyrics", CANDIDATE_HYMN_PROFILE
+
+
+def _normalize_candidate_job_inputs(profile: str, inputs: dict[str, Any]) -> dict[str, list[str]]:
+    if profile not in {CANDIDATE_TESTIMONY_PROFILE, CANDIDATE_HYMN_PROFILE}:
+        _fail(EXIT_UNSUPPORTED, f"unsupported candidate profile: {profile!r}")
+    expected = {"audio_policy", "backplate", "audio", "captions", "thumbnail"}
+    if set(inputs) != expected:
+        _fail(
+            EXIT_SCHEMA,
+            f"candidate job.inputs mismatch; missing={sorted(expected-set(inputs))}, extra={sorted(set(inputs)-expected)}",
+        )
+    expected_policy = (
+        "stream-copy-approved-aac/v1"
+        if profile == CANDIDATE_TESTIMONY_PROFILE
+        else "approved-mp3-to-aac-lc-256k/v1"
+    )
+    if inputs["audio_policy"] != expected_policy:
+        _fail(EXIT_SCHEMA, "candidate external-SRT audio policy mismatch")
+    normalized: dict[str, list[str]] = {}
+    for key in sorted(expected - {"audio_policy"}):
+        normalized[key] = _normalize_input_value(inputs[key], f"candidate job.inputs.{key}")
+        if len(normalized[key]) != 1:
+            _fail(EXIT_SCHEMA, f"candidate job.inputs.{key} must contain exactly one object id")
+    return normalized
+
+
+def _candidate_srt_observation(path: Path) -> tuple[dict[str, Any], list[str]]:
+    data = _read_stable_bytes(path, "candidate external SRT")
+    if (
+        not data
+        or data.startswith(b"\xef\xbb\xbf")
+        or b"\x00" in data
+        or b"\r" in data
+        or not data.endswith(b"\n")
+    ):
+        _fail(EXIT_SCHEMA, "candidate external SRT must be plain UTF-8 with LF endings, no BOM, and a final newline")
+    try:
+        text = data.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as exc:
+        _fail(EXIT_SCHEMA, f"candidate external SRT is not UTF-8: {exc}")
+    timing_re = re.compile(
+        r"^(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s+-->\s+"
+        r"(\d{2}):(\d{2}):(\d{2})[,.](\d{3})$"
+    )
+    cues: list[tuple[int, int, str]] = []
+    for block_number, block in enumerate(re.split(r"\n[ \t]*\n", text.strip()), start=1):
+        lines = block.splitlines()
+        if len(lines) < 3 or not lines[0].strip().isdigit():
+            _fail(EXIT_SCHEMA, f"candidate SRT block {block_number} is malformed")
+        match = timing_re.fullmatch(lines[1].strip())
+        if match is None:
+            _fail(EXIT_SCHEMA, f"candidate SRT block {block_number} has invalid timing")
+        if any("-->" in line for line in lines[2:]):
+            _fail(
+                EXIT_SCHEMA,
+                f"candidate SRT block {block_number} contains an unexpected timing line; cues must be separated by a blank line",
+            )
+        values = [int(item) for item in match.groups()]
+        if values[1] >= 60 or values[2] >= 60 or values[5] >= 60 or values[6] >= 60:
+            _fail(EXIT_SCHEMA, f"candidate SRT block {block_number} has invalid clock values")
+        start_ms = ((values[0] * 60 + values[1]) * 60 + values[2]) * 1000 + values[3]
+        end_ms = ((values[4] * 60 + values[5]) * 60 + values[6]) * 1000 + values[7]
+        body = "\n".join(line.strip() for line in lines[2:] if line.strip())
+        if not body or end_ms <= start_ms:
+            _fail(EXIT_SCHEMA, f"candidate SRT block {block_number} is empty or non-positive")
+        if cues and start_ms < cues[-1][1]:
+            _fail(EXIT_SCHEMA, f"candidate SRT block {block_number} overlaps the previous cue")
+        cues.append((start_ms, end_ms, body))
+    if not cues:
+        _fail(EXIT_SCHEMA, "candidate external SRT has no cues")
+    observation = {
+        "format": "SubRip",
+        "encoding": "UTF-8",
+        "bom": False,
+        "line_endings": "LF",
+        "ends_with_newline": True,
+        "cue_count": len(cues),
+        "last_end_ms": cues[-1][1],
+    }
+    return observation, [cue[2] for cue in cues]
 
 
 def _load_candidate_track_catalog() -> tuple[Path, str, dict[int, dict[str, Any]]]:
@@ -1153,7 +1242,7 @@ def _validate_candidate_job(
     if job["profile"] != episode["profile"]:
         _fail(EXIT_SCHEMA, "candidate job profile does not match candidate lock")
     profile = job["profile"]
-    if profile not in {"testimony-static/v1", "hymn-lyrics/v1"}:
+    if profile not in {CANDIDATE_TESTIMONY_PROFILE, CANDIDATE_HYMN_PROFILE}:
         _fail(EXIT_UNSUPPORTED, f"unsupported candidate profile: {profile!r}")
 
     inputs = job["inputs"]
@@ -1162,40 +1251,66 @@ def _validate_candidate_job(
     for key in inputs:
         if not INPUT_KEY_RE.fullmatch(key):
             _fail(EXIT_SCHEMA, f"invalid candidate job input key: {key!r}")
-    normalized_inputs = _normalize_job_inputs(profile, inputs)
-    if profile == "testimony-static/v1":
+    normalized_inputs = _normalize_candidate_job_inputs(profile, inputs)
+    if profile == CANDIDATE_TESTIMONY_PROFILE:
         settings = _require_exact_keys(
             job["settings"],
-            PROFILE_CONTRACTS[profile]["settings_keys"],
+            {
+                "caption_delivery", "subtitle_language", "restore_audio_edit",
+                "movie_timescale", "video_track_timescale",
+            },
             "candidate job.settings",
         )
         if (
-            settings["style"] != "center"
+            settings["caption_delivery"] != CANDIDATE_CAPTION_DELIVERY
+            or settings["subtitle_language"] != CANDIDATE_SUBTITLE_LANGUAGE
             or settings["restore_audio_edit"] is not True
             or settings["video_track_timescale"] != 15360
         ):
-            _fail(EXIT_SCHEMA, "candidate testimony settings differ from the renderer contract")
+            _fail(EXIT_SCHEMA, "candidate testimony external-SRT settings differ from the renderer contract")
         _require_positive_int(
             settings["movie_timescale"], "candidate job.settings.movie_timescale"
         )
     else:
-        _validate_settings(job, normalized_inputs)
+        settings = _require_exact_keys(
+            job["settings"],
+            {"caption_delivery", "subtitle_language", "movie_timescale", "video_track_timescale"},
+            "candidate job.settings",
+        )
+        if settings != {
+            "caption_delivery": CANDIDATE_CAPTION_DELIVERY,
+            "subtitle_language": CANDIDATE_SUBTITLE_LANGUAGE,
+            "movie_timescale": 44100,
+            "video_track_timescale": 15360,
+        }:
+            _fail(EXIT_SCHEMA, "candidate hymn external-SRT settings differ from the renderer contract")
 
-    output = _require_exact_keys(job["output"], OUTPUT_KEYS, "candidate job.output")
+    output = _require_exact_keys(job["output"], CANDIDATE_OUTPUT_KEYS, "candidate job.output")
     filename = _require_nonempty_string(output["filename"], "candidate job.output.filename")
+    captions_filename = _require_nonempty_string(
+        output["captions_filename"], "candidate job.output.captions_filename"
+    )
     thumbnail_filename = _require_nonempty_string(
         output["thumbnail_filename"], "candidate job.output.thumbnail_filename"
     )
     if not OUTPUT_FILENAME_RE.fullmatch(filename):
         _fail(EXIT_SCHEMA, "candidate job.output.filename must be a safe .mp4 basename")
+    if not CAPTIONS_FILENAME_RE.fullmatch(captions_filename):
+        _fail(EXIT_SCHEMA, "candidate job.output.captions_filename must be a safe .ko.srt basename")
     if not THUMBNAIL_FILENAME_RE.fullmatch(thumbnail_filename):
         _fail(
             EXIT_SCHEMA,
             "candidate job.output.thumbnail_filename must be a safe .jpg/.jpeg/.png basename",
         )
     sequence_prefix = f"{episode['sequence']:02d}_"
-    if not filename.startswith(sequence_prefix) or not thumbnail_filename.startswith(sequence_prefix):
+    if (
+        not filename.startswith(sequence_prefix)
+        or not captions_filename.startswith(sequence_prefix)
+        or not thumbnail_filename.startswith(sequence_prefix)
+    ):
         _fail(EXIT_SCHEMA, "candidate output filenames must start with the episode sequence")
+    if captions_filename != f"{Path(filename).stem}.ko.srt":
+        _fail(EXIT_SCHEMA, "candidate SRT basename must match the MP4 basename")
     if (
         output["container"] != "mp4"
         or output["audio_codec"] != "aac"
@@ -1488,10 +1603,10 @@ def _validate_candidate_intake_receipt(
     expected_input_keys = (
         {
             "approved_script", "narration_audio", "captions", "backplate", "thumbnail",
-            "font", "narration_receipt", "speech_master_report",
+            "narration_receipt", "speech_master_report",
         }
-        if episode["profile"] == "testimony-static/v1"
-        else {"audio", "captions", "backplate", "thumbnail", "font"}
+        if episode["profile"] == CANDIDATE_TESTIMONY_PROFILE
+        else {"audio", "captions", "backplate", "thumbnail"}
     )
     inputs = _require_exact_keys(intake["inputs"], expected_input_keys, "candidate intake inputs")
     intake_object_ids = {
@@ -1501,19 +1616,37 @@ def _validate_candidate_intake_receipt(
         for key in sorted(expected_input_keys)
     }
     job_to_intake = {
-        "audio": "narration_audio" if episode["profile"] == "testimony-static/v1" else "audio",
+        "audio": "narration_audio" if episode["profile"] == CANDIDATE_TESTIMONY_PROFILE else "audio",
         "captions": "captions",
         "backplate": "backplate",
         "thumbnail": "thumbnail",
-        "font": "font",
     }
     for job_key, intake_key in job_to_intake.items():
         values = job_inputs.get(job_key)
         if values != [intake_object_ids[intake_key]]:
             _fail(EXIT_HASH, f"candidate job input {job_key!r} differs from intake receipt")
 
+    observed_captions, observed_caption_text = _candidate_srt_observation(
+        object_paths[intake_object_ids["captions"]]
+    )
+    if episode["profile"] == CANDIDATE_TESTIMONY_PROFILE:
+        script_bytes = _read_stable_bytes(
+            object_paths[intake_object_ids["approved_script"]],
+            "candidate approved script",
+        )
+        try:
+            approved_script = script_bytes.decode("utf-8-sig", errors="strict")
+        except UnicodeDecodeError as exc:
+            _fail(EXIT_SCHEMA, f"candidate approved script is not UTF-8: {exc}")
+        if " ".join(approved_script.split()) != " ".join(" ".join(observed_caption_text).split()):
+            _fail(EXIT_HASH, "candidate caption text does not exactly match the approved script")
+    else:
+        hymn_number_re = re.compile(r"(?:찬송가\s*)?\d+\s*장")
+        if any(hymn_number_re.search(text) for text in observed_caption_text):
+            _fail(EXIT_SCHEMA, "candidate hymn captions must not display a hymn chapter number")
+
     approvals = intake["approvals"]
-    if episode["profile"] == "hymn-lyrics/v1":
+    if episode["profile"] == CANDIDATE_HYMN_PROFILE:
         approval = _require_exact_keys(
             approvals, {"catalog_audio_sha_match"}, "candidate intake approvals"
         )
@@ -1587,7 +1720,7 @@ def _validate_candidate_intake_receipt(
             "candidate job output frame_count does not match the intake audio probe",
         )
     movie_timescale = audio_probe["movie_timescale"]
-    if episode["profile"] == "testimony-static/v1":
+    if episode["profile"] == CANDIDATE_TESTIMONY_PROFILE:
         if codec_name != "aac" or profile.upper() not in {"LC", "AAC LC", "LOW COMPLEXITY"}:
             _fail(EXIT_SCHEMA, "candidate testimony narration must be AAC-LC")
         if sample_rate != 48000 or channels != 2:
@@ -1608,6 +1741,18 @@ def _validate_candidate_intake_receipt(
     caption_probe = _require_exact_keys(
         probe["captions"], CANDIDATE_CAPTION_PROBE_KEYS, "candidate intake probe.captions"
     )
+    if caption_probe != {
+        "format": "SubRip",
+        "encoding": "UTF-8",
+        "bom": False,
+        "line_endings": "LF",
+        "ends_with_newline": True,
+        "cue_count": caption_probe["cue_count"],
+        "last_end_ms": caption_probe["last_end_ms"],
+    }:
+        _fail(EXIT_SCHEMA, "candidate external SRT encoding/format contract mismatch")
+    if caption_probe != observed_captions:
+        _fail(EXIT_HASH, "candidate caption probe differs from the actual external SRT")
     _require_positive_int(caption_probe["cue_count"], "candidate intake probe.captions.cue_count")
     last_end_ms = _require_positive_int(
         caption_probe["last_end_ms"], "candidate intake probe.captions.last_end_ms"
@@ -1627,7 +1772,7 @@ def _validate_candidate_intake_receipt(
         _fail(EXIT_HASH, "candidate intake catalog SHA does not match the immutable catalog")
     expected_track_sequence = (
         episode["sequence"] + 1
-        if episode["profile"] == "testimony-static/v1"
+        if episode["profile"] == CANDIDATE_TESTIMONY_PROFILE
         else episode["sequence"]
     )
     if catalog["track_sequence"] != expected_track_sequence:
@@ -1640,7 +1785,7 @@ def _validate_candidate_intake_receipt(
         or episode["title"] != approved_track["title"]
     ):
         _fail(EXIT_HASH, "candidate episode hymn number/title differs from approved track")
-    if episode["profile"] == "hymn-lyrics/v1":
+    if episode["profile"] == CANDIDATE_HYMN_PROFILE:
         if intake_object_ids["audio"] != approved_track["audio_object_id"]:
             _fail(EXIT_HASH, "candidate hymn audio object differs from approved track")
         if intake_object_ids["captions"] != approved_track["captions_object_id"]:

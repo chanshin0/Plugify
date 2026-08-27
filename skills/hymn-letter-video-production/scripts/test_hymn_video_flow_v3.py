@@ -696,7 +696,7 @@ class SchemaLockShapeV3Tests(unittest.TestCase):
         testimony_job = next(
             branch
             for branch in candidate_job["allOf"]
-            if branch["if"]["properties"]["profile"]["const"] == "testimony-static/v1"
+            if branch["if"]["properties"]["profile"]["const"] == "testimony-external-srt/v1"
         )
         testimony_settings = testimony_job["then"]["properties"]["settings"]["properties"]
         self.assertEqual(testimony_settings["movie_timescale"], {"type": "integer", "minimum": 1})
@@ -704,7 +704,7 @@ class SchemaLockShapeV3Tests(unittest.TestCase):
         hymn_job = next(
             branch
             for branch in candidate_job["allOf"]
-            if branch["if"]["properties"]["profile"]["const"] == "hymn-lyrics/v1"
+            if branch["if"]["properties"]["profile"]["const"] == "hymn-listening-external-srt/v1"
         )
         self.assertEqual(
             hymn_job["then"]["properties"]["settings"]["properties"]["movie_timescale"]["const"],
@@ -734,7 +734,7 @@ class SchemaLockShapeV3Tests(unittest.TestCase):
             branch
             for branch in candidate_intake["allOf"]
             if branch["if"]["properties"]["episode"]["properties"]["profile"]["const"]
-            == "testimony-static/v1"
+            == "testimony-external-srt/v1"
         )
         self.assertEqual(
             testimony_intake["then"]["properties"]["probe"]["properties"]["audio"]
@@ -745,7 +745,7 @@ class SchemaLockShapeV3Tests(unittest.TestCase):
             branch
             for branch in candidate_intake["allOf"]
             if branch["if"]["properties"]["episode"]["properties"]["profile"]["const"]
-            == "hymn-lyrics/v1"
+            == "hymn-listening-external-srt/v1"
         )
         self.assertEqual(
             hymn_intake["then"]["properties"]["probe"]["properties"]["audio"]
@@ -2118,7 +2118,7 @@ class CandidateFixtureMixin:
             "sequence": sequence,
             "episode_id": f"{sequence:02d}-387-{'testimony' if testimony else 'hymn'}",
             "kind": "testimony_intro" if testimony else "hymn_lyrics",
-            "profile": "testimony-static/v1" if testimony else "hymn-lyrics/v1",
+            "profile": "testimony-external-srt/v1" if testimony else "hymn-listening-external-srt/v1",
             "hymn_number": approved_track["hymn_number"] if approved_track else 387,
             "title": approved_track["title"] if approved_track else "멀리멀리 갔더니",
         }
@@ -2167,16 +2167,19 @@ class CandidateFixtureMixin:
             approved_audio_bytes = approved_audio_path.read_bytes()
             approved_captions_bytes = approved_captions_path.read_bytes()
 
+        caption_payload = (
+            approved_captions_bytes
+            if approved_captions_bytes is not None
+            else (
+                b"1\n00:00:00,000 --> 00:00:01,000\napproved script\n"
+                if testimony
+                else b"1\n00:00:00,000 --> 00:00:01,000\ntext\n"
+            )
+        )
         common_payloads = {
-            "captions": (
-                "captions.srt",
-                approved_captions_bytes
-                if approved_captions_bytes is not None
-                else b"1\n00:00:00,000 --> 00:00:01,000\ntext\n",
-            ),
+            "captions": ("captions.srt", caption_payload),
             "backplate": ("backplate.jpg", b"candidate-backplate"),
             "thumbnail": ("thumbnail.jpg", b"candidate-thumbnail"),
-            "font": ("font.ttf", b"candidate-font"),
         }
         for key, (filename, payload) in common_payloads.items():
             add_object(key, filename, payload)
@@ -2235,7 +2238,8 @@ class CandidateFixtureMixin:
                 "movie_timescale": 1000,
             }
             settings = {
-                "style": "center",
+                "caption_delivery": "youtube-sidecar-srt/v1",
+                "subtitle_language": "ko",
                 "restore_audio_edit": True,
                 "movie_timescale": 1000,
                 "video_track_timescale": 15360,
@@ -2255,11 +2259,16 @@ class CandidateFixtureMixin:
                 "profile": "unknown",
                 "sample_rate": 44100,
                 "channels": 2,
-                "duration_ms": 5000,
+                "duration_ms": (
+                    (approved_track["samples"] * 1000 + 44099) // 44100
+                    if approved_hymn and approved_track
+                    else 5000
+                ),
                 "movie_timescale": None,
             }
             settings = {
-                "style": "center",
+                "caption_delivery": "youtube-sidecar-srt/v1",
+                "subtitle_language": "ko",
                 "movie_timescale": 44100,
                 "video_track_timescale": 15360,
             }
@@ -2277,7 +2286,6 @@ class CandidateFixtureMixin:
             "backplate": input_metadata["backplate"]["object_id"],
             "audio": audio_metadata["object_id"],
             "captions": input_metadata["captions"]["object_id"],
-            "font": input_metadata["font"]["object_id"],
             "thumbnail": input_metadata["thumbnail"]["object_id"],
         }
         job = {
@@ -2289,6 +2297,7 @@ class CandidateFixtureMixin:
             "settings": settings,
             "output": {
                 "filename": f"{sequence:02d}_candidate.mp4",
+                "captions_filename": f"{sequence:02d}_candidate.ko.srt",
                 "thumbnail_filename": f"{sequence:02d}_thumbnail.jpg",
                 "container": "mp4",
                 "audio_codec": "aac",
@@ -2304,19 +2313,28 @@ class CandidateFixtureMixin:
                 key: input_metadata[key]
                 for key in (
                     "approved_script", "narration_audio", "captions", "backplate",
-                    "thumbnail", "font", "narration_receipt", "speech_master_report",
+                    "thumbnail", "narration_receipt", "speech_master_report",
                 )
             }
             if testimony
             else {
                 key: input_metadata[key]
-                for key in ("audio", "captions", "backplate", "thumbnail", "font")
+                for key in ("audio", "captions", "backplate", "thumbnail")
             }
         )
         base_release = {
             "release_id": PRODUCTION_RELEASE_ID,
             "release_lock_sha256": "24867e11a54c33f69005ed7b033f3996200597697fa99657bb4764ea9ddff7e6",
         }
+        caption_blocks = caption_payload.decode("utf-8").strip().split("\n\n")
+        last_timing = next(line for line in caption_blocks[-1].splitlines() if "-->" in line)
+        last_end = last_timing.split("-->", 1)[1].strip().replace(".", ",")
+        hours, minutes, seconds_ms = last_end.split(":")
+        seconds, milliseconds = seconds_ms.split(",")
+        caption_last_end_ms = (
+            ((int(hours) * 60 + int(minutes)) * 60 + int(seconds)) * 1000
+            + int(milliseconds)
+        )
         intake = {
             "schema": "godowon.hymn-letter.episode-intake/1",
             "status": "CANDIDATE_UNAPPROVED",
@@ -2329,7 +2347,15 @@ class CandidateFixtureMixin:
                 "ffprobe_sha256": "1" * 64,
                 "ffprobe_version": "fixture ffprobe (must not execute)",
                 "audio": audio_probe,
-                "captions": {"cue_count": 1, "last_end_ms": 1000},
+                "captions": {
+                    "format": "SubRip",
+                    "encoding": "UTF-8",
+                    "bom": False,
+                    "line_endings": "LF",
+                    "ends_with_newline": True,
+                    "cue_count": len(caption_blocks),
+                    "last_end_ms": caption_last_end_ms,
+                },
             },
             "catalog": {
                 "schema": "godowon.hymn-letter.track-catalog/1",
@@ -2391,6 +2417,21 @@ class CandidateFixtureMixin:
 
 
 class CandidateValidationV3Tests(CandidateFixtureMixin, PortableCliTestCase):
+    def test_rejects_missing_blank_line_between_srt_cues(self) -> None:
+        if str(SCRIPT.parent) not in sys.path:
+            sys.path.insert(0, str(SCRIPT.parent))
+        import hymn_video_flow_v3 as flow
+
+        captions = self.root / "missing-separator.srt"
+        captions.write_bytes(
+            b"1\n00:00:00,000 --> 00:00:01,000\nfirst\n"
+            b"2\n00:00:01,000 --> 00:00:02,000\nsecond\n"
+        )
+        with self.assertRaises(flow.FlowError) as raised:
+            flow._candidate_srt_observation(captions)
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("cues must be separated by a blank line", str(raised.exception))
+
     def test_accepts_testimony_without_running_media_tools(self) -> None:
         marker = self.root / "media-tool-ran"
         tool_root = self.root / "tools"
