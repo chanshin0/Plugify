@@ -41,6 +41,14 @@
 - 에피소드별 좌표, 폰트, safe area, 줄맞춤, framerate override는 허용하지 않는다.
 - 자막 raster는 공통 모듈의 Pillow actual-pixel renderer로만 만든다. interview-soft·center 최대 2줄, dense 최대 3줄, style별 outline/shadow, safe area, 배경 비겹침, 실제 glyph·shadow bbox를 검사한다.
 - 위 raster 규칙은 01–06 production에만 적용한다. 07–26 external-SRT profile은 승인 backplate 외의 cue별 raster 자산 생성을 금지하고 MP4 subtitle stream도 0개여야 한다.
+- 07–26 시각자산은 모두 RGB 1920×1080 PNG여야 한다. 간증 후보는
+  `testimony-thumbnail/v1`·`testimony-backplate/v1`, 찬송듣기 후보는
+  `hymn-listening-backplate/v1`·기존 listening-thumbnail PSD v2.1을 요구한다.
+  각 PNG의 embedded spec/profile/곡명/template lock SHA를 확인한 뒤 같은
+  lock으로 fresh render하여 raw pixels와 전체 byte를 비교한다.
+- 시리즈명은 ASCII 작은따옴표까지 포함한 `'고도원의 찬송편지'`, 곡명은 장
+  번호 없이 한 줄이어야 한다. 자동 작성·줄바꿈·축소·편별 좌표 override는
+  QC 우회가 아니라 입력 계약 위반이다.
 
 ### 3. 대본·자막 불변
 

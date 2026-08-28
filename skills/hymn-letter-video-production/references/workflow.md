@@ -1,6 +1,6 @@
 # 고도원 찬송편지 26편 제작 워크플로우
 
-> 2026-08-26 현재 portable v3 정본은 `godowon-office/godo-hymns/releases/hymn-letter-caption-v4-interview-soft-20260826/`의 office-native release/job/source-bundle lock이다. v4는 01의 첫 723프레임에만 68px 무테두리·약한 그림자의 `interview-soft`를 선택하고 기존 `center`·`dense` 픽셀은 보존한다. Plugify의 `hymn_video_flow_v3.py`는 그 tracked JSON을 **변환 없이 그대로** 검증하고 office renderer/QC/package에 위임한 뒤 독립 검증한다. 아래 `hymn_video_flow.py` 문단은 역사적 v1 primitive 설명이다.
+> 2026-08-28 현재 portable v3 production 정본은 `godowon-office/godo-hymns/releases/hymn-letter-caption-v4-interview-soft-20260826/`의 office-native release/job/source-bundle lock이다. v4는 01의 첫 723프레임에만 68px 무테두리·약한 그림자의 `interview-soft`를 선택하고 기존 `center`·`dense` 픽셀은 보존한다. 07–26 candidate 시각자산은 별도의 PSD-derived lock을 쓰며 production v4를 수정하지 않는다. Plugify의 `hymn_video_flow_v3.py`는 tracked JSON을 **변환 없이 그대로** 검증하고 office renderer/QC/package에 위임한 뒤 독립 검증한다. 아래 `hymn_video_flow.py` 문단은 역사적 v1 primitive 설명이다.
 
 ## 범위와 완성 구조
 
@@ -30,6 +30,16 @@
 | `hymn_lyrics` | `hymn-listening-external-srt/v1` | clean MP4 + catalog SRT와 byte-exact한 `.ko.srt` |
 
 후속편 영상에는 대사·가사를 굽지 않는다. backplate가 이미 소유한 `'고도원의 찬송편지'`와 노래 제목 등 비자막 디자인은 유지한다.
+
+07–26의 네 시각자산은 모두 RGB 1920×1080 PNG다. 찬송듣기 썸네일은
+기존 PSD v2.1, 간증 썸네일·간증 영상 배경·찬송듣기 영상 배경은
+`hymn-letter-psd-visual-v1`만 사용한다. 간증에는
+`testimony-thumbnail/v1`과 `testimony-backplate/v1`, 찬송듣기에는
+`hymn-listening-backplate/v1`과 기존 listening-thumbnail v2.1이 필요하다.
+임의 이미지, manifest를 제거하거나 복사한 이미지, 다른 profile/곡명,
+찬송가 장 번호, fresh render와 다른 pixel/byte는 candidate intake 전에 거부한다.
+간증 감성문구는 사람이 나눈 정확히 두 행, 찬송듣기 썸네일 감성문구는 사람이
+나눈 한 행 또는 두 행을 받는다. 어느 경로도 문구 작성·줄바꿈·축소를 자동화하지 않는다.
 
 현재 여섯 output은 모두 MP4 + AAC-LC다. 01·03·05는 승인 AAC-LC를 stream-copy하고, 04·06은 승인 standalone MP3를 filter 없이 AAC-LC 256k/44.1kHz/stereo로 변환한다. 02는 승인 standalone MP3 12개를 순서대로 각각 gapless decode해 continuous PCM으로 이어 붙인 뒤 같은 AAC-LC 규격으로 한 번만 encode한다. MOV+MP3 output은 금지한다.
 
@@ -109,6 +119,27 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" validate-job \
 ### `validate-candidate` (07–26, read-only)
 
 후속 회차는 production v4 release를 바꾸지 않고 별도 candidate run root로 받는다.
+그 전에 sibling `godowon-office`에서 회차 profile에 필요한 시각자산을 각각 새
+run으로 생성하고 다시 검증한다.
+
+```bash
+GODOWON_OFFICE_ROOT="/absolute/path/to/godowon-office"
+HYMN_LETTER_RUNTIME_PYTHON="/absolute/path/to/locked/python-with-Pillow"
+
+"$HYMN_LETTER_RUNTIME_PYTHON" \
+  "$GODOWON_OFFICE_ROOT/godo-hymns/tools/hymn_letter_psd_visual.py" render \
+  --spec /absolute/path/profile-specific-visual-spec.json \
+  --run-dir /absolute/new/path/visual-run
+
+"$HYMN_LETTER_RUNTIME_PYTHON" \
+  "$GODOWON_OFFICE_ROOT/godo-hymns/tools/hymn_letter_psd_visual.py" verify-run \
+  --run-dir /absolute/new/path/visual-run
+```
+
+찬송듣기 썸네일은 같은 방식으로
+`hymn_letter_listening_thumbnail.py render`와 `verify-run`을 사용한다. office
+`prepare-testimony`·`prepare-hymn`이 profile, 곡명, template SHA, 내장 spec,
+fresh-render 전체 byte를 다시 확인하므로 검증되지 않은 PNG로 대체할 수 없다.
 
 ```bash
 python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow_v3.py" validate-candidate \
