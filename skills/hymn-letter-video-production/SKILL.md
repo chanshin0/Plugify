@@ -16,24 +16,38 @@ Run the evidence-backed production, review, packaging, and delivery flow for the
 
 Do not route ordinary YouTube editing, unrelated hymn videos, or general media work through this skill.
 
+## Route before selecting a renderer
+
+- For raw recorded testimony, reuse of episodes 01–06, or follow-up episodes 07–26,
+  read [references/recorded-testimony-pair.md](references/recorded-testimony-pair.md)
+  first. It routes to the project's current preparation/render contracts and the
+  proven upstream narration-editing procedure. Do not feed these jobs to this
+  skill's legacy `validate-job` CLI or relabel them as an older episode.
+- For a requested testimony/listening pair, record both episode IDs and their
+  deliverables before work. Finishing the narration or the odd episode alone
+  does not complete the pair. Respect an explicit narrower or paused scope.
+- The legacy profile inventory and operating workflow below govern only the
+  evidenced legacy renderer. They do not declare the current project follow-up
+  flow unavailable, nor prove that its runtime/assets exist on this device.
+
 ## Load the right reference
 
-- Read [references/workflow.md](references/workflow.md) for any production, review, package, or delivery task.
-- Read [references/job-manifest.schema.json](references/job-manifest.schema.json) when creating or validating a job. Do not invent extra manifest keys.
-- Read [references/episode-inventory.json](references/episode-inventory.json) and use only its exact supported `episode.id → kind → profile` mappings. The final twelve-song selection is not yet authoritative, so do not add episodes by inference.
-- Read [references/qc-contract.md](references/qc-contract.md) before rendering, reviewing, promoting, or packaging media.
+- For legacy production, review, package, or delivery, read [references/workflow.md](references/workflow.md). For follow-ups, use the project references selected above instead of mixing legacy and current locks.
+- Read [references/job-manifest.schema.json](references/job-manifest.schema.json) when creating or validating a legacy job. Follow-ups use the project's current prepare/verify schema and candidate lock. Do not mix schemas or invent extra manifest keys.
+- For the legacy CLI, read [references/episode-inventory.json](references/episode-inventory.json) and use only its exact supported `episode.id → kind → profile` mappings. For follow-ups, use the project's current locked catalog; never invent a mapping.
+- Read [references/qc-contract.md](references/qc-contract.md) before legacy media work; follow-up media uses its project's locked QC. Neither route permits omitted checks to become PASS.
 - Read [references/authority-boundaries.md](references/authority-boundaries.md) before any render execution or external mutation.
 
 ## Non-negotiable invariants
 
-- Preserve approved script, caption text and timing, and audio. Do not rewrite, split, trim, normalize, retime, or “improve” them without a newly approved source.
-- Import the one visual SSOT from `/mnt/c/work/godowon-office/godo-hymns/tools/hymn_letter_visual_template.py`. Verify its module SHA, template version, bundle lock, config, and assets before rendering.
+- Preserve approved script, caption text and timing, and audio. User-authorized raw-recording cleanup is a separate upstream candidate stage: preserve the original, create a new EDL and derived audio, then obtain exact-candidate approval. Never edit an already approved source in place.
+- Import the locked visual SSOT for the selected route. The legacy module is `godo-hymns/tools/hymn_letter_visual_template.py`; follow-ups use the project's release-bound adapter. Verify module SHA, template version, bundle lock, config, and assets before rendering.
 - Never copy visual coordinates, font sizes, fitting logic, safe area, or still-image framerate into an episode-specific renderer or manifest.
 - Never overwrite an existing output. Render to a new run/candidate and promote only after QC PASS.
 - A generated layout or PNG is not sufficient QC. Decode the actual final H.264 and verify its cue/interval boundary frames.
 - A local review package is not a portable renderer and is not evidence of Drive upload, YouTube state, or bot delivery.
 
-## Profile gate
+## Legacy CLI profile gate
 
 Only these profiles may appear in a job:
 
@@ -46,7 +60,7 @@ Do not make an unsupported profile appear supported by changing its name to one 
 
 The current supported episode inventory is deliberately partial: `start`, `hymn-491-testimony`, and `hymn-370-testimony`. Adding another episode requires an approved selection/update, a new inventory hash, and regression validation; a syntactically plausible ID is not enough.
 
-## Operating workflow
+## Legacy operating workflow
 
 1. Confirm that the request belongs to this 26-video project and identify the exact episode kind/profile.
 2. Inventory approved inputs and ask only for missing human-owned choices or authority. Do not ask the user to perform routine checks the CLI can perform.

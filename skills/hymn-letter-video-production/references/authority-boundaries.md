@@ -9,7 +9,7 @@
 필수 필드:
 
 - `action`: 아래 표의 정확한 권한 이름
-- `subject_sha256`: job lock, 영상 또는 package manifest의 정확한 SHA-256
+- `subject_sha256`: 선택한 경로의 job/candidate lock, 영상 또는 package manifest의 정확한 SHA-256
 - `target`: output root, Drive folder, YouTube channel/video, bot recipient처럼 실제 변경 대상
 - `actor`와 `authorized_at`
 - `expires_at`
@@ -22,13 +22,18 @@ credential, OAuth token, cookie는 manifest·영수증·로그에 넣지 않는�
 
 | 경계 | 권한 이름 | 선행 증거 | 허용되는 일 | 성공 영수증 |
 |---|---|---|---|---|
-| 로컬 렌더 | `render.execute` | `validate-job` PASS, template lock PASS, 새 output 경로 | exact job lock으로 candidate와 QC 자산 생성 | candidate path/SHA, renderer·job·template SHA |
+| 로컬 렌더 | `render.execute` | legacy는 `validate-job` PASS; 후속편은 현재 project prepare + 독립 `verify-run` PASS. 두 경로 모두 해당 template/release/runtime lock PASS와 새 output 경로 | 승인된 exact job/candidate lock으로 candidate와 QC 자산 생성 | candidate path/SHA, renderer·job/candidate·template/release SHA |
 | Drive 업로드+다시읽기 | `drive.upload_verify` | QC PASS package와 `verify-package` PASS | 승인된 계정의 정확한 폴더에 업로드하고 다시 내려받아 확인 | remote file IDs, size, download SHA, ACL snapshot, verified time |
 | YouTube 비공개 staging | `youtube.stage_private` | QC PASS 영상·thumbnail·metadata hash | 승인 channel에 `private`로만 업로드 | video ID, channel ID, visibility=`private`, duration/processing read-back |
 | YouTube 공개 전환 | `youtube.publish` | 검증된 private video ID와 별도 publish 승인 | 영수증에 적힌 visibility로만 변경 | video ID, 최종 visibility, published/read-back time |
 | 업무봇 알림 | `bot.notify` | manifest가 요구한 Drive/YouTube 영수증과 최소 메타데이터 payload | 승인 수신자에게 1회 알림 | channel/recipient, message ID, sent time, payload SHA |
 
 로컬 read-only 검사와 원격 read-only `reconcile`에는 mutation 권한이 필요하지 않지만, 범위를 벗어난 파일·계정은 읽지 않는다.
+
+후속편은 프로젝트의 잠긴 prepare/verify 계약을 사용하며 구형 `validate-job`
+PASS를 대신 만들어 제출하지 않는다. prepare·독립 verify 통과는 실행 가능성
+증거일 뿐 `render.execute` 승인이나 사람 검수·외부 전달 권한이 아니다.
+후속편에도 위 승인 영수증과 외부 동작 분리는 그대로 적용한다.
 
 ## 단계별 규칙
 

@@ -56,6 +56,7 @@
 
 ### 3.1 첫 실전 관찰 목록 (고친 뒤 첫 실전 1회를 증거로 재검증하는 항목)
 
+- hymn-letter 실제 낭독 재사용·07/08 한 쌍(2026-08-28): 다음 실제 07 녹음에서 491·370 EDL/편집기 재사용, 새 컷 근거·구간별 전사 저장, 공통 master·편집 후 SRT·청취 QC를 실제 파일로 확인하고 08 승인 찬송 음원·자막·시각 자산까지 납품 목록을 대조한다. planning-only eval 통과는 미디어 완료가 아니며 두 편 실제 산출물과 별도 review 전까지 관찰을 닫지 않음
 - service-planning persistent-context/legacy-modernization(2026-08-26 출하): 다음 실제 장기·레거시 기획 1회가 capability/process discovery gate를 architecture보다 먼저 보존하고, README·STATUS·고정 9개 역할 prompt·DELIVERY-REPORT를 만들며, 검증 직후 실제 filesystem tree와 보고 tree가 exact match하는지 validator·산출물·fresh review 증거를 대조. 아침지기 AX package는 출하 전 forward test로만 기록하고 이 첫 post-release 관찰을 대신하지 않음
 - SessionStart workspace sync(2026-08-20 출하): 이 기기의 실제 Codex·Claude 동시/순차 세션 시작 1회에서 중복 훅 없이 세 Git 검증·최신화와 최신 agent sync가 실행되고, 다음 실제 새 기기 bootstrap 1회에서 기기 로컬 인증·hook trust 경계를 침범하지 않는지 설정·Git·fresh review 증거를 대조
 - portable workspace migration(2026-08-19 출하): 다음 실제 새 기기 또는 새 container 적용 1회에서 dry-run→clone/apply→root router·manifest→도구 install→strict verify가 기존 checkout·대외비 경계·기기 로컬 설정을 훼손하지 않고 닫히는지 실제 Git·설정 증거를 fresh review가 대조

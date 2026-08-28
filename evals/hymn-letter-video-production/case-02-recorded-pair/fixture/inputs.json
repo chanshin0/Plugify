@@ -1,0 +1,32 @@
+{
+  "source_type": "recorded-narration-plus-script",
+  "user_requested_episodes": [7, 8],
+  "hymn_number": 387,
+  "tts_decision": "discarded-use-real-recording",
+  "episode7": {
+    "raw_audio_received": true,
+    "raw_duration_seconds": 673.354813,
+    "script_received": true,
+    "existing_outputs": ["preserved-raw.m4a", "16k-mono.wav", "silencedetect.log", "transcribe_whisper.py"],
+    "transcript_output_present": false,
+    "edl_present": false,
+    "edited_audio_present": false,
+    "mp4_present": false
+  },
+  "episode8": {
+    "approved_catalog_entry": true,
+    "local_source_bytes_verified": false,
+    "current_amen_receipt_verified": false,
+    "mp4_present": false
+  },
+  "prior_work_relative_to_office": "output/찬송편지_시작영상_개선작업본_2026-08-18/02_project",
+  "previous_success_evidence": [
+    "v12_split/491/491_간증소개_편집결정표_EDL_v1.md",
+    "v12_split/370/370_간증소개_EDL.md",
+    "v12_split/tools/build_clean_audio.py",
+    "v18_audio_standard/V18_AUDIO_REVIEW.md"
+  ],
+  "visual_state": "08 PSD v2.1 rules exist; 07 thumbnail and both approved backplates not supplied in this fixture",
+  "final_human_review": false,
+  "external_delivery_authorized": false
+}

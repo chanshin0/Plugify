@@ -1,0 +1,16 @@
+{
+  "fixture_kind": "synthetic-negative-control-not-historical-agent-output",
+  "episode_sequences": [7],
+  "evidence_paths": [],
+  "steps": ["source-check"],
+  "reuse_previous_cut_timestamps": false,
+  "tts": false,
+  "change_speech_speed": false,
+  "transcription_is_final_audio": false,
+  "transcription_progress_basis": "process-cpu-time",
+  "episode8_audio_source": "not-in-current-handoff",
+  "deliverables": {"7": ["audio", "mp4", "ko.srt", "edit-log"], "8": []},
+  "pair_complete": false,
+  "missing_inputs": ["edited-audio", "timed-srt", "visuals"],
+  "external_actions": []
+}
