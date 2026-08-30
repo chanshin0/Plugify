@@ -46,6 +46,14 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
 - Never overwrite an existing output. Render to a new run/candidate and promote only after QC PASS.
 - A generated layout or PNG is not sufficient QC. Decode the actual final H.264 and verify its cue/interval boundary frames.
 - A local review package is not a portable renderer and is not evidence of Drive upload, YouTube state, or bot delivery.
+- Before any delivery mutation, lock the current request as an exact role-aware
+  delivery manifest: episode ID, role, target name, size, and SHA-256 for every
+  required payload. Existing target files count only when their role and exact
+  bytes match that manifest.
+- An adjunct-only success (thumbnail, comparison sheet, SRT, audio, or metadata)
+  never proves the episode or requested pair was delivered. A missing current
+  burned-caption MP4 or any stale same-episode MP4 makes the target
+  `PARTIAL_STALE_TARGET`, not complete.
 
 ## Legacy CLI profile gate
 
@@ -81,6 +89,21 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/hymn_video_flow.py" verify-package --pac
 ```
 
 Use each command's JSON result and artifact hashes as evidence. A process exit, an MP4's existence, a contact sheet, or a verbal completion report does not replace the required checks.
+
+For a Drive replacement/reorganization receipt, verify the exact role set before
+reporting completion:
+
+```bash
+python3 "$HYMN_LETTER_SKILL_DIR/scripts/verify_delivery_set.py" \
+  --manifest /absolute/path/delivery-manifest.json \
+  --receipt /absolute/path/drive-receipt.json
+```
+
+The receipt must be bound to the current manifest hash and prove exact remote
+children, non-local remote IDs, remote sizes, DriveFS readback hashes, and the
+declared stale-file cleanup. Name only the roles actually verified in the user
+report. If this command fails, report the verified subset and reconciliation
+needed; do not say the pair or folder is delivered.
 
 These three commands are low-level validation primitives; they do not render video, run media QC, or perform delivery. Require an approved deterministic project renderer/QC report with its exact command and renderer SHA. If no such final-H.264/audio/caption evidence exists, stop at `RENDERED_UNVERIFIED`.
 

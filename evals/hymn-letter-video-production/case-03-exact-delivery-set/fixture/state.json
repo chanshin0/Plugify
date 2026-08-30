@@ -1,0 +1,30 @@
+{
+  "request": {
+    "episodes": ["07", "08"],
+    "required_roles_each": ["burned-caption-mp4", "thumbnail-A", "thumbnail-B", "thumbnail-C", "thumbnail-D", "thumbnail-comparison"],
+    "target_folder_id": "fixture-drive-folder"
+  },
+  "local_qualified": [
+    {"episode_id": "07", "role": "burned-caption-mp4", "name": "07_burned.mp4", "size": 210600595, "sha256": "6221d8a9759f6465ae9c3978f68b44d865ac7740dbad494ce6e25b43c170d004"},
+    {"episode_id": "08", "role": "burned-caption-mp4", "name": "08_burned.mp4", "size": 62719552, "sha256": "68d9d281f3d5805bb2bdc94832dbb0d6eed14743828a905d0ca3018f21d7f312"},
+    {"episode_id": "07", "role": "thumbnail-A", "name": "07_A.png", "size": 1, "sha256": "png07a"},
+    {"episode_id": "07", "role": "thumbnail-B", "name": "07_B.png", "size": 1, "sha256": "png07b"},
+    {"episode_id": "07", "role": "thumbnail-C", "name": "07_C.png", "size": 1, "sha256": "png07c"},
+    {"episode_id": "07", "role": "thumbnail-D", "name": "07_D.png", "size": 1, "sha256": "png07d"},
+    {"episode_id": "07", "role": "thumbnail-comparison", "name": "07_compare.png", "size": 1, "sha256": "png07compare"},
+    {"episode_id": "08", "role": "thumbnail-A", "name": "08_A.png", "size": 1, "sha256": "png08a"},
+    {"episode_id": "08", "role": "thumbnail-B", "name": "08_B.png", "size": 1, "sha256": "png08b"},
+    {"episode_id": "08", "role": "thumbnail-C", "name": "08_C.png", "size": 1, "sha256": "png08c"},
+    {"episode_id": "08", "role": "thumbnail-D", "name": "08_D.png", "size": 1, "sha256": "png08d"},
+    {"episode_id": "08", "role": "thumbnail-comparison", "name": "08_compare.png", "size": 1, "sha256": "png08compare"}
+  ],
+  "target_active": [
+    {"episode_id": "07", "role": "mp4-unknown-caption-mode", "name": "07_old.mp4", "size": 205518377, "sha256": "e79bf472adfe1f32d6d35a94771e4f7fa317ae37979f7105efbfb4e13941d7e2", "remote_id": "drive-old-07"},
+    {"episode_id": "08", "role": "mp4-unknown-caption-mode", "name": "08_old.mp4", "size": 63116611, "sha256": "0605b557bea2aaaa5074921c3910c09161c21900dba3491e3447fc5a5dd7603d", "remote_id": "drive-old-08"},
+    {"episode_id": "07", "role": "external-srt", "name": "07.ko.srt", "size": 1, "sha256": "srt07", "remote_id": "drive-srt-07"},
+    {"episode_id": "08", "role": "external-srt", "name": "08.ko.srt", "size": 1, "sha256": "srt08", "remote_id": "drive-srt-08"},
+    {"episode_id": "07", "role": "thumbnail-set", "name": "07_pngs", "size": 5, "sha256": "pngs07", "remote_id": "drive-png-07"},
+    {"episode_id": "08", "role": "thumbnail-set", "name": "08_pngs", "size": 5, "sha256": "pngs08", "remote_id": "drive-png-08"}
+  ]
+}
+

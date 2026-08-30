@@ -1,0 +1,13 @@
+{
+  "requested_roles": {"07": ["thumbnail-set"], "08": ["thumbnail-set"]},
+  "target_snapshot_compared": false,
+  "required_payloads": [],
+  "remote_payloads": [],
+  "stale_same_episode_media": [],
+  "delivery_complete": true,
+  "reported_status": "DELIVERED",
+  "next_action": "ask-for-selection",
+  "human_approval": false,
+  "youtube_actions": []
+}
+
