@@ -81,11 +81,15 @@ def verify(manifest_path: Path, receipt_path: Path) -> dict:
         "drivefs_readback_sha256_all_match",
         "remote_ids_all_nonlocal",
         "remote_sizes_all_match",
-        "parent_contains_only_new_folder",
         "new_folder_exact_payload_set",
     }
     verification = receipt.get("verification", {})
     failed = sorted(key for key in required_checks if verification.get(key) is not True)
+    if not (
+        verification.get("parent_contains_target_folder_exactly_once") is True
+        or verification.get("parent_contains_only_new_folder") is True
+    ):
+        failed.append("parent_contains_target_folder_exactly_once")
     if failed:
         raise DeliverySetError("receipt verification failed or missing: " + ", ".join(failed))
     if not (

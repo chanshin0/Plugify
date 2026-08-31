@@ -26,12 +26,13 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
 - For a requested testimony/listening pair, record both episode IDs and their
   deliverables before work. Finishing the narration or the odd episode alone
   does not complete the pair. Respect an explicit narrower or paused scope.
-- For the two thumbnails of one hymn pair, keep the song title and the white
-  context line above it exactly identical. Only the kind label and final
-  emotional copy differ: the kind labels are fixed constants, so the only copy
-  authored for each new thumbnail is the final emotional sentence. Derive that
-  sentence from the testimony script's central message and key lines, not from
-  unrelated lyric copy or generic clickbait.
+- For the two thumbnails of one hymn pair, keep the song title, the white context
+  line above it, and the final emotional copy exactly identical. Only the kind
+  label differs, and both kind labels are fixed constants. Therefore author one
+  shared emotional sentence (or one shared A/B/C/D candidate set) per pair.
+  Derive it from the testimony script's central message and key lines, not from
+  unrelated lyric copy or generic clickbait. The same candidate ID must preserve
+  exact line breaks and placement across both thumbnails.
 - The legacy profile inventory and operating workflow below govern only the
   evidenced legacy renderer. They do not declare the current project follow-up
   flow unavailable, nor prove that its runtime/assets exist on this device.
