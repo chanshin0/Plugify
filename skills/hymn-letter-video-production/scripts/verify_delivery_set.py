@@ -95,9 +95,11 @@ def verify(manifest_path: Path, receipt_path: Path) -> dict:
     if not (
         verification.get("old_remote_ids_trashed_or_tombstoned") is True
         or verification.get("superseded_payloads_replaced_exactly") is True
+        or verification.get("additive_payloads_uploaded_exactly") is True
     ):
         raise DeliverySetError(
-            "receipt proves neither stale-ID cleanup nor exact superseded-payload replacement"
+            "receipt proves neither stale-ID cleanup, exact superseded-payload replacement, "
+            "nor exact additive upload"
         )
     return {
         "status": "PASS",
