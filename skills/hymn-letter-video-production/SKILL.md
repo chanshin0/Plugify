@@ -53,6 +53,12 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
   lines (four newline characters) between the preceding body sentence and every
   bracketed section subtitle, and verify the TXT's remote bytes with the rest of
   the exact set.
+  The selected shared emotional copy is also the testimony episode's title hook:
+  join its locked thumbnail lines with one space immediately after the series
+  name. Do not invent a separate paraphrase for the testimony title. Keep the
+  listening episode's established song-title-led format. The publishing-copy
+  generator must fail when the selected emotional copy and testimony title do
+  not match.
 - The legacy profile inventory and operating workflow below govern only the
   evidenced legacy renderer. They do not declare the current project follow-up
   flow unavailable, nor prove that its runtime/assets exist on this device.
