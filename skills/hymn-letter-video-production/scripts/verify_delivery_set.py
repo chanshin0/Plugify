@@ -83,12 +83,18 @@ def verify(manifest_path: Path, receipt_path: Path) -> dict:
         "remote_sizes_all_match",
         "parent_contains_only_new_folder",
         "new_folder_exact_payload_set",
-        "old_remote_ids_trashed_or_tombstoned",
     }
     verification = receipt.get("verification", {})
     failed = sorted(key for key in required_checks if verification.get(key) is not True)
     if failed:
         raise DeliverySetError("receipt verification failed or missing: " + ", ".join(failed))
+    if not (
+        verification.get("old_remote_ids_trashed_or_tombstoned") is True
+        or verification.get("superseded_payloads_replaced_exactly") is True
+    ):
+        raise DeliverySetError(
+            "receipt proves neither stale-ID cleanup nor exact superseded-payload replacement"
+        )
     return {
         "status": "PASS",
         "folder_name": new_folder["name"],

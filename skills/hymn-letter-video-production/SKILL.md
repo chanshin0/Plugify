@@ -26,6 +26,12 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
 - For a requested testimony/listening pair, record both episode IDs and their
   deliverables before work. Finishing the narration or the odd episode alone
   does not complete the pair. Respect an explicit narrower or paused scope.
+- For the two thumbnails of one hymn pair, keep the song title and the white
+  context line above it exactly identical. Only the kind label and final
+  emotional copy differ: the kind labels are fixed constants, so the only copy
+  authored for each new thumbnail is the final emotional sentence. Derive that
+  sentence from the testimony script's central message and key lines, not from
+  unrelated lyric copy or generic clickbait.
 - The legacy profile inventory and operating workflow below govern only the
   evidenced legacy renderer. They do not declare the current project follow-up
   flow unavailable, nor prove that its runtime/assets exist on this device.
@@ -100,8 +106,9 @@ python3 "$HYMN_LETTER_SKILL_DIR/scripts/verify_delivery_set.py" \
 ```
 
 The receipt must be bound to the current manifest hash and prove exact remote
-children, non-local remote IDs, remote sizes, DriveFS readback hashes, and the
-declared stale-file cleanup. Name only the roles actually verified in the user
+children, non-local remote IDs, remote sizes, DriveFS readback hashes, and either
+declared stale-ID cleanup or exact replacement of superseded bytes when Drive
+retains the remote IDs. Name only the roles actually verified in the user
 report. If this command fails, report the verified subset and reconciliation
 needed; do not say the pair or folder is delivered.
 
