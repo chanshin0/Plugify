@@ -41,8 +41,14 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
   exact line breaks and placement across both thumbnails.
 - For publishing copy after episodes 01–06, give the testimony and listening
   episodes separate titles but one shared body derived from the approved
-  testimony script. Append the locked production/contact notice only to the
-  listening episode. When the requested Drive output is meant to mirror the
+  testimony script. Match the 01–06 body structure by adding bracketed section
+  subtitles (`[부제목]`) at the testimony's real topic transitions; a raw script
+  pasted after the common introduction is incomplete. Require at least four
+  section subtitles, preserve the approved script exactly when those inserted
+  subtitles are removed, including leading and trailing line breaks, and share
+  the subtitles and body across both episodes.
+  Append the locked production/contact notice only to the listening episode.
+  When the requested Drive output is meant to mirror the
   prior final-result folders, include one paired title/body RTF as a required
   delivery role and verify its remote bytes with the rest of the exact set.
 - The legacy profile inventory and operating workflow below govern only the
