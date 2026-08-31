@@ -26,6 +26,12 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
 - For a requested testimony/listening pair, record both episode IDs and their
   deliverables before work. Finishing the narration or the odd episode alone
   does not complete the pair. Respect an explicit narrower or paused scope.
+- For every hymn-listening episode, keep both added leading silence and any
+  source-audio leading silence free of captions. Show the locked song title
+  from the first audible accompaniment frame until the first sung lyric frame,
+  then hand off to the first lyric with zero gap or overlap. Record the measured
+  music onset, title interval, and lyric handoff in the render receipt. This is
+  a required display cue, separate from the source-lyric preservation check.
 - For the two thumbnails of one hymn pair, keep the song title, the white context
   line above it, and the final emotional copy exactly identical. Only the kind
   label differs, and both kind labels are fixed constants. Therefore author one
