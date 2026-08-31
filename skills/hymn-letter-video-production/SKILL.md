@@ -59,6 +59,13 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
   listening episode's established song-title-led format. The publishing-copy
   generator must fail when the selected emotional copy and testimony title do
   not match.
+  Count each video's complete YouTube description separately and fail before
+  delivery when either exceeds 5,000 characters. The testimony count covers the
+  shared body; the listening count also includes its production/contact notice.
+  Exclude the video title from the 5,000-character description count.
+  Do not treat a paired TXT's combined file length or a copy-instruction marker
+  as either video's description length. Record the 5,000-character maximum and
+  both final per-video counts in the publishing receipt.
 - The legacy profile inventory and operating workflow below govern only the
   evidenced legacy renderer. They do not declare the current project follow-up
   flow unavailable, nor prove that its runtime/assets exist on this device.
