@@ -48,9 +48,11 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
   subtitles are removed, including leading and trailing line breaks, and share
   the subtitles and body across both episodes.
   Append the locked production/contact notice only to the listening episode.
-  When the requested Drive output is meant to mirror the
-  prior final-result folders, include one paired title/body RTF as a required
-  delivery role and verify its remote bytes with the rest of the exact set.
+  For current and future delivery, include one paired title/body UTF-8 TXT as a
+  required delivery role; do not create or deliver RTF. Put exactly three blank
+  lines (four newline characters) between the preceding body sentence and every
+  bracketed section subtitle, and verify the TXT's remote bytes with the rest of
+  the exact set.
 - The legacy profile inventory and operating workflow below govern only the
   evidenced legacy renderer. They do not declare the current project follow-up
   flow unavailable, nor prove that its runtime/assets exist on this device.
