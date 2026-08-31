@@ -19,6 +19,12 @@ skill_required = [
     "paired TXT's combined file length",
     "copy-instruction marker",
     "Record the 5,000-character maximum and both final per-video counts",
+    "do not use an LLM to summarize, paraphrase, or silently shorten",
+    "[중략...]",
+    "reserved omission marker",
+    "Re-read the edited TXT",
+    "keep the locked titles, thumbnail copy, title block, and common intro unchanged",
+    "Hash the final TXT only after that edit",
 ]
 reference_required = [
     "영상별 완성 설명을 각각 최대 5,000자",
@@ -28,17 +34,21 @@ reference_required = [
     "둘 중 하나라도 넘으면 TXT 생성과 전달을 실패",
     "합본 TXT 전체 길이",
     "복사 안내 마커",
-    "중복 해시태그·도입·부제목·안내를 압축",
-    "별도 요약 후보를 사람 검토 대상",
+    "LLM으로 승인 대본을 요약·재작성하지 않는다",
+    "[중략...]",
+    "부제목이 아니므로",
+    "수동 정정 뒤 제목·썸네일 문구·상단 제목 블록·공통 도입이 그대로인지",
     "최대값 5,000과 두 편의 최종 문자 수",
 ]
 skill_forbidden = [
     "paired TXT must be at most 5,000 characters",
     "count the title toward the 5,000-character description limit",
+    "use an LLM to summarize the approved script",
 ]
 reference_forbidden = [
     "합본 TXT 전체를 5,000자 이하",
     "제목을 본문 5,000자에 포함",
+    "별도 요약 후보를 사람 검토 대상으로 만든다",
 ]
 
 missing = [f"SKILL:{item}" for item in skill_required if item not in skill_norm]

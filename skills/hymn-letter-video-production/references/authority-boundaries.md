@@ -26,6 +26,7 @@ credential, OAuth token, cookie는 manifest·영수증·로그에 넣지 않는�
 | Drive 업로드+다시읽기 | `drive.upload_verify` | QC PASS package와 `verify-package` PASS | 승인된 계정의 정확한 폴더에 업로드하고 다시 내려받아 확인 | remote file IDs, size, download SHA, ACL snapshot, verified time |
 | YouTube 비공개 staging | `youtube.stage_private` | QC PASS 영상·thumbnail·metadata hash | 승인 channel에 `private`로만 업로드 | video ID, channel ID, visibility=`private`, duration/processing read-back |
 | YouTube 공개 전환 | `youtube.publish` | 검증된 private video ID와 별도 publish 승인 | 영수증에 적힌 visibility로만 변경 | video ID, 최종 visibility, published/read-back time |
+| YouTube 엔드스크린 | `youtube.end_screen_configure` | 두 영상의 검증된 video ID, 선택 가능한 visibility, 승인된 홀수/짝수 Studio 원형과 별도 승인 | 승인된 한 쌍에 홀수→짝수·짝수→홀수 특정 동영상 요소를 복사·저장 | source template video ID, target video IDs, 방향, 표시 구간, saved/read-back time |
 | 업무봇 알림 | `bot.notify` | manifest가 요구한 Drive/YouTube 영수증과 최소 메타데이터 payload | 승인 수신자에게 1회 알림 | channel/recipient, message ID, sent time, payload SHA |
 
 로컬 read-only 검사와 원격 read-only `reconcile`에는 mutation 권한이 필요하지 않지만, 범위를 벗어난 파일·계정은 읽지 않는다.
@@ -57,7 +58,14 @@ PASS를 대신 만들어 제출하지 않는다. prepare·독립 verify 통과�
 - staging은 항상 `private`다. `delivery_intent.youtube_publish=true`여도 별도 `youtube.publish` 승인이 없으면 visibility를 높이지 않는다.
 - staging 직전에 영상·thumbnail·metadata의 SHA를 다시 확인하고, 실제 업로드 스트림에서 계산한 영상 hash를 승인 receipt의 subject와 대조한다.
 - private staging 후 실제 channel ID, video ID, visibility, duration, processing state, thumbnail 적용 상태를 다시 읽는다.
+- 공식 YouTube Data API v3 CLI는 resumable private upload, metadata, custom
+  thumbnail과 processing/status read-back까지만 기본 자동화한다. API에 없는
+  엔드스크린을 업로드 성공으로 추론하지 않는다.
 - publish 영수증은 검증된 remote video ID와 정확한 최종 visibility에 결박한다. 다른 영상이나 다른 채널에 재사용하지 않는다.
+- 엔드스크린은 두 video ID가 모두 확인된 뒤 별도 권한으로 설정한다. 1–8편의
+  사용자 수동 설정은 덮어쓰지 않는다. 이후 홀수편은 7편, 짝수편은 8편에서
+  Studio `동영상에서 가져오기`로 배치·시간을 복사하고 `특정 동영상` 대상만
+  새 짝으로 바꾼다. 홀수→짝수와 짝수→홀수를 각각 미리보기·저장·기록한다.
 
 ### 업무봇
 

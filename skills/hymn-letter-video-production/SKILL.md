@@ -39,6 +39,11 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
   Derive it from the testimony script's central message and key lines, not from
   unrelated lyric copy or generic clickbait. The same candidate ID must preserve
   exact line breaks and placement across both thumbnails.
+  Present exactly four integrated emotional-copy candidates for the pair, not
+  four duplicated candidates per episode. After the user selects one, render the
+  two final thumbnails and both video backplates as still images. Do not start a
+  full-length MP4 render until the user approves those exact images. A short
+  technical probe is not that approval.
 - For publishing copy after episodes 01–06, give the testimony and listening
   episodes separate titles but one shared body derived from the approved
   testimony script. Match the 01–06 body structure by adding bracketed section
@@ -66,6 +71,21 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
   Do not treat a paired TXT's combined file length or a copy-instruction marker
   as either video's description length. Record the 5,000-character maximum and
   both final per-video counts in the publishing receipt.
+  When the faithful body exceeds the limit, stop delivery and report both counts;
+  do not use an LLM to summarize, paraphrase, or silently shorten the approved
+  script. The user may explicitly approve a manual omission in the final
+  publishing copy. Mark each such omission exactly as `[중략...]`; treat it as a
+  reserved omission marker, not a bracketed section subtitle. Re-read the edited
+  TXT, keep the locked titles, thumbnail copy, title block, and common intro
+  unchanged, and require both final descriptions to pass 5,000 characters. Hash
+  the final TXT only after that edit; hashes identify one final artifact and are
+  not constants shared across episodes.
+- For the current follow-up Drive delivery, keep production/audit audio, SRT,
+  EDL, and QC locally. The final pair folder has exactly seven publishing roles:
+  two burned-caption MP4s, two backplates, two thumbnails, and one paired UTF-8
+  TXT. Review candidates may temporarily share the folder, but final promotion
+  removes candidates, comparisons, stale versions, and RTF before exact-set
+  verification.
 - The legacy profile inventory and operating workflow below govern only the
   evidenced legacy renderer. They do not declare the current project follow-up
   flow unavailable, nor prove that its runtime/assets exist on this device.
@@ -77,6 +97,8 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
 - For the legacy CLI, read [references/episode-inventory.json](references/episode-inventory.json) and use only its exact supported `episode.id → kind → profile` mappings. For follow-ups, use the project's current locked catalog; never invent a mapping.
 - Read [references/qc-contract.md](references/qc-contract.md) before legacy media work; follow-up media uses its project's locked QC. Neither route permits omitted checks to become PASS.
 - Read [references/authority-boundaries.md](references/authority-boundaries.md) before any render execution or external mutation.
+- For YouTube CLI upload, publication, or end-screen work, also read
+  [references/youtube-delivery.md](references/youtube-delivery.md).
 
 ## Non-negotiable invariants
 
@@ -156,6 +178,9 @@ Keep these permissions distinct:
 - `drive.upload_verify` — upload one exact verified package and read remote IDs, size, hashes, and ACL back.
 - `youtube.stage_private` — upload one exact video to one exact channel as private.
 - `youtube.publish` — change the verified staged video to the explicitly approved visibility.
+- `youtube.end_screen_configure` — after both paired video IDs exist and the
+  target videos are selectable, copy the approved odd/even Studio layout and
+  point each video to its exact counterpart.
 - `bot.notify` — send an approved minimal-metadata message after required remote receipts exist.
 
 `delivery_intent` records requested stages but grants none of these permissions. Never infer an account, folder, channel, visibility, recipient, or approval from a previous episode.
