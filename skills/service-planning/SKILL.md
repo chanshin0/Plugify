@@ -87,7 +87,7 @@ P6(와이어프레임)·P7(데이터모델)은 deep 기본, standard에선 사�
 
 ### P5b — 검증 + 저장
 - **Completeness 검증 (티어 기준 — "Stage 2부터" 대체)**: napkin=메인 self-check(§D 4항목) / standard·deep=`completeness-critic` 에이전트 spawn(독립 적대 검증). critic 에는 씨앗·청중/pruning·완성 기획서만 주고 plan-writer 보고·결정 rationale·기존 self-check는 주지 않는다(블라인드 누락 검토). 결과로 §10 갱신.
-- **(옵션) 외부 모델 교차 누락검토**: deep 티어이거나 누락 비용이 큰 기획이면, `completeness-critic`(Claude) 검증 후 다른 모델 family(Codex/Gemini)에게도 누락 검토를 받아 교차한다(같은 family 맹점 보완 — `/self-review` R3 철학). 외부 호출은 비용·시간 승인 경계이므로 원 요청에 이미 포함됐으면 반복 확인 없이 실행하고, 포함되지 않았을 때만 사용자에게 한 번 승인받는다(기본 off). 예: `codex exec -c model='gpt-5.5' -c model_reasoning_effort='xhigh' "기획서.md 의 9-카테고리(여정·역할·화면·UI상태·대안예외·스캐폴딩·엣지·NFR·Open) 누락을 적대적으로 지적"`. 발견을 critic 결과와 종합해 §10 갱신.
+- **(옵션) 외부 모델 교차 누락검토**: deep 티어이거나 누락 비용이 큰 기획이면, `completeness-critic`(Claude) 검증 후 다른 모델 family(Codex/Gemini)에게도 누락 검토를 받아 교차한다(같은 family 맹점 보완 — `/self-review` R3 철학). 외부 호출은 비용·시간 승인 경계이므로 원 요청에 이미 포함됐으면 반복 확인 없이 실행하고, 포함되지 않았을 때만 사용자에게 한 번 승인받는다(기본 off). 예: `codex exec -c model='gpt-5.6-sol' -c model_reasoning_effort='xhigh' "기획서.md 의 9-카테고리(여정·역할·화면·UI상태·대안예외·스캐폴딩·엣지·NFR·Open) 누락을 적대적으로 지적"`. 발견을 critic 결과와 종합해 §10 갱신.
 - 메인이 grep 등으로 산출물 가볍게 확인 — 보고-실제 차이 정직하게 surface.
 - 저장 (§E).
 - 필요한 인터뷰 해결 + completeness 검증 + 실제 파일 확인이 끝나야 `terminalState=planned`다. 남은 누락이 조사 가능하면 에이전트가 채우고, 사람만 아는 load-bearing 맥락이면 `pending-human-context`로 되돌린다. 복합 점수로 완료를 대신하지 않는다.

@@ -8,7 +8,7 @@ claude:
 codex:
   name: perf-judge
   description: perf-review 스킬의 적대 종합 에이전트. 분석가 finding 을 코드 재독으로 검증해 confirmed/killed/uncertain 분류 + 임팩트 랭킹을 낸다.
-  model: gpt-5.5
+  model: gpt-5.6-sol
   model_reasoning_effort: xhigh
   sandbox_mode: workspace-write
 ---

@@ -8,7 +8,7 @@ claude:
 codex:
   name: design-explorer
   description: UI가 "깔끔하지만 제네릭"(AI 티·어디서 본 듯·특징 없음)할 때, **서비스 성격에 맞는 디자인 방향(Tone)을 실제 콘텐츠로 된 시안으로 만들어 "말 대신 눈으로" 비교·선택**하게 한다. frontend-design 원칙 기반이되 Tone 은 고정 카탈로그가 아니라 **그 서비스에 맞게 매번 창의적으로 도출**한다. "디자인 방향 잡아"·"이 UI 차별화"·"실제 서비스처럼"·"AI 티 벗겨"·"톤 시안 보여줘"·"디자인 시안 비교"에 메인이 호출. **스택·도메인 비종속** — 콘텐츠·제약은 레포/프롬프트에서 읽는다. 시안 생성 전문 — 비교·선택 게이트는 메인 오케스트레이터가, 최종 적용은 frontend-design 스킬이.
-  model: gpt-5.5
+  model: gpt-5.6-sol
   model_reasoning_effort: high
   sandbox_mode: workspace-write
 ---

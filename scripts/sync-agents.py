@@ -38,8 +38,10 @@ codex frontmatter ever grows beyond strings, lists, and developer_instructions.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -80,9 +82,96 @@ CODEX_ORDER = (
     "sandbox_mode", "nickname_candidates",
 )
 
+# ── Codex 모델 카탈로그 대조 ────────────────────────────────────────────────
+# 2026-09-01 사고: gpt-5.4 가 08-31 퇴역했는데 codex 블록 8개가 계속 가리켰고 아무 경고도 없었다.
+# Codex 클라이언트가 서버에서 받아 캐시하는 `$CODEX_HOME/models_cache.json` 을 읽어 codex 블록의
+# model 슬러그 실재 · 퇴역(`upgrade.retirement_at`) · effort 지원 여부를 결정적으로 대조한다.
+# 경고 전용(exit 0) — SessionStart 훅이 stale 캐시 하나로 세션을 막아선 안 된다. 훅은 stderr 의
+# CODEX_MODEL_STALE_TOKEN 만 attention 으로 올린다. `--strict-models` 는 수동/CI 점검용 hard fail.
+CODEX_MODELS_CACHE = (
+    Path(os.environ["CODEX_HOME"]).expanduser() if os.environ.get("CODEX_HOME") else Path.home() / ".codex"
+) / "models_cache.json"
+CODEX_MODEL_STALE_TOKEN = "codex-model-stale"
+# `ultra` = "Maximum reasoning with automatic task delegation" — 모델이 스스로 하위 에이전트를 띄운다.
+# 서브에이전트에 주면 lean-agent-design(함대 금지·역할당 1)이 깨지므로 카탈로그와 무관하게 금지.
+CODEX_SUBAGENT_FORBIDDEN_EFFORTS = frozenset({"ultra"})
+
 
 def _log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
+
+
+def load_codex_catalog(path: Path = CODEX_MODELS_CACHE) -> dict[str, dict] | None:
+    """slug → 카탈로그 항목. 캐시가 없거나 형식이 다르면 None(대조 생략)."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    models = data.get("models") if isinstance(data, dict) else None
+    if not isinstance(models, list):
+        return None
+    catalog: dict[str, dict] = {}
+    for entry in models:
+        if isinstance(entry, dict) and isinstance(entry.get("slug"), str):
+            catalog[entry["slug"]] = entry
+    return catalog or None
+
+
+def _parse_iso(ts) -> datetime | None:
+    if not isinstance(ts, str) or not ts:
+        return None
+    try:
+        parsed = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def check_codex_model(block: dict, catalog: dict | None, *, now: datetime | None = None) -> list[str]:
+    """codex 블록의 model/effort 를 카탈로그와 대조해 finding 목록을 돌려준다(빈 목록 = 정상).
+
+    catalog 가 None 이면 카탈로그와 무관한 규칙(금지 effort)만 본다.
+    """
+    findings: list[str] = []
+    model = block.get("model")
+    effort = block.get("model_reasoning_effort")
+    if effort in CODEX_SUBAGENT_FORBIDDEN_EFFORTS:
+        findings.append(
+            f"effort {effort!r} is delegation mode (the model spawns its own agents) — not allowed for sub-agents"
+        )
+    if catalog is None or not isinstance(model, str):
+        return findings
+    entry = catalog.get(model)
+    if entry is None:
+        findings.append(f"model {model!r} is not in the Codex model catalog (known: {', '.join(sorted(catalog))})")
+        return findings
+    upgrade = entry.get("upgrade")
+    if isinstance(upgrade, dict) and upgrade.get("model"):
+        retired_at = _parse_iso(upgrade.get("retirement_at"))
+        now = now or datetime.now(timezone.utc)
+        state = "retired" if retired_at is not None and retired_at <= now else "deprecated"
+        when = f" (retirement_at={upgrade.get('retirement_at')})" if upgrade.get("retirement_at") else ""
+        findings.append(f"model {model!r} is {state}{when} — migrate to {upgrade['model']!r}")
+    levels = {
+        lvl.get("effort") for lvl in entry.get("supported_reasoning_levels") or [] if isinstance(lvl, dict)
+    }
+    levels.discard(None)
+    if isinstance(effort, str) and levels and effort not in levels:
+        findings.append(f"effort {effort!r} is not supported by {model!r} (supported: {', '.join(sorted(levels))})")
+    return findings
+
+
+def report_codex_models(agents: list[dict], catalog: dict | None) -> int:
+    """codex 블록 전부를 대조해 finding 을 stderr 에 찍고 개수를 돌려준다."""
+    count = 0
+    for a in agents:
+        block = a["fm"].get("codex")
+        if block is None:
+            continue
+        for finding in check_codex_model(block, catalog):
+            _log(f"[warn] {a['source']}: {CODEX_MODEL_STALE_TOKEN}: {finding}")
+            count += 1
+    return count
 
 
 def _parse_frontmatter(text: str, source: Path) -> tuple[dict, str]:
@@ -284,11 +373,28 @@ def main() -> int:
         action="store_true",
         help="Silent fast-path: exit 0 if all targets already match. Otherwise emit only the diffs.",
     )
+    parser.add_argument(
+        "--strict-models",
+        action="store_true",
+        help="Exit 1 if any codex block names a retired/unknown model or an unsupported effort "
+             "(needs $CODEX_HOME/models_cache.json; missing catalog also fails).",
+    )
     args = parser.parse_args()
 
     agents = load_agents()
     if not agents:
-        sys.exit(f"[sync-agents] no agent files under {REPO}/{SOURCE_GLOB}")
+        sys.exit(f"[sync-agents] no agent files under {REPO} matching {SOURCE_GLOBS}")
+
+    # 모델 대조는 emission 과 독립 — --ensure 의 조용한 fast-path 보다 먼저 돌려야 stale 이 묻히지 않는다.
+    catalog = load_codex_catalog()
+    stale = report_codex_models(agents, catalog)
+    if args.strict_models:
+        if catalog is None:
+            _log(f"[sync-agents] --strict-models: Codex model catalog not readable at {CODEX_MODELS_CACHE}")
+            return 1
+        if stale:
+            _log(f"[sync-agents] --strict-models: {stale} codex model finding(s) — fix the SSOT frontmatter")
+            return 1
 
     emissions: list[tuple[Path, str]] = []
     for a in agents:

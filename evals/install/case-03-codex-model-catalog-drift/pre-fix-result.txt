@@ -1,0 +1,23 @@
+command: PLUGIFY_EVAL_REPO_ROOT=<origin/main 097b20e archive> PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 evals/install/case-03-codex-model-catalog-drift/check-drift.py
+not ok - testPreFixShapeIsCaughtByProductionSync: AssertionError: retired model shipped silently with args=(): '[sync-agents] ==== summary ====\n  claude → /tmp/plugify-eval-drift-r7xgy5sf/home0/.claude/agents\n  codex  → /tmp/plugify-eval-drift-r7xgy5sf/home0/.codex/agents\n  written: 4  unchanged: 0\n    + /tmp/plugify-eval-drift-r7xgy5sf/home0/.claude/agents/implementer.md\n    + /tmp/plugify-eval-drift-r7xgy5sf/home0/.codex/agents/implementer.toml\n    + /tmp/plugify-eval-drift-r7xgy5sf/home0/.claude/agents/reviewer.md\n    + /tmp/plugify-eval-drift-r7xgy5sf/home0/.codex/agents/reviewer.toml\n'
+not ok - testStrictModelsFailsClosed: AssertionError: strict must fail on retired model
+not ok - testUnsupportedEffortAndUltraAreCaught: AssertionError: effort unsupported by model not caught: []
+not ok - testSessionStartSurfacesAttentionOnly: AssertionError: hook does not surface the token as attention:
+test_stale_codex_model_is_surfaced_without_leaking_stderr (unittest.loader._FailedTest.test_stale_codex_model_is_surfaced_without_leaking_stderr) ... ERROR
+
+======================================================================
+ERROR: test_stale_codex_model_is_surfaced_without_leaking_stderr (unittest.loader._FailedTest.test_stale_codex_model_is_surfaced_without_leaking_stderr)
+----------------------------------------------------------------------
+AttributeError: type object 'SessionSyncTest' has no attribute 'test_stale_codex_model_is_surfaced_without_leaking_stderr'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)
+
+not ok - testCurrentSsotIsCleanAgainstTierCatalog: AssertionError: current SSOT has stale codex models:
+usage: sync-agents.py [-h] [--ensure]
+sync-agents.py: error: unrecognized arguments: --strict-models
+
+0/5 codex model catalog drift checks passed
+exit: 1

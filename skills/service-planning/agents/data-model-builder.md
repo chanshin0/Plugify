@@ -9,7 +9,7 @@ claude:
 codex:
   name: data-model-builder
   description: service-planning 스킬의 "데이터 모델" 에이전트. 완성된 기획서(§6 화면이 읽고/쓰는 데이터·부록의 랭킹/이벤트/집계 설계·§7 스코프)를 받아 v1 데이터 모델을 단일 Markdown으로 떨군다 — Mermaid ERD + 엔티티별 필드표 + SQL DDL 스케치 + 파생/집계 + 상태 전이 + v1 OUT 명시. 단일 에이전트로 전 모델 생성(함대 금지). Spawned by /service-planning P7.
-  model: gpt-5.4
+  model: gpt-5.6-terra
   model_reasoning_effort: high
   sandbox_mode: workspace-write
 ---

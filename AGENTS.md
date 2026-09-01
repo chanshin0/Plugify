@@ -7,6 +7,7 @@
 - **에이전트가 실행 계약을 소유**: 자연어 요구는 에이전트가 먼저 조사하고 `discoverable / assumable / human-context / approval`로 빈칸을 분류한 뒤 목표·작업 그래프·완료 증거·재계획 조건으로 바꾼다. 사람에게 routine 완료 체크를 전가하지 않는다. 사람은 사람만 아는 의도·맥락과 권한·보안·비용·외부 전송·파괴·비가역 승인을 제공한다. 정본 = `skills/task-orchestrating/`.
 - **lean-agent-design**: 메인=오케스트레이터(컨텍스트 신선도 1순위), 구체 작업은 격리 에이전트. 함대 금지(역할당 1).
 - **에이전트 SSOT = dual-block** (`claude:`+`codex:` frontmatter, `skills/*/agents/*.md`·`agents/*.md`). 변경 시 `scripts/install.sh` 재실행 — agentType 레지스트리는 세션 재시작 후 실효.
+- **서브에이전트 모델 티어**(2026-09-01): Claude 블록 `sonnet`(구현·분석·조사) / `opus`(리뷰·판정·종합) ↔ Codex 블록 같은 티어를 `gpt-5.6-terra` / `gpt-5.6-sol` 로(`gpt-5.6-luna`=fast 는 미사용). effort 는 양쪽 같은 값(medium/high/xhigh), Codex `ultra`(자동 위임)는 서브에이전트 금지, Fable 5 는 메인 세션 전용. 슬러그는 frontmatter 외에 `spec-building/agents/reviewer.md`(codex exec 교차검증)·`spec-building/SKILL.md`·`service-planning/SKILL.md` 본문에도 있다 — 이관 시 `grep -rn gpt-5`. 퇴역·미지원 effort 는 `sync-agents.py` 가 `$CODEX_HOME/models_cache.json` 과 대조해 `codex-model-stale` 로 경고하고 SessionStart attention 에 뜬다(수동 hard-fail: `python3 scripts/sync-agents.py --strict-models`, 회귀: `scripts/test-sync-agents-models.py`).
 - **가지치기 의무**: 룰 추가 전에 기존 룰과 겹침 확인 — 겹치면 통합. 사고마다 쌓기만 하면 SKILL 비대화 = 컨텍스트 오염.
 - **새 산출물 유형은 빈 껍데기 먼저**(2026-07-21, AX 해커톤 scaffold 패턴): 새 지점·처음 내보내는 형태의 산출물은 수용 규격을 역산한 빈 골격을 먼저 세우고, 통과에 치명적인 조건(로드·배포·로그)을 내용 없이 실증한 뒤 내용 작업. 적용 절차 정본 = spec-building SKILL §선행 조건.
 

@@ -9,7 +9,7 @@ claude:
 codex:
   name: context-package-builder
   description: service-planning의 지속형 프로젝트 문맥 패키지 에이전트. 완성된 기획서와 profile을 받아 README·STATUS·DELIVERY-REPORT·고정 9개 역할 prompt와 legacy discovery 문맥을 하나의 재진입 가능한 package로 합성하고 결정적 validator를 통과시킨다. Spawned by /service-planning P8.
-  model: gpt-5.5
+  model: gpt-5.6-sol
   model_reasoning_effort: xhigh
   sandbox_mode: workspace-write
 ---

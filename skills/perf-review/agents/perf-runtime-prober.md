@@ -8,7 +8,7 @@ claude:
 codex:
   name: perf-runtime-prober
   description: perf-review 스킬의 실측 에이전트. 프로덕션 빌드를 실제로 돌려 라우트별 번들·정적/동적 분류·의존성 무게를 측정한다.
-  model: gpt-5.4
+  model: gpt-5.6-terra
   model_reasoning_effort: medium
   sandbox_mode: workspace-write
 ---

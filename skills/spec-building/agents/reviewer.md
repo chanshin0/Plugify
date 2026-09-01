@@ -8,7 +8,7 @@ claude:
 codex:
   name: reviewer
   description: 적대적 코드 리뷰 에이전트. 구현 결과를 보고서가 아닌 실제(diff·라이브)로 재검증하고, 외부 모델(Codex)과 병렬 교차검증해 pass/issues 를 낸다. 스택 비종속. spec-building 워크플로우가 spawn.
-  model: gpt-5.5
+  model: gpt-5.6-sol
   model_reasoning_effort: xhigh
   sandbox_mode: read-only
 ---
@@ -34,7 +34,7 @@ codex:
 codex 를 백그라운드로 먼저 띄우고 네 검증을 병행하라:
 1. **Bash 를 run_in_background 로** 실행 (정확히 이 형태):
    ```
-   cd <projectRoot> && codex exec --ephemeral --ignore-user-config --sandbox read-only -m gpt-5.5 -c model_reasoning_effort='xhigh' -o /tmp/cross-review-verdict.txt review --uncommitted < /dev/null > /tmp/cross-review-trace.txt 2>&1; echo "CODEX_EXIT=$?" >> /tmp/cross-review-trace.txt
+   cd <projectRoot> && codex exec --ephemeral --ignore-user-config --sandbox read-only -m gpt-5.6-sol -c model_reasoning_effort='xhigh' -o /tmp/cross-review-verdict.txt review --uncommitted < /dev/null > /tmp/cross-review-trace.txt 2>&1; echo "CODEX_EXIT=$?" >> /tmp/cross-review-trace.txt
    ```
    - **`--uncommitted` 는 positional PROMPT 와 런타임 상호배제다** (`error: the argument '--uncommitted' cannot be used with '[PROMPT]'`, exit 2). stdin(`-`)도 PROMPT 로 취급돼 똑같이 충돌. 따라서 커스텀 적대 지시문은 **명령에 넣지 못한다** — `--uncommitted` 의 내장 review(staged+unstaged+untracked) 로 돌리고, **적대적 포커스(시크릿/injection/authz·누락 엣지·기획부합)는 아래 네(Claude) 자신의 판정으로 보완**한다.
    - 최종 verdict 는 **`-o /tmp/cross-review-verdict.txt`(--output-last-message) 로 캡처**한다. 스트리밍 stdout(`> file`)은 파일탐색 trace 로 verdict 가 묻혀 부적합 → 쓰지 마라. (`--output-schema`/`--json` 은 review 서브커맨드가 구조화 verdict 를 안 내므로 불필요.)

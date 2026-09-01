@@ -8,7 +8,7 @@ claude:
 codex:
   name: perf-render-analyst
   description: perf-review 스킬의 렌더링 분석가. UI 렌더링·번들 성능을 정적 분석해 file:line 증거 기반 finding 을 반환한다.
-  model: gpt-5.4
+  model: gpt-5.6-terra
   model_reasoning_effort: high
   sandbox_mode: workspace-write
 ---

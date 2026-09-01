@@ -8,7 +8,7 @@ claude:
 codex:
   name: perf-data-analyst
   description: perf-review 스킬의 데이터 계층 분석가. 쿼리 패턴·인덱스 정합·캐싱·외부 호출을 정적 분석해 finding 을 반환한다.
-  model: gpt-5.4
+  model: gpt-5.6-terra
   model_reasoning_effort: high
   sandbox_mode: workspace-write
 ---

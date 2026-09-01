@@ -504,6 +504,10 @@ def run_asset_refresh(repo_root: Path, *, plugify_updated: bool, timeout: float)
     )
     if result.returncode != 0 or result.timed_out:
         return "asset-sync-failed"
+    # sync-agents 는 Codex 모델 카탈로그 대조에서 퇴역/미지원을 exit 0 + stderr 토큰으로 알린다
+    # (세션을 막지 않기 위해). 토큰만 attention 으로 올리고 stderr 본문은 노출하지 않는다.
+    # 토큰 정본 = scripts/sync-agents.py CODEX_MODEL_STALE_TOKEN.
+    codex_model_stale = "codex-model-stale" in result.stderr
 
     if plugify_updated:
         installer = repo_root / "scripts" / "install.sh"
@@ -516,7 +520,7 @@ def run_asset_refresh(repo_root: Path, *, plugify_updated: bool, timeout: float)
         )
         if install.returncode != 0 or install.timed_out:
             return "asset-install-failed"
-    return None
+    return "codex-model-stale" if codex_model_stale else None
 
 
 def parse_args() -> argparse.Namespace:

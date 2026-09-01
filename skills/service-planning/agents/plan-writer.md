@@ -9,7 +9,7 @@ claude:
 codex:
   name: plan-writer
   description: service-planning 스킬의 "기획서 합성" 에이전트. 조사·필요한 인터뷰로 해결된 빈칸맵 + 백본 + (있으면)패턴 근거를 받아 P4(빈칸별 결정·대안/예외 플로우) + P5(v1 스코프) + gisaekseo-template 10섹션 `기획서.md`·`gaps.md`를 격리 컨텍스트에서 합성한다. 파이프라인에서 가장 무거운 단일 쓰기 — 메인 컨텍스트 신선도를 위해 위임. 단일 에이전트. Spawned by /service-planning P4~P5.
-  model: gpt-5.5
+  model: gpt-5.6-sol
   model_reasoning_effort: xhigh
   sandbox_mode: workspace-write
 ---

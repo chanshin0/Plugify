@@ -123,8 +123,11 @@ class WorkspaceFixture:
         (scripts / "sync-agents.py").write_text(
             "#!/usr/bin/env python3\n"
             "import os\n"
+            "import sys\n"
             "import time\n"
             "from pathlib import Path\n"
+            "if os.environ.get('PLUGIFY_TEST_AGENT_STALE'):\n"
+            "    sys.stderr.write('[warn] x.md: codex-model-stale: model gpt-5.4 is retired\\n')\n"
             "marker = os.environ.get('PLUGIFY_TEST_AGENT_MARKER')\n"
             "delay = float(os.environ.get('PLUGIFY_TEST_AGENT_SLEEP', '0'))\n"
             f"version = {version!r}\n"
@@ -533,6 +536,14 @@ class SessionSyncTest(unittest.TestCase):
         self.assertEqual(self.fx.marker.read_text(encoding="utf-8"), "v1\n")
         self.assertFalse(lock.exists())
         self.assertEqual(first_out + second_out, "")
+
+    def test_stale_codex_model_is_surfaced_without_leaking_stderr(self) -> None:
+        # sync-agents 가 stderr 로 codex-model-stale 토큰을 내면 attention 한 줄로만 올라오고,
+        # 본문(stderr)은 노출되지 않으며 agent sync 자체는 정상 완료된다.
+        result = self.fx.run_sync(extra_env={"PLUGIFY_TEST_AGENT_STALE": "1"})
+        self.assert_success(result)
+        self.assertEqual(result.stdout, "Plugify workspace sync attention: plugify:codex-model-stale\n")
+        self.assertEqual(self.fx.marker.read_text(encoding="utf-8"), "v1\n")
 
     def test_plugify_update_executes_new_agent_sync(self) -> None:
         self.fx._write_plugify_assets(self.fx.seed["plugify"], "v2")

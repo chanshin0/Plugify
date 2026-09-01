@@ -8,7 +8,7 @@ claude:
 codex:
   name: implementer
   description: 격리 구현 에이전트. 단일 구현 task 를 신선한 컨텍스트에서 작성하고 자기검증한다. 스택·도메인 비종속 — 규칙은 프로젝트의 ADR·기획·기존 코드에서 읽는다. 메인 오케스트레이터 컨텍스트를 오염시키지 않는 것이 존재 이유(lean-agent-design). spec-building 워크플로우가 spawn.
-  model: gpt-5.4
+  model: gpt-5.6-terra
   model_reasoning_effort: xhigh
   sandbox_mode: workspace-write
 ---
