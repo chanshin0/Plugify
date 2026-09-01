@@ -1,0 +1,11 @@
+command: PLUGIFY_EVAL_REPO_ROOT=<origin/main 76af626 archive> PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 evals/install/case-04-checkout-name-independent-install/check-install-path.py
+not ok - testInstallFromRenamedCheckoutSucceeds: AssertionError: installer refused a checkout without a `Plugify` folder name:
+internal error: desired managed hook command is invalid
+
+not ok - testSecondRunIsIdempotent: AssertionError: internal error: desired managed hook command is invalid
+
+not ok - testDryRunFromRenamedCheckoutDoesNotWrite: AssertionError: internal error: desired managed hook command is invalid
+
+ok - testPlugifyNamedCheckoutStillWorks
+1/4 checkout-name-independent install checks passed
+exit: 1

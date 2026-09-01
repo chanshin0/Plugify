@@ -17,6 +17,15 @@ MANAGED_SCRIPTS = {
     "workspace-session-start.py": "workspace",
 }
 
+# "이 훅 명령이 Plugify 것인가" 판별은 두 갈래다.
+#  1) 레거시: 경로에 `plugify`/`.plugify` 폴더명이 있으면 Plugify 훅 — 옛 marketplace clone·`.plugify` 호환 경로를
+#     현재 정본으로 교체·중복 제거하기 위한 규칙.
+#  2) 현재 checkout: 스크립트 경로가 `--repo-root/scripts/<name>` 과 같은 파일이면 폴더명과 무관하게 Plugify 훅.
+#     (2026-09-01: 폴더명이 `Plugify-model-tier` 같은 worktree 에서 자기 훅을 인식 못 해 설치가
+#     "internal error" 로 멈췄다. 이 인식은 재실행 멱등성의 근거이므로 절대 경로 일치로 넓힌다.)
+# 어느 쪽에도 안 걸리면 사용자 훅으로 보고 손대지 않는다.
+LEGACY_PATH_MARKERS = frozenset({"plugify", ".plugify"})
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -42,7 +51,7 @@ def load_json(path: Path) -> dict[str, Any]:
     return data
 
 
-def managed_script(command: object) -> tuple[str, str] | None:
+def managed_script(command: object, current_scripts: Path | None = None) -> tuple[str, str] | None:
     if not isinstance(command, str):
         return None
     try:
@@ -66,9 +75,18 @@ def managed_script(command: object) -> tuple[str, str] | None:
     if kind is None:
         return None
     parts = {part.casefold() for part in Path(script).parts}
-    if not ({"plugify", ".plugify"} & parts):
-        return None
-    return kind, script
+    if LEGACY_PATH_MARKERS & parts:
+        return kind, script
+    if current_scripts is not None and _same_path(Path(script), current_scripts / Path(script).name):
+        return kind, script
+    return None
+
+
+def _same_path(a: Path, b: Path) -> bool:
+    try:
+        return a.expanduser().resolve() == b.expanduser().resolve()
+    except (OSError, RuntimeError):
+        return False
 
 
 def desired_commands(repo_root: Path) -> dict[str, str]:
@@ -80,7 +98,7 @@ def desired_commands(repo_root: Path) -> dict[str, str]:
 
 
 def update_document(
-    original: dict[str, Any], desired: dict[str, str]
+    original: dict[str, Any], desired: dict[str, str], current_scripts: Path | None = None
 ) -> tuple[dict[str, Any], bool, list[str]]:
     hooks = original.get("hooks")
     if hooks is None:
@@ -112,7 +130,7 @@ def update_document(
             if not isinstance(handler, dict):
                 kept_handlers.append(handler)
                 continue
-            managed = managed_script(handler.get("command"))
+            managed = managed_script(handler.get("command"), current_scripts)
             if managed is None:
                 kept_handlers.append(handler)
                 continue
@@ -170,17 +188,21 @@ def atomic_write_json(path: Path, data: dict[str, Any]) -> None:
     os.replace(temp_path, path)
 
 
-def process(path: Path, desired: dict[str, str], dry_run: bool) -> bool:
+def process(path: Path, desired: dict[str, str], dry_run: bool, current_scripts: Path) -> bool:
     document = load_json(path)
-    updated, changed, old_paths = update_document(document, desired)
+    updated, changed, old_paths = update_document(document, desired, current_scripts)
     if not changed:
         print(f"ok {path}: already bound to current Plugify SSOT")
         return False
 
     old_label = ", ".join(old_paths) if old_paths else "<missing>"
-    new_paths = [managed_script(desired[k]) for k in ("workspace", "agents")]
+    new_paths = [managed_script(desired[k], current_scripts) for k in ("workspace", "agents")]
     if any(item is None for item in new_paths):
-        raise SystemExit("internal error: desired managed hook command is invalid")
+        # 다음 실행이 자기 훅을 못 알아보면 중복 설치되므로 여기서 멈춘다(정상 경로에선 도달 불가).
+        raise SystemExit(
+            "internal error: the hook command this installer is about to write would not be recognised "
+            f"as a Plugify hook on the next run (repo scripts dir: {current_scripts}); refusing to install"
+        )
     new_label = ", ".join(item[1] for item in new_paths if item is not None)
     prefix = "DRY-RUN update" if dry_run else "update"
     print(f"{prefix} {path}: {old_label} -> {new_label}")
@@ -201,9 +223,10 @@ def main() -> int:
     claude_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR", home / ".claude")).expanduser()
     codex_dir = Path(os.environ.get("CODEX_HOME", home / ".codex")).expanduser()
     desired = desired_commands(repo_root)
+    current_scripts = repo_root / "scripts"
 
-    process(claude_dir / "settings.json", desired, args.dry_run)
-    process(codex_dir / "hooks.json", desired, args.dry_run)
+    process(claude_dir / "settings.json", desired, args.dry_run, current_scripts)
+    process(codex_dir / "hooks.json", desired, args.dry_run, current_scripts)
     return 0
 
 
