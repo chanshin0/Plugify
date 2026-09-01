@@ -7,6 +7,7 @@ import argparse
 import importlib.util
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -29,6 +30,10 @@ DEFAULT_GIT_TIMEOUT = 15.0
 # leader can perform three bounded fetches and then refresh/install Plugify
 # assets, so this must remain comfortably above that normal upper envelope.
 DEFAULT_LOCK_TIMEOUT = 120.0
+# 죽은 리더가 남긴 잠금을 살아있는 것으로 오인하지 않기 위한 나이 상한. 리더의 전체 실행은 훅 timeout
+# (Claude 180s) 안에서 끝나므로 10분 넘은 잠금은 주인이 없다. (2026-09-01 사고: 08-29 에 죽은 리더의
+# 잠금이 3일간 남아 모든 SessionStart 가 lock-timeout 으로 세 저장소 최신화·agent sync 를 건너뛰었다.)
+STALE_LOCK_SECONDS = 600.0
 
 
 def load_migration_module() -> ModuleType:
@@ -70,22 +75,63 @@ class WorkspaceLock:
         self.wait_timed_out = False
         self.peer_completed = False
         self.error = False
+        self.reclaimed_stale = False
+
+    def _lock_age(self) -> float | None:
+        """잠금이 생긴 뒤 흐른 초. 리더가 첫 행동으로 쓰는 owner.json 기준, 없으면 디렉터리 기준."""
+        for candidate in (self.path / "owner.json", self.path):
+            try:
+                return max(0.0, time.time() - os.stat(candidate, follow_symlinks=False).st_mtime)
+            except OSError:
+                continue
+        return None
+
+    def _reclaim_stale(self) -> bool:
+        """STALE_LOCK_SECONDS 를 넘긴 잠금을 원자적으로 치운다. rename 경쟁에 이긴 프로세스 하나만 True."""
+        age = self._lock_age()
+        if age is None or age < STALE_LOCK_SECONDS:
+            return False
+        graveyard = self.path.with_name(f"{LOCK_NAME}.stale-{self.token}")
+        try:
+            os.rename(self.path, graveyard)
+        except OSError:
+            return False  # 다른 프로세스가 먼저 치웠거나 이미 사라짐 — 우리는 뒤따른다
+        shutil.rmtree(graveyard, ignore_errors=True)
+        return True
+
+    def _follow_or_reclaim(self) -> bool:
+        """살아있는 잠금이면 완료까지 기다리고 False. 죽은 잠금을 우리가 치웠으면 새 잠금을 만들고 True.
+
+        살아있는 잠금을 본 프로세스는 follower 다: 디렉터리가 사라졌다고 두 번째 리더가 되지 않는다
+        (같은 일을 두 번 하지 않기 위해). 유일한 예외는 STALE_LOCK_SECONDS 를 넘긴 잠금 — 그 리더는
+        죽었고 일을 끝내지 못했으므로 rename 경쟁에 이긴 하나가 이어받는다. mkdir 재시도는 그때뿐이다.
+        """
+        deadline = time.monotonic() + self.timeout
+        while True:
+            if self._reclaim_stale():
+                self.reclaimed_stale = True
+                try:
+                    os.mkdir(self.path, 0o700)
+                    return True
+                except FileExistsError:
+                    continue  # 치우는 사이 다른 프로세스가 새 리더가 됐다 → follower 로 기다린다
+                except OSError:
+                    self.error = True
+                    return False
+            if not (self.path.exists() or self.path.is_symlink()):
+                self.peer_completed = True
+                return False
+            if time.monotonic() >= deadline:
+                self.wait_timed_out = True
+                return False
+            time.sleep(0.1)
 
     def acquire(self) -> bool:
-        # Try exactly once. After observing an existing lock this process is a
-        # follower forever; it may wait for completion but must never race to
-        # become a second leader when the directory disappears.
         try:
             os.mkdir(self.path, 0o700)
         except FileExistsError:
-            deadline = time.monotonic() + self.timeout
-            while self.path.exists() or self.path.is_symlink():
-                if time.monotonic() >= deadline:
-                    self.wait_timed_out = True
-                    return False
-                time.sleep(0.1)
-            self.peer_completed = True
-            return False
+            if not self._follow_or_reclaim():
+                return False
         except OSError:
             self.error = True
             return False
@@ -564,6 +610,8 @@ def refresh_standalone_plugify(repo_root: Path, *, timeout: float, lock_timeout:
             elif lock.error:
                 print("Plugify workspace sync attention: plugify:lock-error")
             return True
+        if lock.reclaimed_stale:
+            print("Plugify workspace sync attention: workspace:stale-lock-reclaimed")
         try:
             error = run_asset_refresh(resolved, plugify_updated=False, timeout=timeout)
         except BaseException:
@@ -601,6 +649,9 @@ def main() -> int:
             elif lock.error:
                 print("Plugify workspace sync attention: workspace:lock-error")
             return 0
+        if lock.reclaimed_stale:
+            # 이전 세션의 리더가 죽어 남긴 잠금을 치우고 이어받았다 — 한 번은 보이게 남긴다.
+            warnings.append(RepoResult("workspace", "stale-lock-reclaimed"))
         try:
             with tempfile.TemporaryDirectory(prefix="plugify-empty-hooks-") as hooks:
                 hooks_path = Path(hooks)

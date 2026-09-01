@@ -159,7 +159,7 @@ class WorkspaceFixture:
         return git(self.seed[name], "rev-parse", "HEAD")
 
     def sync_invocation(
-        self, *, timeout: str = "3", extra_env: dict[str, str] | None = None
+        self, *, timeout: str = "3", extra_env: dict[str, str] | None = None, lock_timeout: str = "15"
     ) -> tuple[list[str], dict[str, str]]:
         env = dict(os.environ)
         env["PLUGIFY_TEST_AGENT_MARKER"] = str(self.marker)
@@ -176,12 +176,14 @@ class WorkspaceFixture:
             "--git-timeout",
             timeout,
             "--lock-timeout",
-            "15",
+            lock_timeout,
         ]
         return command, env
 
-    def run_sync(self, *, timeout: str = "3", extra_env: dict[str, str] | None = None):
-        command, env = self.sync_invocation(timeout=timeout, extra_env=extra_env)
+    def run_sync(
+        self, *, timeout: str = "3", extra_env: dict[str, str] | None = None, lock_timeout: str = "15"
+    ):
+        command, env = self.sync_invocation(timeout=timeout, extra_env=extra_env, lock_timeout=lock_timeout)
         return subprocess.run(
             command,
             env=env,
@@ -544,6 +546,42 @@ class SessionSyncTest(unittest.TestCase):
         self.assert_success(result)
         self.assertEqual(result.stdout, "Plugify workspace sync attention: plugify:codex-model-stale\n")
         self.assertEqual(self.fx.marker.read_text(encoding="utf-8"), "v1\n")
+
+    def _plant_lock(self, age_seconds: float) -> Path:
+        lock = self.fx.root / SESSION.LOCK_NAME
+        lock.mkdir(mode=0o700)
+        owner = lock / "owner.json"
+        owner.write_text('{"token": "dead-leader"}\n', encoding="utf-8")
+        stamp = time.time() - age_seconds
+        os.utime(owner, (stamp, stamp))
+        os.utime(lock, (stamp, stamp))
+        return lock
+
+    def test_stale_lock_is_reclaimed_and_sync_runs(self) -> None:
+        # 2026-09-01 사고: 08-29 에 죽은 리더가 남긴 잠금 때문에 3일간 모든 세션 시작이 lock-timeout 으로
+        # 세 저장소 최신화와 agent sync 를 건너뛰었다. 오래된 잠금은 이어받아 정상 실행해야 한다.
+        lock = self._plant_lock(SESSION.STALE_LOCK_SECONDS + 60)
+        target = self.fx.advance("second_brain")
+        result = self.fx.run_sync()
+        self.assert_success(result)
+        self.assertIn("Plugify workspace sync: updated second_brain", result.stdout)
+        self.assertIn("workspace:stale-lock-reclaimed", result.stdout)
+        self.assertEqual(git(self.fx.clone["second_brain"], "rev-parse", "HEAD"), target)
+        self.assertEqual(self.fx.marker.read_text(encoding="utf-8"), "v1\n")
+        self.assertFalse(lock.exists())
+        leftovers = [p.name for p in self.fx.root.iterdir() if p.name.startswith(SESSION.LOCK_NAME)]
+        self.assertEqual(leftovers, [])
+
+    def test_fresh_foreign_lock_is_respected(self) -> None:
+        # 살아있는(방금 생긴) 잠금은 남의 것 — 가로채지 않고 기다리다 timeout 으로 물러난다.
+        lock = self._plant_lock(0)
+        before = (lock / "owner.json").read_bytes()
+        result = self.fx.run_sync(lock_timeout="1")
+        self.assert_success(result)
+        self.assertEqual(result.stdout, "Plugify workspace sync attention: workspace:lock-timeout\n")
+        self.assertFalse(self.fx.marker.exists())
+        self.assertTrue(lock.is_dir())
+        self.assertEqual((lock / "owner.json").read_bytes(), before)
 
     def test_plugify_update_executes_new_agent_sync(self) -> None:
         self.fx._write_plugify_assets(self.fx.seed["plugify"], "v2")

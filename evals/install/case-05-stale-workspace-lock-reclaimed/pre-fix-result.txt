@@ -1,0 +1,25 @@
+command: PLUGIFY_EVAL_REPO_ROOT=<origin/main c3293ac archive> PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 evals/install/case-05-stale-workspace-lock-reclaimed/check-stale-lock.py
+not ok - testStaleLockIsReclaimed: AssertionError: acquire() must take over a lock older than STALE_LOCK_SECONDS
+ok - testFreshForeignLockIsRespected
+not ok - testReclaimedLockIsLiveForOthers: AssertionError: 
+not ok - testProductionHookPath: AssertionError: production hook path failed:
+test_stale_lock_is_reclaimed_and_sync_runs (unittest.loader._FailedTest.test_stale_lock_is_reclaimed_and_sync_runs) ... ERROR
+test_fresh_foreign_lock_is_respected (unittest.loader._FailedTest.test_fresh_foreign_lock_is_respected) ... ERROR
+
+======================================================================
+ERROR: test_stale_lock_is_reclaimed_and_sync_runs (unittest.loader._FailedTest.test_stale_lock_is_reclaimed_and_sync_runs)
+----------------------------------------------------------------------
+AttributeError: type object 'SessionSyncTest' has no attribute 'test_stale_lock_is_reclaimed_and_sync_runs'
+
+======================================================================
+ERROR: test_fresh_foreign_lock_is_respected (unittest.loader._FailedTest.test_fresh_foreign_lock_is_respected)
+----------------------------------------------------------------------
+AttributeError: type object 'SessionSyncTest' has no attribute 'test_fresh_foreign_lock_is_respected'
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+FAILED (errors=2)
+
+1/4 stale workspace lock checks passed
+exit: 1
