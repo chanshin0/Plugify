@@ -10,6 +10,7 @@ hymn-letter-video-production/case-03-exact-delivery-set
 hymn-letter-video-production/case-04-publishing-subtitles
 hymn-letter-video-production/case-05-emotional-copy-is-testimony-title
 hymn-letter-video-production/case-06-youtube-description-5000-limit
+hymn-letter-video-production/case-08-reproduction-review-set
 perf-review/case-01-planted-perf-bugs
 service-planning/case-01-planted-gaps-and-pruned
 service-planning/case-02-project-context-package

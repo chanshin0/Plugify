@@ -1,0 +1,10 @@
+exit=1
+missing scoped contract in SKILL and recorded-testimony-pair reference:
+- deterministic reproduction / renderer workspace / review-output distinction
+- exactly one MP4, backplate, and thumbnail for each of episodes 05 and 06
+- input lock, source-object storage, and encoded MP4 raster do not satisfy the separate backplate output role
+- INCOMPLETE_REVIEW_SET fail-closed presentation rule
+- episode/role/name/size/SHA-256/authoritative-source receipt binding
+- exactly six direct-child media files with the receipt outside as a sibling
+- byte-exact no-reencode/no-overwrite repackaging
+- local six-media review set is distinct from the seven-role final delivery set

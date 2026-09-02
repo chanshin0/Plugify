@@ -33,6 +33,24 @@ Git checkout의 workspace-parent 아래 같은 이름의 sibling에서 찾는다
 - TTS 거부와 썸네일 제작 보류 같은 사용자의 결정은 새 작업에서도 유지한다.
   룸톤 접합과 말소리 mastering을 노래용 음색변환·전체 배속으로 대체하지 않는다.
 
+## 결정적 재현 review/output 계약
+
+- 결정적 재현에서는 renderer workspace와 사람이 여는 review/output set을
+  구분한다. 한 쌍의 로컬 검토 세트는 MP4 2개·영상 배경 2개·썸네일 2개이며,
+  각 편은 MP4 1개·영상 배경 1개·썸네일 1개를 가진다.
+- input lock·source object·인코딩된 MP4 raster에만 존재하는 backplate는 별도
+  영상 배경 output role을 충족하지 않는다. 여섯 역할 중 하나라도 빠지면
+  `INCOMPLETE_REVIEW_SET`으로 중단하고 사용자에게 열거나 완전한 아웃풋으로
+  보고하지 않는다.
+- 각 파일의 episode ID·role·target name·size·SHA-256·authoritative source를
+  receipt에 결박한다. media directory의 direct child는 정확히 6개 media
+  파일이어야 하고 receipt는 그 밖의 sibling에 둔 뒤 direct-child exact set을
+  검증한다.
+- MP4 결정성 검증이 끝났다면 검증된 MP4를 재인코딩하지 않고 byte-exact로
+  보존한 새 no-overwrite review set을 만든다. 로컬 6-media review/output set은
+  7-role 최종 delivery set과 구분하며 서로 같은 것으로 간주하지 않는다. 최종
+  delivery set에는 공용 게시 TXT가 추가된다.
+
 ## 한 쌍 완료와 전달
 
 현재 07은 실제 낭독 간증, 08은 기존 승인 387장 노래 카탈로그를 쓰는

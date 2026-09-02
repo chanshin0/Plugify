@@ -90,6 +90,27 @@ Do not route ordinary YouTube editing, unrelated hymn videos, or general media w
   evidenced legacy renderer. They do not declare the current project follow-up
   flow unavailable, nor prove that its runtime/assets exist on this device.
 
+## Deterministic reproduction review/output contract
+
+- For deterministic reproduction, distinguish the renderer workspace from the
+  user-facing review/output set. The pair review/output set has two MP4s, two
+  backplates, and two thumbnails. Each episode contributes exactly one MP4, one
+  backplate, and one thumbnail.
+- A backplate that exists only in the input lock, source-object storage, or
+  encoded MP4 raster does not satisfy the separate backplate output role. If
+  any of the six media roles is absent, classify the result as
+  `INCOMPLETE_REVIEW_SET`. Do not open or present that directory to the user as
+  a complete output and do not report the review set as PASS.
+- Bind each media file's episode ID, role, target name, size, SHA-256, and
+  authoritative source in a receipt. The media directory contains exactly six
+  media files as direct children; the receipt is a sibling outside that media
+  directory. Verify that exact direct-child set before presenting it.
+- When the MP4s already passed deterministic verification, build a new
+  no-overwrite review set without re-encoding the already verified MP4s and
+  prove byte-exact preservation. The local six-media review/output set is
+  distinct from and must not be conflated with the seven-role final delivery
+  set, which also includes the paired publishing TXT.
+
 ## Load the right reference
 
 - For legacy production, review, package, or delivery, read [references/workflow.md](references/workflow.md). For follow-ups, use the project references selected above instead of mixing legacy and current locks.
