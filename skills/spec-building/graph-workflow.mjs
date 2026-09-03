@@ -38,6 +38,7 @@ const INTEGRATION_FIX_CAP = 1  // 통합 게이트 실패 시 원인 수정 재�
 // 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 첫 실전 관찰 실증) → 객체로 정규화.
 const A = (typeof args === 'string') ? (() => { try { return JSON.parse(args) } catch { return null } })() : (args ?? null)
 const MAX_TASK_ATTEMPTS = A?.maxAttempts ?? 3
+const COMMIT_TRAILER = 'Co-Authored-By: Claude <noreply@anthropic.com>' // 커밋 주체는 교체되는 서브에이전트 — 모델 버전을 박지 않는다
 // 하니스 제약(2026-09-01 실증): 워크플로우 스크립트 안에서 Date 생성자·Date.now 호출은 금지(재개 결정성 — 하니스 ShimDate 가 throw).
 // 시각은 호출자가 args.startedAt(ISO) 로 넘기고, 내부 스탬프는 그 값 + 단조 시퀀스로 순서만 보존한다. 실제 종료 시각은 메인이 반환 후 찍는다.
 const runStartedAt = (typeof A?.startedAt === 'string' && A.startedAt.trim()) ? A.startedAt.trim() : 'unknown-time'
@@ -732,7 +733,7 @@ async function runTask(task, expectedHead) {
     `리뷰를 통과한 이 worktree 의 변경을 atomic commit 하라(커밋만 — 코드 재작성·새 파일 발명·STATE 수정 금지). ${cdWt}\n` +
     `task(${task.id}): ${task.goal}\n` +
     `1) git add -A 로 리뷰-통과 변경을 스테이징(무관 파일만 제외, **.planning/STATE.md 수정·새 파일 발명 금지**).\n` +
-    `2) 한국어 커밋 메시지로 commit 정확히 1개(--no-verify·--force 금지). 메시지에 '완료'·'검증됨'·'merge' 주장 금지 — 변경 내용만 서술(merge·통합검증은 상위가 한다). 메시지 끝: Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n` +
+    `2) 한국어 커밋 메시지로 commit 정확히 1개(--no-verify·--force 금지). 메시지에 '완료'·'검증됨'·'merge' 주장 금지 — 변경 내용만 서술(merge·통합검증은 상위가 한다). 메시지 끝: ${COMMIT_TRAILER}\n` +
     `3) commit 직전 git rev-parse HEAD 를 beforeHead 에 보존하라. 커밋 후 **실행한 명령의 출력 원문 그대로** 반환: beforeHead, afterHead=git rev-parse HEAD, headLog=git log -1 --format='%H %s', statusPorcelain=git status --porcelain(클린이면 빈 문자열), committedFiles=git show HEAD --stat --format='' 원문. 실패하면 beforeHead=afterHead 로 사실대로 반환하라. 지어내지 마라.`,
     { phase: 'Wave', label: `commit:${task.id}`, model: 'haiku', schema: COMMIT_SCHEMA }
   )
@@ -1006,7 +1007,7 @@ for (let w = 0; w < graph.waves.length; w++) {
     const br = await agent(
       `regen barrier 실행 — 아래 명령을 base 에서 실행하고 사실을 반환하라(명령 외 수정 금지). ${cdBase}\n` +
       `git checkout ${baseBranch} 후: ${b.run} ; echo "EXIT=$?"\n` +
-      `허용 산출물 경로: ${b.targets.join(', ')}. 명령이 이 경로 안 파일을 바꿨으면 그 경로만 명시적으로 git add 하고 한국어로 commit 정확히 1개(--no-verify 금지, 메시지 끝 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>). git add -A 금지. 바뀐 게 없으면 커밋하지 마라. STATE·허용 경로 밖 변경은 커밋하지 말고 그대로 남겨라(사후 판정이 실패시킨다).\n` +
+      `허용 산출물 경로: ${b.targets.join(', ')}. 명령이 이 경로 안 파일을 바꿨으면 그 경로만 명시적으로 git add 하고 한국어로 commit 정확히 1개(--no-verify 금지, 메시지 끝 ${COMMIT_TRAILER}). git add -A 금지. 바뀐 게 없으면 커밋하지 마라. STATE·허용 경로 밖 변경은 커밋하지 말고 그대로 남겨라(사후 판정이 실패시킨다).\n` +
       `반환: exit(EXIT 값 문자열)·output(명령 출력 원문)·headLog(커밋했으면 git log -1 --format='%H %s' 원문, 아니면 빈 문자열). 지어내지 마라.`,
       { phase: 'Wave', label: `regen:w${w + 1}#${bi}`, model: 'haiku',
         schema: { type: 'object', additionalProperties: false,
@@ -1176,7 +1177,7 @@ async function integrationGate(waveNo, waveIds) {
       }
       const integrationCommit = await agent(
         `통합 수정 커밋 — base 의 변경을 atomic commit 하라(커밋만·STATE 수정 금지·새 파일 발명 금지). ${cdBase}\n` +
-        `git checkout ${baseBranch} 후 commit 직전 git rev-parse HEAD 를 beforeHead 에 보존 → git add -A(무관 파일 제외) → 한국어 commit 1개(--no-verify·--force 금지, 메시지 끝 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>). 반환 원문: beforeHead·afterHead(git rev-parse HEAD)·headLog·statusPorcelain·committedFiles. 실패하면 beforeHead=afterHead 로 사실대로 반환.`,
+        `git checkout ${baseBranch} 후 commit 직전 git rev-parse HEAD 를 beforeHead 에 보존 → git add -A(무관 파일 제외) → 한국어 commit 1개(--no-verify·--force 금지, 메시지 끝 ${COMMIT_TRAILER}). 반환 원문: beforeHead·afterHead(git rev-parse HEAD)·headLog·statusPorcelain·committedFiles. 실패하면 beforeHead=afterHead 로 사실대로 반환.`,
         { phase: 'Wave', label: `int-commit:w${waveNo}`, model: 'haiku', schema: COMMIT_SCHEMA }
       )
       const integrationProof = await agent(

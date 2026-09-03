@@ -26,12 +26,13 @@ import os
 import sys
 from collections import defaultdict
 
-# Pricing (USD per 1M tokens). We price waste at Opus rates; if the actual
-# session was Sonnet, the dollar number is overstated by ~5x — but Sonnet
-# sessions are also cheap so the overall % impact is roughly right.
-OPUS_READ = 1.50
-OPUS_W1H = 30.00
-OPUS_OUT = 75.00
+# Pricing (USD per 1M tokens), as of 2026-09-03 — keep in step with PRICING in
+# analyze_sessions.py. We price waste at Opus 5 rates; if the actual session
+# was Sonnet 5, the dollar number is overstated by ~2.5x — but Sonnet sessions
+# are also cheap so the overall % impact is roughly right.
+OPUS_READ = 0.50
+OPUS_W1H = 10.00
+OPUS_OUT = 25.00
 
 # Thresholds (from the user's spec)
 CONTEXT_HIGH_TOKENS = 100_000          # P1: "context exceeds 100k"

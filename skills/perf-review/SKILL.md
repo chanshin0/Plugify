@@ -42,7 +42,7 @@ projectRoot: <절대경로>
 - 진단 전용 검증도 코드로: `git -C <projectRoot> status --porcelain` 변경이 run 디렉토리(+prober 빌드 산출물) 밖에 있으면 위반 — 사용자 에스컬레이션.
 
 ### P2 — perf-judge spawn
-컨텍스트 블록 + run 경로만 전달 — **judge 가 `outputs/` 3개를 직접 Read 한다**(보고서 전문이 메인 컨텍스트를 거치지 않는다). judge 는 인용 코드를 재독해 confirmed / killed / uncertain 3분류 + 임팩트(사용자 체감×빈도)÷노력 랭킹을 **반환**한다 — 최종 보고서 파일은 judge 가 쓰지 않는다(하니스가 서브에이전트의 보고서류 파일 Write 를 차단, 2026-07-22 실증 — SYSTEM §4).
+컨텍스트 블록 + run 경로만 전달 — **judge 가 `outputs/` 3개를 직접 Read 한다**(보고서 전문이 메인 컨텍스트를 거치지 않는다). judge 는 인용 코드를 재독해 confirmed / killed / uncertain 3분류 + 임팩트(사용자 체감×빈도)÷노력 랭킹을 **반환**한다 — 최종 보고서 파일은 judge 가 쓰지 않는다(하니스가 서브에이전트의 보고서류 파일 Write 를 차단한다 — SYSTEM §4).
 
 ### P3 — 메인: 판정 + relay + 후속 라우팅
 - **메인이 judge 반환 전문을 `<run>/REPORT.md` 로 정착**시킨다(기계적 Write — 최종 보고서는 어차피 메인이 relay 하는 유일한 전문이라 추가 컨텍스트 비용 없음). 그 후 사용자에게 전달(재가공 최소화).

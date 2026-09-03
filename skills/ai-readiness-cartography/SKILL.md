@@ -1,11 +1,11 @@
 ---
 name: ai-readiness-cartography
-description: Audits any repository against the v2 AI-Ready rubric (100 pts · 7 categories — Navigation, Context Quality, Tribal Knowledge, Dependency Mapping, Verification Gates, Freshness, Agent Outcomes) and produces a professional single-file HTML dashboard plus an ROI-ranked action list. The skill bundles a Python scorer (`scripts/score.py`) that auto-detects coverage, hallucinated paths, drift, and god files. Trigger whenever the user asks for an "AI-readiness 지도", "AI-ready 시각화", "repo cartography", "codebase audit 시각화", "ai-readiness-cartography", or anything that sounds like "score how agent-friendly this codebase is and visualize it", "check how AI-ready our repo is", "map the repo against the rubric", or "audit our codebase for agent readiness". Also trigger when the user points at a repo and asks whether it is ready for coding agents / LLM workflows — even without the exact keyword. The output is always a clean technical-dashboard HTML (Inter + JetBrains Mono, light surface, blue/green/amber/red accents), never a fantasy map.
+description: Audits any repository against the v2 AI-Ready rubric (100 pts · 7 categories — Navigation, Context Quality, Tribal Knowledge, Dependency Mapping, Verification Gates, Freshness, Agent Outcomes) with a bundled Python scorer (`scripts/score.py` — coverage, hallucinated paths, drift, god files) and produces a single-file technical-dashboard HTML plus an ROI-ranked action list. Use when the user wants to score, map, or visualize how ready a codebase is for coding agents or LLM workflows, whether or not they say "AI-readiness" or "cartography". The output is a clean dashboard (Inter + JetBrains Mono, light surface), never a fantasy map.
 ---
 
 # AI-Readiness Cartography
 
-이 스킬은 임의 레포지토리를 **AI-Ready 코드베이스 v2 루브릭** (100점 · 7 카테고리 A-G) 으로 감사합니다. 산출물은 한 장의 전문 기술 대시보드 HTML + 자동 채점 JSON + ROI 순으로 정렬된 actionable 액션 리스트입니다. 이름은 "cartography" 지만 톤은 의사결정용 계기판 — 판타지 양피지 / 컴퍼스 로즈 같은 장식은 절대 쓰지 않습니다.
+이 스킬은 임의 레포지토리를 **AI-Ready 코드베이스 v2 루브릭** (100점 · 7 카테고리 A-G) 으로 감사합니다. 산출물은 한 장의 전문 기술 대시보드 HTML + 자동 채점 JSON + ROI 순으로 정렬된 actionable 액션 리스트입니다. 이름은 "cartography" 지만 톤은 의사결정용 계기판입니다(장식 규칙은 아래 스타일 절).
 
 > **해석 안전선**: 총점은 탐색용 proxy이지 에이전트 task 성공률이나 "AI Native"의 증명이 아니다. 누락 evidence를 평균값·추정 성공으로 채우지 말고 `not_observable`로 남긴다. 점수를 올리기 위한 문서 생성은 금지하고, 액션은 실제 실패 eval·온보딩 시간·재개입 감소 중 하나와 연결될 때만 추천한다. 같은 감사 주체가 manual 항목을 근거 없이 가점하지 않으며, 전후 비교는 동일 task set의 성공 결과와 함께 본다.
 
@@ -136,11 +136,8 @@ xdg-open <path>                            # Linux
 
 ## Common pitfalls
 
-- **루브릭이 v2 임을 잊고 10-rule 로 채점** — 이전 버전 잔재. 현재는 **A-G 7 카테고리 / 100점**.
 - **스크립트 출력을 무시하고 직접 점수 매기기** — 자동이 잡는 것은 자동이 더 정확. 스크립트 실행 후 그 위에 보강.
 - **E1 hallucinated path 를 가볍게 다룸** — Meta 표준 "0 hallucinated paths". 1건이라도 있으면 즉시 fix 액션.
-- **template 무시하고 처음부터 쓰기** — 매번 디자인 달라짐. 복사 → 수정.
-- **판타지 회귀** — 이름이 cartography라고 지도 은유 강하게 쓰지 말 것.
 - **ROI 정성적 형용사만** — "효율 ↑" 같은 모호한 임팩트 금지. "task당 ~3 min × ~5/일" 처럼 구체적 단위.
 
 ## ROI framing

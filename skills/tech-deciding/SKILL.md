@@ -15,7 +15,7 @@ description: 되돌리기 비싼 기술/아키텍처 결정을 추측이 아니�
 메인은 **① 타깃 포인터 파일(JSON 1줄)을 먼저 쓰고** ② Workflow 도구로 이 스킬 디렉토리의 `workflow.mjs` 를 절대경로로 실행한다:
 ```
 echo '{"question":"<결정할 질문>","projectRoot":"<레포 절대경로>","adrPath":".planning/decisions/NNN-<slug>.md"}' \
-  > /tmp/tech-deciding.target   # 정본 채널 — args 는 하니스에 따라 미전달(2026-06-11 실증). question 까지 필요해 JSON 포맷(spec-building 의 경로 1줄과 다름)
+  > /tmp/tech-deciding.target   # 정본 채널 — Workflow args 는 하니스에 따라 미전달될 수 있다. question 까지 필요해 JSON 포맷(spec-building 의 경로 1줄과 다름)
 Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs",
            args: { question: "<결정할 질문>", projectRoot: "<레포 절대경로>",
                    adrPath: ".planning/decisions/NNN-<slug>.md" } })

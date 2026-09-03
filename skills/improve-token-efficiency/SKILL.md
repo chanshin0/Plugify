@@ -1,6 +1,6 @@
 ---
 name: improve-token-efficiency
-description: Claude Code 세션 JSONL 로그를 파싱하여 토큰/컨텍스트 효율 리포트(HTML 대시보드 + $ 절감안)를 생성하는 스킬. '토큰 효율 분석', '세션 효율', '비용 분석', 'Claude Code usage report', 'analyze token efficiency', 'show session cost', 'improve token efficiency', 'efficiency score', 'how much did I spend on Claude', 'session report' 등의 요청에 반드시 트리거할 것. 사용자가 레포의 Claude Code 사용 패턴/비용/효율을 알고 싶어하거나 어떻게 줄일지 문의할 때 사용. 단일 세션이 아니라 '여러 세션 전체'에 대한 집계·점수화·시각화가 필요한 모든 경우에 적용.
+description: Claude Code 세션 JSONL 로그를 파싱하여 레포 단위 토큰·컨텍스트 효율 리포트(HTML 대시보드 + $ 절감안)를 생성한다. 사용자가 여러 세션에 걸친 Claude Code 사용 패턴·비용·효율을 알고 싶어하거나 줄일 방법을 물을 때 사용한다("토큰 효율 분석", "세션 비용", "usage report" 류). 단일 세션이 아니라 여러 세션 전체의 집계·점수화·시각화가 필요한 경우에 적용한다.
 ---
 
 # Improve Token Efficiency
@@ -92,14 +92,7 @@ HTML을 연 뒤 Korean 으로 최상위 수치와 가장 큰 개선 3가지를 2
 
 ## 가격 기준 (per 1M tokens, USD)
 
-스크립트에 하드코딩된 기본값. 새 모델이 나오면 `scripts/analyze_sessions.py` 상단 `PRICING` dict 수정.
-
-| Model | Input | Output | Cache write 5m | Cache write 1h | Cache read |
-|---|---|---|---|---|---|
-| Opus 4.x (`claude-opus-4-6`, `claude-opus-4-7`) | 15.0 | 75.0 | 18.75 | 30.0 | 1.50 |
-| Sonnet 4.x (`claude-sonnet-4-6`) | 3.0 | 15.0 | 3.75 | 6.0 | 0.30 |
-| Haiku 4.x (`claude-haiku-4-5-*`) | 0.80 | 4.0 | 1.0 | 1.6 | 0.08 |
-| `<synthetic>` | 0 | 0 | 0 | 0 | 0 |
+정본은 `scripts/analyze_sessions.py` 상단 `PRICING` dict 하나다(모델별 input/output/cache 단가 + 기준일 주석). 이 문서에 표를 복제하지 않는다 — 새 모델이 나오거나 가격이 바뀌면 dict 와 기준일만 갱신하고, `detect_patterns.py` 의 `OPUS_*` 상수도 같은 값으로 맞춘다. 보고서에는 dict 의 기준일을 "가격 기준일" 로 함께 적는다.
 
 ## 개선안 산정 로직
 
@@ -118,7 +111,7 @@ HTML을 연 뒤 Korean 으로 최상위 수치와 가장 큰 개선 3가지를 2
 
 - **세션 디렉터리가 없다**: 레포가 Claude Code 로 한 번도 열린 적 없는 경우. "분석할 세션 없음" 안내하고 종료.
 - **모든 세션이 빈 usage**: 아주 오래된 CLI 버전일 수 있음. 스크립트가 자동으로 걸러내고 남은 게 없으면 종료.
-- **가격 미등록 모델**: 기본값으로 Opus 가격 적용하고, 콘솔에 `[warn] unknown model: <id>, applying Opus default` 출력.
+- **가격 미등록 모델**: 기본값으로 최고가 현행 모델(Fable 5.1) 가격을 적용하고, 콘솔에 `[warn] unknown model: <id>, applying Fable 5.1 default pricing` 출력.
 - **Python 3.9+**: dataclass / walrus 사용 없음, 순수 stdlib 만 필요. pip install 불필요.
 - **Chart.js CDN 의존**: 오프라인 환경이면 `--inline-chartjs` 옵션으로 로컬 복사본 사용 가능 (스크립트가 지원).
 

@@ -17,19 +17,28 @@ import os
 import sys
 from collections import defaultdict
 
-# Anthropic pricing (USD per 1M tokens). Keys match the exact model string the
-# CLI records in `message.model`. Add new rows when new models ship.
+# Anthropic pricing (USD per 1M tokens), as of 2026-09-03. Keys match the exact
+# model string the CLI records in `message.model`. Cache columns follow the
+# published multipliers (5m write 1.25x, 1h write 2x, read 0.1x of input) except
+# where a model has its own cache-read rate. Re-verify against the pricing page
+# when a model ships or is repriced, and bump the date above.
 PRICING = {
-    "claude-opus-4-6":   {"in": 15.00, "out": 75.00, "cw5": 18.75, "cw1h": 30.00, "cr": 1.50},
-    "claude-opus-4-7":   {"in": 15.00, "out": 75.00, "cw5": 18.75, "cw1h": 30.00, "cr": 1.50},
+    "claude-fable-5-1":  {"in": 10.00, "out": 50.00, "cw5": 12.50, "cw1h": 20.00, "cr": 0.25},
+    "claude-fable-5":    {"in": 10.00, "out": 50.00, "cw5": 12.50, "cw1h": 20.00, "cr": 1.00},
+    "claude-opus-5":     {"in":  5.00, "out": 25.00, "cw5":  6.25, "cw1h": 10.00, "cr": 0.50},
+    "claude-opus-4-8":   {"in":  5.00, "out": 25.00, "cw5":  6.25, "cw1h": 10.00, "cr": 0.50},
+    "claude-opus-4-7":   {"in":  5.00, "out": 25.00, "cw5":  6.25, "cw1h": 10.00, "cr": 0.50},
+    "claude-opus-4-6":   {"in":  5.00, "out": 25.00, "cw5":  6.25, "cw1h": 10.00, "cr": 0.50},
+    "claude-sonnet-5":   {"in":  2.00, "out": 10.00, "cw5":  2.50, "cw1h":  4.00, "cr": 0.20},
     "claude-sonnet-4-6": {"in":  3.00, "out": 15.00, "cw5":  3.75, "cw1h":  6.00, "cr": 0.30},
     "claude-sonnet-4-5": {"in":  3.00, "out": 15.00, "cw5":  3.75, "cw1h":  6.00, "cr": 0.30},
-    "claude-haiku-4-5":  {"in":  0.80, "out":  4.00, "cw5":  1.00, "cw1h":  1.60, "cr": 0.08},
+    "claude-haiku-4-5":  {"in":  1.00, "out":  5.00, "cw5":  1.25, "cw1h":  2.00, "cr": 0.10},
+    "claude-haiku-4-5-20251001": {"in": 1.00, "out": 5.00, "cw5": 1.25, "cw1h": 2.00, "cr": 0.10},
     "<synthetic>":       {"in":  0.00, "out":  0.00, "cw5":  0.00, "cw1h":  0.00, "cr": 0.00},
 }
-# Opus default for unknown models (conservative = higher estimate, so the
-# report doesn't silently under-report cost).
-DEFAULT_PRICE = PRICING["claude-opus-4-6"]
+# Default for unknown models = the most expensive current model (conservative =
+# higher estimate, so the report doesn't silently under-report cost).
+DEFAULT_PRICE = PRICING["claude-fable-5-1"]
 
 
 def encode_repo_path(repo_path):
@@ -51,7 +60,7 @@ def price_for(model):
         return PRICING[model]
     # Warn once per unknown model
     if model and model not in price_for._warned:
-        print(f"[warn] unknown model: {model}, applying Opus default pricing", file=sys.stderr)
+        print(f"[warn] unknown model: {model}, applying Fable 5.1 default pricing", file=sys.stderr)
         price_for._warned.add(model)
     return DEFAULT_PRICE
 price_for._warned = set()

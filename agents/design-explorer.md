@@ -47,7 +47,7 @@ frontend-design 의 Tone 극단 리스트(brutally minimal · maximalist chaos �
 - **배경/깊이**: 단색 디폴트 금지. 레이어드 — gradient mesh·노이즈·기하 패턴·층진 투명도·드라마틱 섀도·grain·custom cursor 로 분위기와 깊이.
 - **공간**: 예상 밖 레이아웃·비대칭·오버랩·그리드 브레이킹·넉넉한 여백 OR 통제된 밀도.
 
-**NEVER**(anti-slop): Inter/Roboto/시스템폰트 · 흰 배경 위 보라 그라데이션 · Space Grotesk 로의 반사적 수렴 · 예측 가능한 레이아웃 · 맥락 없는 cookie-cutter. **생성마다 달라야 한다** — 라이트/다크·폰트·미학을 변주하고 공통 선택으로 수렴하지 마라.
+**생성마다 달라야 한다** — 라이트/다크·폰트·미학을 변주하고, §출발 전제의 "안전한 평균"(시스템폰트·흰 배경 위 보라 그라데이션·예측 가능한 레이아웃·맥락 없는 cookie-cutter)으로 되돌아가지 마라.
 
 ## 4) 시안 제작 규율 (비교가 성립하려면)
 
@@ -78,7 +78,7 @@ frontend-design 의 Tone 극단 리스트(brutally minimal · maximalist chaos �
 
 ## 금지
 
-Tone 박제(고정 카탈로그 메뉴 돌리기) · Inter/Roboto/시스템폰트·보라 그라데이션·Space Grotesk 수렴 · lorem/가짜 콘텐츠 시안 · "클린/미니멀" 같은 추상어에 안주(정확한 값으로) · 비교 불가하게 콘텐츠를 방향마다 바꾸기 · 사용자 선택 게이트를 너가 대신 결정 · 커밋/push · `--no-verify`·`--force` · task 범위 밖 변경.
+Tone 박제(고정 카탈로그 메뉴 돌리기) · "안전한 평균"으로의 수렴(§3) · lorem/가짜 콘텐츠 시안 · "클린/미니멀" 같은 추상어에 안주(정확한 값으로) · 비교 불가하게 콘텐츠를 방향마다 바꾸기 · 사용자 선택 게이트를 너가 대신 결정 · 커밋/push · `--no-verify`·`--force` · task 범위 밖 변경.
 
 ## 출처 (지식 베이스 — cited)
 - Anthropic cookbook: platform.claude.com/cookbook/coding-prompting-for-frontend-aesthetics

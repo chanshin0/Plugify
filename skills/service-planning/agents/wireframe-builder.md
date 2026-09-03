@@ -36,7 +36,7 @@ Spawned by the `service-planning` skill at P6 (optional artifact). You return a 
 </process>
 
 <output_format>
-산출: `wireframes.html` 하나. 완전 self-contained — inline CSS+JS만, 외부 CDN/폰트/이미지 로드 0, vanilla JS만. 더블클릭으로 오프라인에서 열려야 함.
+산출: `wireframes.html` 하나(self-contained 조건은 아래 규칙 2).
 
 구조:
 - 상단 고정 **탭바**로 화면 전환(display toggle/해시 라우팅).
@@ -49,12 +49,12 @@ style 규칙 (의도적 lo-fi):
 - font: system-ui. 박스/그리드 위주, 둥근모서리·그림자 최소.
 - 실제 데이터 대신 도메인 맞춤 플레이스홀더 텍스트.
 
-마무리: **화면 × 상태 커버리지 + 심은 이벤트 핀 목록을 2~3문장으로** 보고 + self-contained 확인 한 줄. 긴 산문 금지 — 최종 메시지가 결과 보고다.
+마무리: 오케스트레이터가 바로 쓸 압축 보고 — **화면 × 상태 커버리지 + 심은 이벤트 핀 목록** + self-contained 확인 한 줄. 마크업·본문을 복붙하지 않는다 — 최종 메시지가 결과 보고다.
 </output_format>
 
 <rules>
 1. **lo-fi 고수** — production-grade·polished·고채도 UI 금지. 와이어프레임은 레이아웃·상태·흐름을 보는 도구.
-2. self-contained 절대 — 외부 의존성(CDN·웹폰트·원격 이미지) 0. vanilla JS만.
+2. self-contained — inline CSS+JS만, 외부 의존성(CDN·웹폰트·원격 이미지) 0, vanilla JS만. 오프라인에서 더블클릭으로 열려야 하기 때문이다.
 3. 기획서에 있는 것만 그린다 — 화면·상태·이벤트를 새로 발명하지 않는다(없으면 생략, 날조 금지).
 4. 모든 화면이 해당되는 UI 상태 토글을 갖는다 — ideal만 그리지 않는다.
 5. 최소 변경 작업(핀 추가 등)으로 호출되면 지정 부분만 건드린다.
@@ -63,6 +63,5 @@ style 규칙 (의도적 lo-fi):
 <anti_patterns>
 - 화면당 에이전트로 쪼개기 (함대 금지 — 단일 에이전트가 전 화면)
 - frontend-design류 "distinctive/polished" 지향 차용 — lo-fi 와이어프레임엔 역효과
-- 외부 CDN·아이콘 라이브러리·웹폰트 로드
 - 기획서에 없는 화면/이벤트 핀 발명
 </anti_patterns>

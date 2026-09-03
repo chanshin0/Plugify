@@ -18,6 +18,7 @@ const acceptance  = A?.acceptance ?? '수용 기준 = .planning/STATE.md 해당 
 const isolation   = A?.isolation === 'worktree' ? { isolation: 'worktree' } : {}
 const doCommit    = A?.commit !== false
 const MAX         = A?.maxAttempts ?? 3
+const COMMIT_TRAILER = 'Co-Authored-By: Claude <noreply@anthropic.com>' // 커밋 주체는 교체되는 서브에이전트 — 모델 버전을 박지 않는다
 // 하니스 제약(2026-09-01 실증): 워크플로우 스크립트 안에서 Date 생성자·Date.now·Math.random 호출은 금지(재개 캐시 결정성 — 하니스가 throw).
 // 시각은 호출자가 args.startedAt(ISO) 로 넘기고, 내부 스탬프는 그 값 + 단조 시퀀스로 순서만 보존한다. 실제 종료 시각은 메인이 반환 후 찍는다.
 const runStartedAt = (typeof A?.startedAt === 'string' && A.startedAt.trim()) ? A.startedAt.trim() : 'unknown-time'
@@ -351,7 +352,8 @@ while (true) {
       `블라인드 최초 리뷰는 이미 pass 로 동결됐다. 이제 구현자가 별도로 신고한 concerns 만 실제 diff와 대조해 처분하라. ${cdNote}\n` +
       `task: ${task}\n` +
       `concerns(${impl.concerns?.length ?? 0}개):\n${(impl.concerns ?? []).map((c, i) => `  ${i + 1}. ${c}`).join('\n')}\n` +
-      `각 concern 을 resolved/accepted/blocker 로 1:1 판정하라. 구현자의 decisions·selfCheck·이전 리뷰 전문은 보지 않는다.`,
+      `각 concern 을 resolved/accepted/blocker 로 1:1 판정하라. 구현자의 decisions·selfCheck·이전 리뷰 전문은 보지 않는다.\n` +
+      `**형식 계약**: 반환 concernDispositions 의 각 \`concern\` 필드에는 위 목록의 문장을 **번호 없이, 한 글자도 바꾸지 말고 그대로** 복사하라(요약·재서술·따옴표/문장부호 변경 금지 — 코드가 원문 1:1 로 대조해 불일치면 프로토콜 실패로 처리한다). 개수도 정확히 ${impl.concerns?.length ?? 0}개.`,
       { agentType: 'reviewer', schema: CONCERN_SCHEMA, phase: 'Review', label: `우려 대조 ${attempt}` }
     )
     recordEvent('Review', 'concerns-reconciled', 'completed', '', attempt, { actorType: 'reviewer' })
@@ -368,8 +370,10 @@ while (true) {
       reviewProtocolFailure = `concernDispositions 개수 불일치(concerns=${concernCount}, dispositions=${dispositions.length}) — reviewer 우려 판정 누락`
       review.issues = [...(review.issues ?? []), reviewProtocolFailure]
     } else {
-      const expectedConcerns = [...(impl.concerns ?? [])].map(String).sort()
-      const disposedConcerns = dispositions.map(d => String(d?.concern ?? '')).sort()
+      // concern 정체성 1:1 은 유지하되 표기 차이(NFKC·앞뒤/연속 공백·"1. " 번호 접두)만 흡수한다 — graph-workflow 와 같은 규칙. 요약·치환은 여전히 불일치.
+      const normConcern = c => String(c ?? '').normalize('NFKC').replace(/^\s*\d+[.)]\s*/, '').replace(/\s+/g, ' ').trim()
+      const expectedConcerns = [...(impl.concerns ?? [])].map(normConcern).sort()
+      const disposedConcerns = dispositions.map(d => normConcern(d?.concern)).sort()
       const concernIdentityMatched = expectedConcerns.every((c, i) => c === disposedConcerns[i])
       if (!concernIdentityMatched) {
         review.pass = false
@@ -458,7 +462,7 @@ while (true) {
     (hasLive || hasPendingHuman
       ? `**이 task 는 ${hasLive ? '라이브 게이트' : ''}${hasLive && hasPendingHuman ? '와 ' : ''}${hasPendingHuman ? 'human 게이트' : ''}가 남아 있어 아직 완료가 아니다.** .planning/STATE.md 를 일절 수정하지 말고, 커밋 메시지에 '완료'·'검증됨'을 주장하지 마라.\n`
       : `auto-only 비라이브 task의 STATE 완료 변경은 이미 reviewer가 코드와 함께 검증했다. 그 검증된 STATE를 포함하되 여기서 내용을 다시 수정하지 마라.\n`) +
-    `1) git add -A 로 **동결된 리뷰-통과 changeset을 그대로** 스테이징(무관 파일만 제외, 새 파일 생성·코드/STATE 재수정 금지). 2) 한국어 커밋 메시지로 정확히 1개 commit(--no-verify·--force 금지). 메시지 끝: Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n` +
+    `1) git add -A 로 **동결된 리뷰-통과 changeset을 그대로** 스테이징(무관 파일만 제외, 새 파일 생성·코드/STATE 재수정 금지). 2) 한국어 커밋 메시지로 정확히 1개 commit(--no-verify·--force 금지). 메시지 끝: ${COMMIT_TRAILER}\n` +
     `4) commit 직전 git rev-parse HEAD 원문을 beforeHead 에 보존한 뒤 commit 하라. 커밋 후 **반드시 실행한 명령의 출력 원문 그대로** 반환하라: (a) beforeHead, (b) afterHead = git rev-parse HEAD, (c) headLog = git log -1 --format='%H %s', (d) statusPorcelain = git status --porcelain(빈 출력이면 빈 문자열), (e) committedFiles = git show HEAD --stat --format='' 의 출력(이번 커밋이 담은 파일 목록). 출력을 지어내지 마라 — 커밋에 실패했으면 beforeHead=afterHead 로 사실대로 적고 status 원문을 그대로 줘라.`,
     {
       phase: 'Commit', label: attempt > 1 ? `커밋 ${attempt}` : '커밋', model: 'haiku',
@@ -722,7 +726,7 @@ if (liveGate?.status === 'passed' && doCommit && !hasPendingHuman) {
     } else {
       const closure = await agent(
         `리뷰된 종결 STATE 커밋 — 파일을 더 수정하지 말고 현재 .planning/STATE.md 변경만 스테이징·커밋·push 하라. ${cdNote}\n` +
-        `git add .planning/STATE.md → 한국어 커밋 정확히 1개(--no-verify·--force 금지, 메시지 끝: Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>) → git push origin ${liveGate.branch}. ` +
+        `git add .planning/STATE.md → 한국어 커밋 정확히 1개(--no-verify·--force 금지, 메시지 끝: ${COMMIT_TRAILER}) → git push origin ${liveGate.branch}. ` +
         `반환 원문: beforeHead(커밋 직전)·afterHead(git rev-parse HEAD)·headLog(git log -1 --format='%H %s')·remoteHead(git ls-remote origin refs/heads/${liveGate.branch} SHA)·statusPorcelain. 지어내지 마라.`,
         { phase: 'Live', label: '종결 커밋', model: 'haiku',
           schema: { type: 'object', additionalProperties: false,

@@ -169,5 +169,5 @@ rm -f "$TARGET_FILE"
 
 ## See Also
 
-- `~/.claude/skills/ai-readiness-cartography/` — 코드베이스 측정 (다른 루브릭 강제와 같은 철학)
-- `gsd-code-review` — 코드 변경 전용 리뷰 (이 스킬은 답변·기획·문서까지 포함하는 더 넓은 범위)
+- `ai-readiness-cartography` 스킬 — 코드베이스 측정 (다른 루브릭 강제와 같은 철학)
+- `code-review` 스킬 — 코드 변경 전용 리뷰 (이 스킬은 답변·기획·문서까지 포함하는 더 넓은 범위)
