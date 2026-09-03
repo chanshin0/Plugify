@@ -18,14 +18,18 @@ const acceptance  = A?.acceptance ?? '수용 기준 = .planning/STATE.md 해당 
 const isolation   = A?.isolation === 'worktree' ? { isolation: 'worktree' } : {}
 const doCommit    = A?.commit !== false
 const MAX         = A?.maxAttempts ?? 3
-const runStartedAt = new Date().toISOString()
+// 하니스 제약(2026-09-01 실증): 워크플로우 스크립트 안에서 Date 생성자·Date.now·Math.random 호출은 금지(재개 캐시 결정성 — 하니스가 throw).
+// 시각은 호출자가 args.startedAt(ISO) 로 넘기고, 내부 스탬프는 그 값 + 단조 시퀀스로 순서만 보존한다. 실제 종료 시각은 메인이 반환 후 찍는다.
+const runStartedAt = (typeof A?.startedAt === 'string' && A.startedAt.trim()) ? A.startedAt.trim() : 'unknown-time'
+let _stampSeq = 0
+const stampNow = () => `${runStartedAt}+${String(++_stampSeq).padStart(4, '0')}`
 const runId = (typeof A?.runId === 'string' && A.runId.trim())
   ? A.runId.trim()
-  : `spec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  : `spec-${runStartedAt.replace(/[^0-9A-Za-z]/g, '')}`
 const transitionEvents = []
 function recordEvent(phase, transition, outcome, reasonCode = '', eventAttempt = 0, details = {}) {
   transitionEvents.push({
-    at: new Date().toISOString(), phase, transition, outcome, reasonCode, attempt: eventAttempt,
+    at: stampNow(), phase, transition, outcome, reasonCode, attempt: eventAttempt,
     actorType: details.actorType ?? 'orchestrator',
     triggerSource: details.triggerSource ?? 'workflow',
     meaningful: details.meaningful !== false,
@@ -35,7 +39,7 @@ function recordEvent(phase, transition, outcome, reasonCode = '', eventAttempt =
 function finishRun(terminalState, runAttempts, reviewerBlind, extra = {}) {
   const summary = {
     schemaVersion: '1.0', runId, workflow: 'spec-building',
-    startedAt: runStartedAt, endedAt: new Date().toISOString(), terminalState,
+    startedAt: runStartedAt, endedAt: stampNow(), terminalState,
     attempts: runAttempts, reviewerBlind,
     humanReintervention: 'not_observable',
     events: transitionEvents.slice(),

@@ -21,6 +21,16 @@ export const meta = {
 //     라이브 게이트({PREVIEW_URL})는 v1 범위 밖 → 시작 시 반려(단일 task 경로 workflow.mjs 로 안내).
 // ══════════════════════════════════════════════════════════════════════════
 
+// 2026-09-01 실증: changeset 다이제스트를 스냅샷 에이전트가 각자 즉석 계산하면(해시 명령·구분자 상이) 같은 트리에서도
+// 값이 달라져 'reviewer-mutated-changeset' 오탐이 난다(T1~T7 전부 재현). 계산 명령을 고정하고 stdout 원문만 받는다.
+const FILES_CMD = `{ git diff --name-only HEAD; git ls-files --others --exclude-standard; } | LC_ALL=C sort -u`
+const DIGEST_CMD = `${FILES_CMD} | while IFS= read -r f; do if [ -e "$f" ]; then printf '%s %s\\n' "$f" "$(git hash-object "$f")"; else printf '%s DELETE\\n' "$f"; fi; done | shasum -a 256 | cut -d' ' -f1`
+const COMMITTED_FILES_CMD = `git diff-tree --no-commit-id --name-only -r HEAD | LC_ALL=C sort -u`
+const COMMITTED_DIGEST_CMD = `${COMMITTED_FILES_CMD} | while IFS= read -r f; do if [ -e "$f" ]; then printf '%s %s\\n' "$f" "$(git hash-object "$f")"; else printf '%s DELETE\\n' "$f"; fi; done | shasum -a 256 | cut -d' ' -f1`
+const SNAPSHOT_HOWTO = `reviewedFiles=\`${FILES_CMD}\` 의 stdout 원문(줄바꿈 구분), reviewedDigest=\`${DIGEST_CMD}\` 의 stdout 원문(64자 hex). **다른 방식으로 계산하지 말고 이 두 명령을 그대로 실행해 출력을 복사하라.**`
+// 2026-09-01 실증 2: haiku 전사가 porcelain 의 선행 공백(' M' vs 'M ')을 잃는다 — 파일집합·다이제스트가 이미 동일성을 보장하므로 status 는 공백을 전부 제거해 비교한다.
+const normStatus = raw => (raw ?? '').split('\n').map(l => l.replace(/\s+/g, '')).filter(Boolean).sort().join('\n')
+
 const CONCURRENCY = 4          // wave 내 동시 dispatch 상한
 const INTEGRATION_FIX_CAP = 1  // 통합 게이트 실패 시 원인 수정 재투입 상한(초과 = 에스컬레이션)
 
@@ -28,15 +38,19 @@ const INTEGRATION_FIX_CAP = 1  // 통합 게이트 실패 시 원인 수정 재�
 // 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 첫 실전 관찰 실증) → 객체로 정규화.
 const A = (typeof args === 'string') ? (() => { try { return JSON.parse(args) } catch { return null } })() : (args ?? null)
 const MAX_TASK_ATTEMPTS = A?.maxAttempts ?? 3
-const runStartedAt = new Date().toISOString()
+// 하니스 제약(2026-09-01 실증): 워크플로우 스크립트 안에서 Date 생성자·Date.now 호출은 금지(재개 결정성 — 하니스 ShimDate 가 throw).
+// 시각은 호출자가 args.startedAt(ISO) 로 넘기고, 내부 스탬프는 그 값 + 단조 시퀀스로 순서만 보존한다. 실제 종료 시각은 메인이 반환 후 찍는다.
+const runStartedAt = (typeof A?.startedAt === 'string' && A.startedAt.trim()) ? A.startedAt.trim() : 'unknown-time'
+let _stampSeq = 0
+const stampNow = () => `${runStartedAt}+${String(++_stampSeq).padStart(4, '0')}`
 const runId = (typeof A?.runId === 'string' && A.runId.trim())
   ? A.runId.trim()
-  : `spec-graph-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  : `spec-graph-${runStartedAt.replace(/[^0-9A-Za-z]/g, '')}`
 log(`args 수신(정규화 후): ${JSON.stringify(A)}`)
 
 function graphEvent(phase, transition, outcome, reasonCode = '', attempt = 0, details = {}) {
   return {
-    at: new Date().toISOString(), phase, transition, outcome, reasonCode, attempt,
+    at: stampNow(), phase, transition, outcome, reasonCode, attempt,
     actorType: details.actorType ?? 'orchestrator',
     triggerSource: details.triggerSource ?? 'workflow',
     meaningful: details.meaningful !== false,
@@ -51,7 +65,7 @@ function graphRunSummary(terminalState, reviewerBlind, humanReintervention, auto
   const autonomous = eligible.filter(e => e.actorType !== 'human' && e.triggerSource !== 'user')
   return {
     schemaVersion: '1.0', runId, workflow: 'spec-building-graph',
-    startedAt: runStartedAt, endedAt: new Date().toISOString(), terminalState,
+    startedAt: runStartedAt, endedAt: stampNow(), terminalState,
     reviewerBlind, humanReintervention, autonomousPathClosed, events, evidence,
     metrics: {
       agentSelfTurns: autonomous.length,
@@ -366,8 +380,11 @@ function applyConcernGuard(impl, review) {
     review.protocolFailure = `concernDispositions 개수 불일치(concerns=${concernCount}, dispositions=${dispositions.length}) — reviewer 우려 판정 누락`
     review.issues = [...(review.issues ?? []), review.protocolFailure]
   } else {
-    const expectedConcerns = [...(impl.concerns ?? [])].map(String).sort()
-    const disposedConcerns = dispositions.map(d => String(d?.concern ?? '')).sort()
+    // 2026-09-01 실증: reviewer(LLM) 가 concern 원문을 공백·번호 접두만 다르게 복사해 프로토콜 실패가 났다.
+    // 의도(concern 정체성 1:1)는 유지하되 표기 차이(NFKC·앞뒤/연속 공백·"1. " 번호 접두)만 흡수한다. 요약·치환은 여전히 불일치.
+    const normConcern = c => String(c ?? '').normalize('NFKC').replace(/^\s*\d+[.)]\s*/, '').replace(/\s+/g, ' ').trim()
+    const expectedConcerns = [...(impl.concerns ?? [])].map(normConcern).sort()
+    const disposedConcerns = dispositions.map(d => normConcern(d?.concern)).sort()
     const concernIdentityMatched = expectedConcerns.every((c, i) => c === disposedConcerns[i])
     if (!concernIdentityMatched) {
       review.pass = false
@@ -387,7 +404,8 @@ async function reconcileAfterBlind(impl, review, context, label) {
   const reconciliation = await agent(
     `블라인드 최초 리뷰는 이미 pass 로 동결됐다. 이제 구현자가 신고한 concerns 만 실제 diff와 대조해 처분하라. ${context}\n` +
     `concerns(${impl.concerns?.length ?? 0}개):\n${(impl.concerns ?? []).map((c, i) => `  ${i + 1}. ${c}`).join('\n')}\n` +
-    `각 concern 을 resolved/accepted/blocker 로 1:1 판정하라. 구현자의 decisions·selfCheck·이전 리뷰 전문은 보지 않는다.`,
+    `각 concern 을 resolved/accepted/blocker 로 1:1 판정하라. 구현자의 decisions·selfCheck·이전 리뷰 전문은 보지 않는다.\n` +
+    `**형식 계약**: 반환 concernDispositions 의 각 \`concern\` 필드에는 위 목록의 문장을 **번호 없이, 한 글자도 바꾸지 말고 그대로** 복사하라(요약·재서술·따옴표/문장부호 변경 금지 — 코드가 원문 1:1 로 대조해 불일치면 프로토콜 실패로 처리한다). 개수도 정확히 ${impl.concerns?.length ?? 0}개.`,
     { agentType: 'reviewer', schema: CONCERN_SCHEMA, phase: 'Wave', label }
   )
   review.concernDispositions = reconciliation?.concernDispositions ?? []
@@ -652,8 +670,7 @@ async function runTask(task, expectedHead) {
 
     const preReviewSnapshot = await agent(
       `그래프 task implementer 반환 직후·리뷰 전 changeset 동결 — 수정·스테이징·커밋 금지. ${cdWt}\n` +
-      `기대 브랜치 ${branch}, HEAD ${expectedHead}. branch=git branch --show-current, beforeHead=git rev-parse HEAD, reviewedFiles=(git diff --name-only HEAD; git ls-files --others --exclude-standard | sort -u), ` +
-      `reviewedDigest=정렬된 경로+현재 blob hash(삭제는 DELETE)의 SHA-256, statusPorcelain=git status --porcelain 원문. 지어내지 마라.`,
+      `기대 브랜치 ${branch}, HEAD ${expectedHead}. branch=git branch --show-current, beforeHead=git rev-parse HEAD, ${SNAPSHOT_HOWTO} statusPorcelain=git status --porcelain 원문. 지어내지 마라.`,
       { phase: 'Wave', label: `pre-review:${task.id}(${attempt})`, model: 'haiku',
         schema: { type: 'object', additionalProperties: false,
           properties: { branch: { type: 'string' }, beforeHead: { type: 'string' }, reviewedFiles: { type: 'string' }, reviewedDigest: { type: 'string' }, statusPorcelain: { type: 'string' } },
@@ -677,8 +694,7 @@ async function runTask(task, expectedHead) {
 
     const postReviewSnapshot = await agent(
       `그래프 task reviewer 직후 changeset 재동결 — 수정·스테이징·커밋 금지. ${cdWt}\n` +
-      `branch=git branch --show-current, beforeHead=git rev-parse HEAD, reviewedFiles=(git diff --name-only HEAD; git ls-files --others --exclude-standard | sort -u), ` +
-      `reviewedDigest=정렬된 경로+현재 blob hash(삭제는 DELETE)의 SHA-256, statusPorcelain=git status --porcelain 원문. 지어내지 마라.`,
+      `branch=git branch --show-current, beforeHead=git rev-parse HEAD, ${SNAPSHOT_HOWTO} statusPorcelain=git status --porcelain 원문. 지어내지 마라.`,
       { phase: 'Wave', label: `post-review:${task.id}(${attempt})`, model: 'haiku',
         schema: { type: 'object', additionalProperties: false,
           properties: { branch: { type: 'string' }, beforeHead: { type: 'string' }, reviewedFiles: { type: 'string' }, reviewedDigest: { type: 'string' }, statusPorcelain: { type: 'string' } },
@@ -689,7 +705,7 @@ async function runTask(task, expectedHead) {
       (postReviewSnapshot?.beforeHead ?? '').trim() === expectedHead &&
       postFiles.length === preFiles.length && postFiles.every((f, i) => f === preFiles[i]) &&
       (postReviewSnapshot?.reviewedDigest ?? '').trim() === (preReviewSnapshot?.reviewedDigest ?? '').trim() &&
-      (postReviewSnapshot?.statusPorcelain ?? '').trim() === (preReviewSnapshot?.statusPorcelain ?? '').trim()
+      normStatus(postReviewSnapshot?.statusPorcelain) === normStatus(preReviewSnapshot?.statusPorcelain)
     if (!reviewerKeptChangeset) {
       return { id: task.id, status: 'changeset-protocol-failed', reason: 'reviewer-mutated-changeset', review, attempts: attempt }
     }
@@ -724,7 +740,7 @@ async function runTask(task, expectedHead) {
     `그래프 task 커밋 사후 증거 — 수정·스테이징·커밋·amend 금지. ${cdWt}\n` +
     `기준 브랜치 ${branch}, HEAD ${(reviewedSnapshot?.beforeHead ?? '').trim()}. branch=git branch --show-current, afterHead=git rev-parse HEAD, headLog=git log -1 --format='%H %s', ` +
     `revCount=git rev-list --count ${(reviewedSnapshot?.beforeHead ?? '').trim()}..HEAD, committedFiles=git diff --name-only ${(reviewedSnapshot?.beforeHead ?? '').trim()}..HEAD, ` +
-    `committedDigest=committedFiles의 정렬된 각 경로와 현재 blob hash(삭제는 DELETE)를 reviewedDigest와 같은 방식으로 SHA-256, statusPorcelain=git status --porcelain 원문을 반환하라. 지어내지 마라.`,
+    `committedDigest=\`${COMMITTED_DIGEST_CMD}\` 의 stdout 원문(64자 hex — reviewedDigest 와 같은 줄 형식이므로 같은 파일·내용이면 값이 같다. 다른 방식으로 계산하지 말 것), statusPorcelain=git status --porcelain 원문을 반환하라. 지어내지 마라.`,
     { phase: 'Wave', label: `commit-proof:${task.id}`, model: 'haiku',
       schema: { type: 'object', additionalProperties: false,
         properties: { branch: { type: 'string' }, afterHead: { type: 'string' }, headLog: { type: 'string' }, revCount: { type: 'string' }, committedFiles: { type: 'string' }, committedDigest: { type: 'string' }, statusPorcelain: { type: 'string' } },
@@ -911,7 +927,7 @@ for (let w = 0; w < graph.waves.length; w++) {
     `statusPorcelain=git status --porcelain 을 반환하고, 각 브랜치에 대해 git merge-base --is-ancestor <branch> ${baseBranch}; echo ANC=$? 를 실행하라:\n` +
     mergeOrder.map(id => `- ${id}: ${branchOf(id)}`).join('\n') + '\n' +
     `git rev-list --first-parent --reverse ${(mergeSnapshot?.beforeHead ?? '').trim()}..HEAD 로 merge commit을 순서대로 열거하고, 각 task 순서에 맞춰 ` +
-    `mergeCommits 배열에 {id, mergeHead, parents(git show -s --format='%P' <mergeHead>), remergeDiff(git show --remerge-diff --format= <mergeHead> 원문)}를 담아라. ` +
+    `mergeCommits 배열에 {id(= task ID 문자열 그대로, 예: T6 — SHA·브랜치명 아님), mergeHead, parents(git show -s --format='%P' <mergeHead>), remergeDiff(git show --remerge-diff --format= <mergeHead> 원문)}를 담아라. checks[].id 도 task ID 그대로. ` +
     `checks 배열은 {id, ancExit} 원문. 지어내지 마라.`,
     { phase: 'Wave', label: `merge-proof:w${w + 1}`, model: 'haiku',
       schema: { type: 'object', additionalProperties: false,
@@ -941,7 +957,10 @@ for (let w = 0; w < graph.waves.length; w++) {
       const mergeHead = (rec?.mergeHead ?? '').trim()
       const parents = (rec?.parents ?? '').trim().split(/\s+/).filter(Boolean)
       const expectedTaskHead = (taskResults[id]?.commitProof?.afterHead ?? '').trim()
-      const valid = rec?.id === id && /^[0-9a-f]{7,40}$/.test(mergeHead) && mergeHead !== previousMergeHead && mergeHead !== expectedTaskHead &&
+      // 2026-09-01 실증: haiku 가 rec.id 에 task ID 대신 merge SHA/브랜치명을 넣어 오탐(실제 merge 는 정상). mergeCommits 는
+      // mergeOrder 와 길이가 같을 때 *위치*로 결속하고, id 는 경고만 남긴다 — 실증 값(parents 순서·remergeDiff·mergeHead)이 판정을 맡는다.
+      if (rec?.id !== id) log(`⚠ merge-proof: mergeCommits[${i}].id=${JSON.stringify(rec?.id)} ≠ ${id} — 위치 결속으로 판정(전사 오류 추정)`)
+      const valid = /^[0-9a-f]{7,40}$/.test(mergeHead) && mergeHead !== previousMergeHead && mergeHead !== expectedTaskHead &&
         parents.length === 2 && parents[0] === previousMergeHead && parents[1] === expectedTaskHead && (rec?.remergeDiff ?? '').trim() === ''
       if (!valid) mergeTreeFailures.push(`${id}: parent/order/remerge 불일치`)
       previousMergeHead = mergeHead
@@ -1112,8 +1131,7 @@ async function integrationGate(waveNo, waveIds) {
     } else {
       const integrationPreReview = await agent(
         `통합 수정 reviewer 직전 changeset 동결 — 수정·스테이징·커밋 금지. ${cdBase}\n` +
-        `기대 브랜치 ${baseBranch}, HEAD ${integrationBefore}. branch=git branch --show-current, beforeHead=git rev-parse HEAD, reviewedFiles=(git diff --name-only HEAD; git ls-files --others --exclude-standard | sort -u), ` +
-        `reviewedDigest=정렬된 경로+현재 blob hash(삭제는 DELETE)의 SHA-256, statusPorcelain=git status --porcelain 원문. 지어내지 마라.`,
+        `기대 브랜치 ${baseBranch}, HEAD ${integrationBefore}. branch=git branch --show-current, beforeHead=git rev-parse HEAD, ${SNAPSHOT_HOWTO} statusPorcelain=git status --porcelain 원문. 지어내지 마라.`,
         { phase: 'Wave', label: `int-pre-review:w${waveNo}`, model: 'haiku',
           schema: { type: 'object', additionalProperties: false,
             properties: { branch: { type: 'string' }, beforeHead: { type: 'string' }, reviewedFiles: { type: 'string' }, reviewedDigest: { type: 'string' }, statusPorcelain: { type: 'string' } },
@@ -1152,7 +1170,7 @@ async function integrationGate(waveNo, waveIds) {
         (integrationSnapshot?.beforeHead ?? '').trim() === integrationBefore &&
         intPostFiles.length === intPreFiles.length && intPostFiles.every((f, i) => f === intPreFiles[i]) &&
         (integrationSnapshot?.reviewedDigest ?? '').trim() === (integrationPreReview?.reviewedDigest ?? '').trim() &&
-        (integrationSnapshot?.statusPorcelain ?? '').trim() === (integrationPreReview?.statusPorcelain ?? '').trim()
+        normStatus(integrationSnapshot?.statusPorcelain) === normStatus(integrationPreReview?.statusPorcelain)
       if (!integrationReviewUnchanged) {
         return { status: 'failed', reason: 'integration-review-mutated-changeset', attempts: attempt, output: lastOut }
       }
@@ -1165,7 +1183,7 @@ async function integrationGate(waveNo, waveIds) {
         `통합 수정 커밋 사후 증거 — 수정·스테이징·커밋·amend 금지. ${cdBase}\n` +
         `기준 브랜치 ${baseBranch}, HEAD ${(integrationSnapshot?.beforeHead ?? '').trim()}. branch=git branch --show-current, afterHead=git rev-parse HEAD, headLog=git log -1 --format='%H %s', ` +
         `revCount=git rev-list --count ${(integrationSnapshot?.beforeHead ?? '').trim()}..HEAD, committedFiles=git diff --name-only ${(integrationSnapshot?.beforeHead ?? '').trim()}..HEAD, ` +
-        `committedDigest=committedFiles의 정렬된 각 경로와 현재 blob hash(삭제는 DELETE)를 reviewedDigest와 같은 방식으로 SHA-256, statusPorcelain=git status --porcelain 원문을 반환하라. 지어내지 마라.`,
+        `committedDigest=\`${COMMITTED_DIGEST_CMD}\` 의 stdout 원문(64자 hex — reviewedDigest 와 같은 줄 형식이므로 같은 파일·내용이면 값이 같다. 다른 방식으로 계산하지 말 것), statusPorcelain=git status --porcelain 원문을 반환하라. 지어내지 마라.`,
         { phase: 'Wave', label: `int-commit-proof:w${waveNo}`, model: 'haiku',
           schema: { type: 'object', additionalProperties: false,
             properties: { branch: { type: 'string' }, afterHead: { type: 'string' }, headLog: { type: 'string' }, revCount: { type: 'string' }, committedFiles: { type: 'string' }, committedDigest: { type: 'string' }, statusPorcelain: { type: 'string' } },
