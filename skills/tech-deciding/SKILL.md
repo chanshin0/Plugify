@@ -18,8 +18,9 @@ echo '{"question":"<결정할 질문>","projectRoot":"<레포 절대경로>","ad
   > /tmp/tech-deciding.target   # 정본 채널 — Workflow args 는 하니스에 따라 미전달될 수 있다. question 까지 필요해 JSON 포맷(spec-building 의 경로 1줄과 다름)
 Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs",
            args: { question: "<결정할 질문>", projectRoot: "<레포 절대경로>",
-                   adrPath: ".planning/decisions/NNN-<slug>.md" } })
+                   adrPath: ".planning/decisions/NNN-<slug>.md", startedAt: "<메인이 찍은 ISO 시각>" } })
 ```
+- **시각·난수는 스크립트 밖에서**: Workflow 실행기는 스크립트 안의 `Date`·`Math.random` 을 throw 로 막는다(재개 캐시 결정성). `startedAt` 을 넘기면 runId 가 거기서 결정적으로 만들어지고, 없으면 `unknown-time` 으로 진행한다.
 - 워크플로우는 question·projectRoot 를 해석·검증하고, 무효면 **조용한 폴백 없이 즉시 실패**한다(placeholder question 으로 비싼 조사 낭비 금지·엉뚱한 레포 실행 차단).
 - `adrPath` 상대경로는 `pwd -P`로 확인한 projectRoot 기준 canonical 절대경로로 정규화되며, 루트 밖으로 탈출하는 경로는 조사 전에 거부한다.
 - 진행: define(sonnet 난제 매핑) → researcher(sonnet) **축별 병렬** 조사 → 기록(haiku — 인스턴스 프롬프트·조사 원문을 `<타깃>/.planning/runs/<날짜>-tech-deciding/` 에 정착, 증거·비파괴) → synthesize(opus, 출처 URL 보존 의무) → critique(opus 적대검증) → ADR **제안**(`.md.proposed`, haiku Write, 출처 부족 시 run 조사 원문에서 회수) → 독립 read-only 증거로 proposed 실재·SHA-256·상태 문구·현재 `proposal_run_id` 결속·최종 ADR 불변·다른 decision 파일 불변을 대조 → 확인되면 `terminalState=pending-human`, 아니면 `proposal-failed`. 과거 실행의 stale `.proposed`는 현재 run 표식이 없어 승인 대상으로 승격되지 않는다.

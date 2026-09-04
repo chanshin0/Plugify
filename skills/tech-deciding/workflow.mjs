@@ -15,9 +15,12 @@ export const meta = {
 // ── 입력 ──────────────────────────────────────────────
 // 하니스가 args 를 JSON "문자열"로 전달한다(2026-06-11 spec-building 첫 실전 관찰 실증) → 객체로 정규화.
 const A = (typeof args === 'string') ? (() => { try { return JSON.parse(args) } catch { return null } })() : (args ?? null)
+// 하니스 제약: 워크플로우 스크립트 안에서 Date 생성자·Date.now·Math.random 호출은 금지(재개 캐시 결정성 — 하니스가 throw).
+// 시각은 호출자가 args.startedAt(ISO) 로 넘기고, runId 는 그 값에서 결정적으로 만든다(spec-building 과 같은 규칙).
+const runStartedAt = (typeof A?.startedAt === 'string' && A.startedAt.trim()) ? A.startedAt.trim() : 'unknown-time'
 const proposalRunId = (typeof A?.runId === 'string' && A.runId.trim())
   ? A.runId.trim()
-  : `tech-proposal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  : `tech-proposal-${runStartedAt.replace(/[^0-9A-Za-z]/g, '')}`
 log(`args 수신(정규화 후): ${JSON.stringify(A)}`)
 
 // ── 타깃·질문 해석 — 조용한 기본값 금지 ─────────────────

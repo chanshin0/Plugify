@@ -19,6 +19,15 @@ const isolation   = A?.isolation === 'worktree' ? { isolation: 'worktree' } : {}
 const doCommit    = A?.commit !== false
 const MAX         = A?.maxAttempts ?? 3
 const COMMIT_TRAILER = 'Co-Authored-By: Claude <noreply@anthropic.com>' // 커밋 주체는 교체되는 서브에이전트 — 모델 버전을 박지 않는다
+// changeset 다이제스트를 스냅샷 에이전트가 각자 즉석 계산하면(해시 명령·구분자 상이) 같은 트리에서도 값이 달라져
+// 'review-mutated-changeset' 오탐이 난다(graph-workflow 와 같은 결함 — 2026-09-04 A/B 실험 Plugify 팔 spec-building case-01 에서 재현).
+// 계산 명령을 고정하고 stdout 원문만 받는다. 규칙은 graph-workflow.mjs 와 동일해야 한다.
+const FILES_CMD = `{ git diff --name-only HEAD; git ls-files --others --exclude-standard; } | LC_ALL=C sort -u`
+const DIGEST_CMD = `${FILES_CMD} | while IFS= read -r f; do if [ -e "$f" ]; then printf '%s %s\\n' "$f" "$(git hash-object "$f")"; else printf '%s DELETE\\n' "$f"; fi; done | shasum -a 256 | cut -d' ' -f1`
+const rangeDigestCmd = base => `git diff --name-only ${base}..HEAD | LC_ALL=C sort -u | while IFS= read -r f; do if [ -e "$f" ]; then printf '%s %s\\n' "$f" "$(git hash-object "$f")"; else printf '%s DELETE\\n' "$f"; fi; done | shasum -a 256 | cut -d' ' -f1`
+const SNAPSHOT_HOWTO = `reviewedFiles=\`${FILES_CMD}\` 의 stdout 원문(줄바꿈 구분), reviewedDigest=\`${DIGEST_CMD}\` 의 stdout 원문(64자 hex). **다른 방식으로 계산하지 말고 이 두 명령을 그대로 실행해 출력을 복사하라.**`
+// haiku 전사가 porcelain 의 선행 공백(' M' vs 'M ')을 잃는다 — 파일집합·다이제스트가 동일성을 보장하므로 status 는 공백을 전부 제거해 비교한다.
+const normStatus = raw => (raw ?? '').split('\n').map(l => l.replace(/\s+/g, '')).filter(Boolean).sort().join('\n')
 // 하니스 제약(2026-09-01 실증): 워크플로우 스크립트 안에서 Date 생성자·Date.now·Math.random 호출은 금지(재개 캐시 결정성 — 하니스가 throw).
 // 시각은 호출자가 args.startedAt(ISO) 로 넘기고, 내부 스탬프는 그 값 + 단조 시퀀스로 순서만 보존한다. 실제 종료 시각은 메인이 반환 후 찍는다.
 const runStartedAt = (typeof A?.startedAt === 'string' && A.startedAt.trim()) ? A.startedAt.trim() : 'unknown-time'
@@ -313,9 +322,8 @@ while (true) {
   // 조기 커밋이 이후 snapshot 기준선으로 흡수되는 것을 막는다.
   const preReviewSnapshot = await agent(
     `implementer 반환 직후·리뷰 전 changeset 동결 — 수정·스테이징·커밋·amend·push 금지. ${cdNote}\n` +
-    `기대 브랜치 ${expectedBranch}, 기대 HEAD ${expectedHead}. branch=git branch --show-current, beforeHead=git rev-parse HEAD, statusPorcelain=git status --porcelain, ` +
-    `reviewedFiles=(git diff --name-only HEAD; git ls-files --others --exclude-standard | sort -u), ` +
-    `reviewedDigest=정렬된 각 경로와 현재 blob hash(삭제는 DELETE)를 묶은 SHA-256 원문을 반환하라. 지어내지 마라.`,
+    `기대 브랜치 ${expectedBranch}, 기대 HEAD ${expectedHead}. branch=git branch --show-current, beforeHead=git rev-parse HEAD, statusPorcelain=git status --porcelain 원문, ` +
+    `${SNAPSHOT_HOWTO} 지어내지 마라.`,
     { phase: 'Review', label: attempt > 1 ? `검토 전 changeset ${attempt}` : '검토 전 changeset', model: 'haiku',
       schema: { type: 'object', additionalProperties: false,
         properties: { branch: { type: 'string' }, beforeHead: { type: 'string' }, statusPorcelain: { type: 'string' }, reviewedFiles: { type: 'string' }, reviewedDigest: { type: 'string' } },
@@ -393,9 +401,8 @@ while (true) {
   // 바꾼 뒤 다음 implementer 시도에 그 변경을 흡수시키는 경로도 차단한다.
   const reviewedSnapshot = await agent(
     `reviewer 직후 changeset 재동결 — 수정·스테이징·커밋·amend·push 금지. ${cdNote}\n` +
-    `branch=git branch --show-current, beforeHead=git rev-parse HEAD, statusPorcelain=git status --porcelain, reviewedFiles=(git diff --name-only HEAD; git ls-files --others --exclude-standard | sort -u) 원문을 반환하라. ` +
-    `reviewedFiles 는 파일 경로만 한 줄에 하나씩 중복 없이 정렬해 반환하라. reviewedDigest는 정렬된 각 경로와 현재 blob hash(삭제된 경로는 DELETE)를 묶어 SHA-256 한 값이다. ` +
-    `예: 각 reviewedFiles 경로마다 "<경로><TAB><git hash-object 현재파일 또는 DELETE>"를 만들어 전체를 shasum -a 256. 지어내지 마라.`,
+    `branch=git branch --show-current, beforeHead=git rev-parse HEAD, statusPorcelain=git status --porcelain 원문, ` +
+    `${SNAPSHOT_HOWTO} 지어내지 마라.`,
     {
       phase: 'Commit', label: attempt > 1 ? `리뷰 changeset ${attempt}` : '리뷰 changeset', model: 'haiku',
       schema: {
@@ -413,7 +420,7 @@ while (true) {
   const reviewKeptChangeset = (preReviewSnapshot?.branch ?? '').trim() === expectedBranch && (reviewedSnapshot?.branch ?? '').trim() === expectedBranch &&
     reviewedHead === preReviewHead && reviewedHead === expectedHead &&
     reviewedFiles.length === preReviewFiles.length && reviewedFiles.every((f, i) => f === preReviewFiles[i]) &&
-    reviewedDigest === preReviewDigest && reviewedStatus === preReviewStatus
+    reviewedDigest === preReviewDigest && normStatus(reviewedStatus) === normStatus(preReviewStatus)
   if (!reviewKeptChangeset) {
     changesetProtocolFailure = `reviewer/게이트가 검토 중 branch·HEAD·파일집합·파일 바이트·status를 변경함(branch ${(preReviewSnapshot?.branch ?? '').trim() || '?'}->${(reviewedSnapshot?.branch ?? '').trim() || '?'}, head ${preReviewHead}->${reviewedHead}, files ${preReviewFiles.length}->${reviewedFiles.length}, digest ${preReviewDigest}->${reviewedDigest}, status ${preReviewStatus || '(clean)'}->${reviewedStatus || '(clean)'})`
     review.pass = false
@@ -488,8 +495,8 @@ while (true) {
     `동결 기준 HEAD: ${reviewedHead}\n` +
     `아래 명령을 실행하고 출력 원문만 반환하라: branch=git branch --show-current, afterHead=git rev-parse HEAD, headLog=git log -1 --format='%H %s', ` +
     `revCount=git rev-list --count ${reviewedHead}..HEAD, statusPorcelain=git status --porcelain, ` +
-    `committedFiles=git diff --name-only ${reviewedHead}..HEAD. committedFiles 는 파일 경로만 한 줄에 하나씩 반환하라. ` +
-    `committedDigest는 committedFiles의 정렬된 각 경로와 현재 blob hash(삭제는 DELETE)를 reviewedDigest와 같은 방식으로 SHA-256 한 값이다. 지어내지 마라.`,
+    `committedFiles=git diff --name-only ${reviewedHead}..HEAD | LC_ALL=C sort -u 의 stdout 원문(한 줄에 경로 하나), ` +
+    `committedDigest=\`${rangeDigestCmd(reviewedHead)}\` 의 stdout 원문(64자 hex — reviewedDigest 와 같은 줄 형식이라 같은 파일·내용이면 값이 같다. 다른 방식으로 계산하지 말 것). 지어내지 마라.`,
     {
       phase: 'Commit', label: attempt > 1 ? `커밋 증거 ${attempt}` : '커밋 증거', model: 'haiku',
       schema: {
@@ -655,8 +662,8 @@ if (liveGate?.status === 'passed' && doCommit && !hasPendingHuman) {
   )
   const closurePreReview = await agent(
     `종결 STATE 검토 전 changeset 동결 — 수정·스테이징·커밋·push 금지. ${cdNote}\n` +
-    `branch=git branch --show-current, beforeHead=git rev-parse HEAD, reviewedFiles=(git diff --name-only HEAD; git ls-files --others --exclude-standard | sort -u), statusPorcelain=git status --porcelain 원문을 반환하라. ` +
-    `reviewedFiles는 경로만 정렬하고, reviewedDigest는 정렬된 각 경로와 현재 blob hash(삭제는 DELETE)를 묶어 SHA-256 한 값이다. 지어내지 마라.`,
+    `branch=git branch --show-current, beforeHead=git rev-parse HEAD, statusPorcelain=git status --porcelain 원문, ` +
+    `${SNAPSHOT_HOWTO} 지어내지 마라.`,
     { phase: 'Live', label: '종결 검토 전 changeset', model: 'haiku',
       schema: { type: 'object', additionalProperties: false,
         properties: { branch: { type: 'string' }, beforeHead: { type: 'string' }, reviewedFiles: { type: 'string' }, reviewedDigest: { type: 'string' }, statusPorcelain: { type: 'string' } },
@@ -680,8 +687,8 @@ if (liveGate?.status === 'passed' && doCommit && !hasPendingHuman) {
   )
   const closureSnapshot = await agent(
     `종결 STATE 리뷰 후 changeset 동결 — 수정·스테이징·커밋·push 금지. ${cdNote}\n` +
-    `branch=git branch --show-current, beforeHead=git rev-parse HEAD, reviewedFiles=(git diff --name-only HEAD; git ls-files --others --exclude-standard | sort -u), statusPorcelain=git status --porcelain 원문을 반환하라. ` +
-    `reviewedFiles는 경로만 정렬하고, reviewedDigest는 정렬된 각 경로와 현재 blob hash(삭제는 DELETE)를 묶어 SHA-256 한 값이다. 지어내지 마라.`,
+    `branch=git branch --show-current, beforeHead=git rev-parse HEAD, statusPorcelain=git status --porcelain 원문, ` +
+    `${SNAPSHOT_HOWTO} 지어내지 마라.`,
     { phase: 'Live', label: '종결 changeset', model: 'haiku',
       schema: { type: 'object', additionalProperties: false,
         properties: { branch: { type: 'string' }, beforeHead: { type: 'string' }, reviewedFiles: { type: 'string' }, reviewedDigest: { type: 'string' }, statusPorcelain: { type: 'string' } },
@@ -738,7 +745,7 @@ if (liveGate?.status === 'passed' && doCommit && !hasPendingHuman) {
         `종결 사후 증거 수집 — 수정·스테이징·커밋·amend·push 금지. ${cdNote}\n` +
         `종결 전 HEAD ${closureBefore}, 브랜치 ${liveGate.branch}. 다음 원문을 반환하라: branch=git branch --show-current, afterHead=git rev-parse HEAD, headLog=git log -1 --format='%H %s', ` +
         `remoteHead=git ls-remote origin refs/heads/${liveGate.branch} SHA, revCount=git rev-list --count ${closureBefore}..HEAD, ` +
-        `committedFiles=git diff --name-only ${closureBefore}..HEAD, committedDigest=committedFiles의 정렬된 각 경로와 현재 blob hash(삭제는 DELETE)를 reviewedDigest와 같은 방식으로 SHA-256, statusPorcelain=git status --porcelain. 지어내지 마라.`,
+        `committedFiles=git diff --name-only ${closureBefore}..HEAD | LC_ALL=C sort -u 의 stdout 원문, committedDigest=\`${rangeDigestCmd(closureBefore)}\` 의 stdout 원문(64자 hex — 다른 방식으로 계산하지 말 것), statusPorcelain=git status --porcelain 원문. 지어내지 마라.`,
         { phase: 'Live', label: '종결 증거', model: 'haiku',
           schema: { type: 'object', additionalProperties: false,
             properties: { branch: { type: 'string' }, afterHead: { type: 'string' }, headLog: { type: 'string' }, remoteHead: { type: 'string' }, revCount: { type: 'string' }, committedFiles: { type: 'string' }, committedDigest: { type: 'string' }, statusPorcelain: { type: 'string' } },
