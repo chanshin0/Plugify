@@ -1,0 +1,1 @@
+이 레포의 `.planning/STATE.md` 에 적힌 "## 다음 task" 를 구현해라. 게이트를 실제로 실행해 통과를 확인하고, 통과하면 한국어 커밋 메시지로 커밋해라. 라이브 게이트({PREVIEW_URL})는 현재 작업 브랜치를 origin 에 push 한 뒤 `.planning/preview.sh <branch>` 로 프리뷰 URL 을 얻어 실증해라 — 작업 브랜치 push 는 승인됐고, main 에는 push 하지 마라. 완료 후 무엇을 바꿨고 게이트 결과가 어땠는지 보고해라.

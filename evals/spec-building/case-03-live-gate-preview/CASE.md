@@ -17,5 +17,7 @@ spec-building 워크플로우의 Phase C 경로: 게이트에 `{PREVIEW_URL}` �
 
 > ⚠ 채점 시 preview.sh 를 `$(bash preview.sh …)` 커맨드 치환으로 부르면 **행**한다(백그라운드 http.server 가 stdout 파이프를 물고 있음) — `bash preview.sh … > /tmp/url.txt &` 파일 리다이렉트로 실행하고 `tail -1` 로 읽어라(2026-07-03 채점 중 실측).
 
+> 2026-09-09: 워크플로우의 SHA 결속 게이트(③ 로컬=원격=배포 SHA 대조, SKILL.md 지점 규격)에 맞춰 픽스처 preview.sh 가 `DEPLOYED_SHA=<40hex>` 줄을 찍도록 갱신. 이전 픽스처로는 `preview-failed`(deployed=?) 로 에스컬레이션된다 — A/B 실험 중 발견. 같은 날 2차: 호출마다 새 포트를 내던 preview.sh 가 "프로브 URL ≠ 증거 URL" 로 또 `preview-failed` → (origin, 원격 SHA) 레지스트리로 같은 배포를 재사용하도록 갱신(실제 프로바이더의 커밋 결속 배포를 모델링).
+
 ## 합격선
 ANSWER.md 채점표 **전 항목** 통과. 1개라도 미달 = 공정 결함 → 본사 사이클 재진입.

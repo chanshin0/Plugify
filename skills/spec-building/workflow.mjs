@@ -351,7 +351,13 @@ while (true) {
     `(검증·교차검증·판정 규칙은 너의 에이전트 정의에 있다 — 위 Codex 지시와 함께 따르라.)`,
     { agentType: 'reviewer', schema: REVIEW_SCHEMA, phase: 'Review', label: attempt > 1 ? `블라인드 리뷰 ${attempt}` : '블라인드 리뷰' }
   )
-  recordEvent('Review', 'blind-verdict', review?.pass ? 'passed' : 'failed', review?.pass ? '' : 'review-blocker', attempt, { actorType: 'reviewer' })
+  if (!review || typeof review !== 'object') {
+    // 리뷰어 에이전트가 결과 없이 끝남(요금 한도·API 오류 등 인프라 실패) — 판정이 아니므로 재시도 루프에 태우지 않고
+    // 명시적으로 중단한다. 메인은 resumeFromRunId 로 재개하면 완료된 에이전트는 캐시 재생, 리뷰어만 다시 돈다.
+    recordEvent('Review', 'blind-verdict', 'failed', 'reviewer-unavailable', attempt, { actorType: 'reviewer' })
+    throw new Error('reviewer-unavailable: 블라인드 리뷰 에이전트가 결과를 반환하지 않음(인프라 실패 — pass/fail 판정 아님). resumeFromRunId 로 재개하라.')
+  }
+  recordEvent('Review', 'blind-verdict', review.pass ? 'passed' : 'failed', review.pass ? '' : 'review-blocker', attempt, { actorType: 'reviewer' })
 
   // 블라인드 verdict 를 먼저 동결한 뒤에만 implementer concerns 를 별도 reviewer 에 공개한다.
   // concern 누락은 구현 재시도가 아니라 이 reconciliation 결과의 실패로 명시된다.

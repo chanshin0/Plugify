@@ -218,6 +218,10 @@ if (proposedAdrPath) {
   )
   const baselineCanonicalMatched = baseline?.canonicalDecisionDir === adrCanonical?.canonicalDecisionDir &&
     baseline?.canonicalFinalPath === adrCanonical?.canonicalFinalPath && baseline?.canonicalProposedPath === adrCanonical?.canonicalProposedPath
+  if (!baseline || typeof baseline !== 'object') {
+    // 기준선 프로브가 결과 없이 끝남(요금 한도·API 오류 등 인프라 실패) — 경로 불일치가 아니라 프로브 부재다.
+    throw new Error('baseline-unavailable: ADR 경로 기준선 프로브가 결과를 반환하지 않음(인프라 실패 — 경로 불일치 판정 아님). resumeFromRunId 로 재개하라.')
+  }
   if (!baselineCanonicalMatched) throw new Error('ADR 기준선 canonical 경로가 사전검사와 달라짐 — 제안 작성 전 중단')
   await agent(
     `다음 결정을 ADR **제안** 형식으로 정확히 이 절대경로에 Write 하라: ${proposedAdrPath}\n` +
