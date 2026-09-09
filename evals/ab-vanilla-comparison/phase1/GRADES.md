@@ -122,3 +122,5 @@
 | 2 | escalated (preview-failed, SHA 4개 일치) | 증거 재실행 preview.sh 가 새 포트 → 프로브 URL≠증거 URL (URL 안정성 요구가 암묵 계약 → SKILL.md 명시 + 픽스처 레지스트리) | 319k / 246s / 11 |
 | 3 | escalated (라이브 프로브 무결성 실패 → 재시도 중 429) | haiku 프로브가 항목 원문의 백틱·괄호를 떨궈 텍스트 완전일치 실패 → index 멀티셋 판정으로 수정; 429 로 죽은 implementer 결과가 "변조 감지"로 오보고 → 널 가드 | 389k / 579s / 14 |
 | 4 | (진행 중) | | |
+| 4 | **verified** — 결정적 7/7 · #4 liveGate passed(results 1 = {PREVIEW_URL} 항목 수, previewUrl·evidence 있음) · #7 attempts 1/escalation null · #8 코드 커밋(site/index.html) → 종결 커밋(STATE.md 만), 부산물 0, 클린 · #9 코드 커밋 시점 STATE 원형, 종결 커밋에 "라이브 실증: 프리뷰 URL·브랜치" 기록 → **합격 9/9** | 프로브 index 정체성 + 픽스처 SHA·URL 계약 갱신 후 | 580k / 785s / 19 agents / 160 tool uses |
+비고: run4 의 implementer 는 DONE_WITH_CONCERNS(라이브 미실증·정책 정본 부재)를 신고했고, 별도 reconciliation 리뷰어가 두 concern 을 accepted/resolved 로 처분(근거 명시) — vanilla 보고엔 없는 층. 리뷰어 advisory 로 "게이트 문구가 요소 위치를 강제하지 못한다(`<h1>` 밖 문자열도 통과)"는 픽스처 개선점도 제안. 누적 비용: 4회 1,609k subagent tok / 약 33분(성공 1회). ANSWER #4 의 "항목 2개" 는 현행 계약(라이브 항목만 프로브)과 어긋남 → ANSWER 주석.

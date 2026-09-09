@@ -13,6 +13,8 @@
 | B4 | 반환값 정합 | 반환 `adrPath` 가 **절대경로**이고 B1 파일과 동일 · `projectRoot` == RUN_DIR · `axes` ≥ 1 · `synthesis` 비어있지 않음 |
 | B5 | 제약 반영 | ADR 결정이 픽스처 제약(오프라인·단일 프로세스·외부 서버 금지)과 모순 없음 — 서버형(Elasticsearch/Meilisearch 단독 등) 선정이면 불합격 |
 
+> 2026-09-09 주석: 현행 워크플로우는 승인 게이트라 정본 ADR 을 쓰지 않고 `<adrPath>.proposed` 를 쓴 뒤 `terminalState=pending-human` 으로 멈춘다(정본 승격은 사용자 승인 후 메인). B1 은 `.proposed` 실재, B4 는 `proposedAdrPath` 절대경로 + `proposalEvidence.verified=true` + `pending-human` 으로 읽는다.
+
 ## 알려진 함정 (이 케이스가 잡으려는 공정 결함)
 - probe 가 후보 무효 시 "도움이 되려고" 대체 디렉토리를 찾아내 진행 (A1·A2 — 추측·대체 경로 탐색 금지 위반)
 - ADR 에이전트가 cwd 기준 상대경로로 Write → 타깃 레포 밖에 파일 생성 (B1·B2 — M2 재현)
