@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>블라인드 쌍대 리뷰</title>
+<style>
+:root{color-scheme:light dark;--bg:#f5f6f8;--panel:#fff;--ink:#202630;--line:#cbd1d9;--accent:#265fb1}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,sans-serif}main{max-width:1500px;margin:auto;padding:24px}h1{font-size:26px;margin:0}h2{font-size:19px}p{margin:8px 0}section,.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;margin:14px 0}label{display:inline-block;margin:6px 14px 6px 0}button,input,select{font:inherit}button{padding:7px 13px;cursor:pointer;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink)}button:disabled{opacity:.45;cursor:default}button[aria-pressed=true],.primary{background:var(--accent);color:white}input[type=text]{padding:8px;width:min(650px,95%)}.sides{display:grid;grid-template-columns:1fr 1fr;gap:16px}.side{min-width:0}.workspace{display:grid;grid-template-columns:minmax(100px,27%) 1fr;height:450px;border:1px solid var(--line)}nav{overflow:auto;border-right:1px solid var(--line);padding:8px}nav button{display:block;text-align:left;width:100%;padding:4px;overflow-wrap:anywhere;border:0}details details{margin-left:10px}summary{cursor:pointer;overflow-wrap:anywhere}pre{margin:0;padding:12px;overflow:auto;font:13px/1.55 ui-monospace,monospace;tab-size:2;white-space:pre}.path{overflow-wrap:anywhere;min-height:25px;font-family:monospace}.muted{opacity:.72}.error{color:#c03e32}#status{min-height:26px}table{border-collapse:collapse;width:100%;text-align:left}td,th{padding:8px;border-bottom:1px solid var(--line)}.choices{display:flex;gap:8px;margin:12px 0}.steps{display:flex;flex-wrap:wrap;gap:8px}.steps span{padding:4px 8px;border:1px solid var(--line);border-radius:4px}.active{font-weight:bold;border-color:var(--accent)!important}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent)}@media(prefers-color-scheme:dark){:root{--bg:#15191f;--panel:#20262e;--ink:#e4e8ef;--line:#48515d;--accent:#356ec1}.error{color:#ff9a8f}}@media(max-width:800px){.sides{grid-template-columns:1fr}.workspace{height:320px}}
+</style>
+<main>
+<h1>블라인드 쌍대 리뷰</h1><p class="muted">한 차원씩 모든 쌍을 판정합니다. 다음 차원을 시작하면 이전 판정은 잠깁니다.</p>
+<section id="setup">
+<label>쌍 목록 <input id="pairsInput" type="file" accept=".json,application/json"></label>
+<label>스냅샷 번들 (다중 선택) <input id="bundlesInput" type="file" accept=".json,application/json" multiple></label>
+<p id="loaded">쌍 목록과 번들을 불러오세요.</p><button id="start" class="primary">최초 판정 시작</button>
+<button id="restore">저장된 세션 복구</button>
+</section>
+<p id="status" role="status" aria-live="polite"></p>
+<div class="steps" id="steps"></div>
+<section id="review" hidden>
+<h2 id="heading"></h2><p id="instruction"></p>
+<div class="sides">
+<div class="side"><h2 id="leftTitle">왼쪽</h2><div id="leftPath" class="path"></div><div class="workspace"><nav id="leftTree" aria-label="왼쪽 파일 트리"></nav><pre id="leftContent"></pre></div></div>
+<div class="side"><h2 id="rightTitle">오른쪽</h2><div id="rightPath" class="path"></div><div class="workspace"><nav id="rightTree" aria-label="오른쪽 파일 트리"></nav><pre id="rightContent"></pre></div></div>
+</div>
+<form id="verdictForm">
+<div class="choices" role="group" aria-label="우세 선택"><button type="button" data-choice="left" aria-pressed="false">← 왼쪽 우세</button><button type="button" data-choice="tie" aria-pressed="false">= 동률</button><button type="button" data-choice="right" aria-pressed="false">오른쪽 우세 →</button></div>
+<label for="reason">한 줄 이유 (필수)</label><input id="reason" type="text" maxlength="1000" required autocomplete="off">
+<label>확신도 <select id="confidence"><option value="1">1 · 낮음</option><option value="2" selected>2 · 보통</option><option value="3">3 · 높음</option></select></label>
+<p><button id="next" type="submit" class="primary">판정 저장 · 다음 (Enter)</button></p>
+</form>
+<button id="advance" hidden>다음 차원 시작 · 이전 차원 잠금</button>
+</section>
+<section>
+<button id="export" disabled>JSON 내보내기</button> <button id="rejudge" disabled>재판정 세션 시작</button>
+<label>이전 최초 판정 JSON <input id="previousInput" type="file" accept=".json,application/json"></label>
+<p id="sessionInfo" class="muted">아직 세션이 없습니다.</p>
+<div id="summary"></div>
+<details><summary>저장된 판정 (읽기 전용)</summary><div id="history"></div></details>
+</section>
+<p class="muted">봉인 매핑은 모든 판정이 끝날 때까지 열지 마세요. 동작 평가는 스냅샷을 별도로 실행해 직접 10분 사용한 뒤 기록합니다. 브라우저 저장이 제한될 수 있으므로 JSON을 수시로 내보내세요.</p>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const DIMENSIONS = ['동작(직접 10분 써봤을 때)','사전 등록 엣지케이스 3개','코드 가독성(설명 없이 읽힘)','테스트가 실제 실패를 잡음','문서만 보고 새 사람이 기능 추가 가능'];
+const GUIDES = ['익명 스냅샷을 별도로 실행하고, 각각 직접 10분 사용한 결과를 비교하세요.','실험 전에 등록한 동일한 엣지케이스 3개를 양쪽에 적용하세요.','설명 없이 코드를 읽고 구조와 의도가 이해되는지 비교하세요.','실제 결함에서 테스트가 실패하는지 확인하세요. 테스트 개수만 비교하지 마세요.','문서만 읽은 새 사람이 기능을 추가할 수 있는지 비교하세요.'];
+const STORAGE = 'blind-pair-review-v1';
+let pairs = [], bundles = new Map(), session = null, activePairs = [], dimension = 1, cursor = 0, choice = null, previous = null;
+function status(text, error=false){$('status').textContent=text;$('status').className=error?'error':'';}
+function check(ok, message){if(!ok)throw new Error(message);}
+function validatePairs(value){
+ check(Array.isArray(value)&&value.length>0,'쌍 목록은 비어 있지 않은 배열이어야 합니다.');
+ const ids=new Set(), combinations=new Set();
+ for(const p of value){
+  check(p&&/^[A-Z]+$/.test(p.left)&&/^[A-Z]+$/.test(p.right)&&p.left!==p.right,'쌍에는 서로 다른 익명 대문자만 허용합니다.');
+  const key=[p.left,p.right].sort().join('-');
+  check(typeof p.pair_id==='string'&&p.pair_id.split('-').sort().join('-')===key&&!ids.has(p.pair_id)&&!combinations.has(key),'쌍 ID가 잘못되었거나 중복되었습니다.');
+  ids.add(p.pair_id);combinations.add(key);
+ }
+ return value.map(p=>({pair_id:p.pair_id,left:p.left,right:p.right}));
+}
+function validateBundle(b){
+ check(b&&typeof b.letter==='string'&&/^[A-Z]+$/.test(b.letter)&&Array.isArray(b.files),'익명 번들 형식이 아닙니다.');
+ const paths=new Set();
+ for(const f of b.files){check(f&&typeof f.path==='string'&&f.path.length>0&&!f.path.startsWith('/')&&!f.path.includes('\\')&&!f.path.split('/').some(p=>!p||p==='..'||p==='.'||p==='.git')&&typeof f.content==='string'&&!paths.has(f.path),'번들 파일 경로 또는 내용이 잘못되었습니다.');paths.add(f.path);}
+ return {letter:b.letter,files:b.files.map(f=>({path:f.path,content:f.content}))};
+}
+function validateLog(value){
+ check(value&&typeof value.session_id==='string'&&value.session_id.length>0&&Number.isFinite(Date.parse(value.started_at))&&['initial','rejudge'].includes(value.mode)&&Array.isArray(value.verdicts),'판정 JSON 형식이 잘못되었습니다.');
+ const seen=new Set();
+ for(const v of value.verdicts){const key=v.pair_id+':'+v.dimension;check(v&&pairs.some(p=>p.pair_id===v.pair_id)&&Number.isInteger(v.dimension)&&v.dimension>=1&&v.dimension<=5&&['left','right','tie'].includes(v.choice)&&typeof v.reason==='string'&&v.reason.trim()&&!/[\r\n]/.test(v.reason)&&Number.isInteger(v.confidence)&&v.confidence>=1&&v.confidence<=3&&Number.isFinite(Date.parse(v.at))&&!seen.has(key),'판정 항목이 잘못되었거나 현재 쌍 목록과 다릅니다.');seen.add(key);}
+ return value;
+}
+function loaded(){ $('loaded').textContent=`쌍 ${pairs.length}개 · 번들 ${bundles.size}개 준비됨`; }
+function ready(){check(pairs.length>0,'쌍 목록을 먼저 불러오세요.');for(const p of pairs)check(bundles.has(p.left)&&bundles.has(p.right),'모든 쌍에 필요한 번들을 불러오세요.');}
+function persist(){try{localStorage.setItem(STORAGE,JSON.stringify({pairs,activePairs,session,dimension,cursor,previous}));}catch(e){status('브라우저 저장이 제한됩니다. JSON 내보내기로 보관하세요.',true);}}
+function newSession(mode){return {session_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),started_at:new Date().toISOString(),mode,verdicts:[]};}
+function lockSetup(){for(const id of ['pairsInput','bundlesInput','start','restore'])$(id).disabled=true;}
+function start(mode, selected){session=newSession(mode);activePairs=selected;dimension=1;cursor=0;lockSetup();persist();render();}
+function selected(value){choice=value;for(const b of document.querySelectorAll('[data-choice]'))b.setAttribute('aria-pressed',String(b.dataset.choice===choice));}
+function showTree(side, letter){
+ $(side+'Title').textContent=(side==='left'?'왼쪽':'오른쪽')+' · '+letter;
+ const nav=$(side+'Tree');nav.replaceChildren();$(side+'Path').textContent='파일을 선택하세요.';$(side+'Content').textContent='';
+ const root={dirs:new Map(),files:[]};
+ for(const f of bundles.get(letter).files){let node=root;const parts=f.path.split('/');for(const part of parts.slice(0,-1)){if(!node.dirs.has(part))node.dirs.set(part,{dirs:new Map(),files:[]});node=node.dirs.get(part);}node.files.push(f);}
+ function add(node, element){for(const [name,dir] of node.dirs){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=name;details.append(summary);add(dir,details);element.append(details);}for(const f of node.files){const button=document.createElement('button');button.type='button';button.textContent=f.path.split('/').pop();button.onclick=()=>{$(side+'Path').textContent=f.path;$(side+'Content').textContent=f.content;};element.append(button);}}
+ add(root,nav);if(!bundles.get(letter).files.length)nav.textContent='표시할 텍스트 파일이 없습니다.';
+}
+function render(){
+ $('export').disabled=!session;$('review').hidden=!session;if(!session)return;
+ $('steps').replaceChildren();DIMENSIONS.forEach((d,i)=>{const span=document.createElement('span');span.textContent=`${i+1}. ${d}`;if(i+1===dimension)span.className='active';$('steps').append(span);});
+ const finished=dimension>5, boundary=!finished&&cursor===activePairs.length;
+ $('heading').textContent=finished?'모든 차원 판정 완료':`${dimension}. ${DIMENSIONS[dimension-1]} · ${boundary?'이 차원 완료':`쌍 ${cursor+1}/${activePairs.length}`}`;
+ $('instruction').textContent=finished?'JSON을 내보내 보관하세요.':GUIDES[dimension-1];
+ $('verdictForm').hidden=finished||boundary;$('advance').hidden=!boundary;
+ document.querySelector('.sides').hidden=finished||boundary;
+ if(!finished&&!boundary){const p=activePairs[cursor];showTree('left',p.left);showTree('right',p.right);selected(null);$('reason').value='';$('confidence').value='2';}
+ $('advance').textContent=dimension===5?'평가 완료 · 마지막 차원 잠금':'다음 차원 시작 · 이전 차원 잠금';
+ $('rejudge').disabled=!(finished&&session.mode==='initial');
+ $('sessionInfo').textContent=`세션 ${session.session_id} · ${session.mode==='initial'?'최초 판정':'재판정'} · 저장 ${session.verdicts.length}건`;
+ renderHistory();renderSummary();
+}
+function table(headers, rows){const t=document.createElement('table'),thead=document.createElement('thead'),hr=document.createElement('tr');for(const h of headers){const th=document.createElement('th');th.textContent=h;hr.append(th);}thead.append(hr);t.append(thead);const body=document.createElement('tbody');for(const row of rows){const tr=document.createElement('tr');for(const text of row){const td=document.createElement('td');td.textContent=text;tr.append(td);}body.append(tr);}t.append(body);return t;}
+function renderHistory(){ $('history').replaceChildren(table(['차원','쌍','선택','이유','확신도'],session.verdicts.map(v=>[v.dimension,v.pair_id,{left:'왼쪽',right:'오른쪽',tie:'동률'}[v.choice],v.reason,v.confidence]))); }
+// 최초 목록의 표시 순서를 기준으로 재판정 좌우를 원래 익명 글자로 환원한다.
+function canonical(v,mode){if(v.choice==='tie')return 'tie';const p=pairs.find(p=>p.pair_id===v.pair_id);const side=mode==='rejudge'?(v.choice==='left'?'right':'left'):v.choice;return p[side];}
+function reversalRows(oldLog,newLog){return DIMENSIONS.map((name,i)=>{let total=0,flips=0;for(const v of newLog.verdicts.filter(v=>v.dimension===i+1)){const old=oldLog.verdicts.find(o=>o.dimension===v.dimension&&o.pair_id===v.pair_id);if(old){total++;if(canonical(old,oldLog.mode)!==canonical(v,newLog.mode))flips++;}}return [name,total?`${flips}/${total} (${(100*flips/total).toFixed(1)}%)`:'비교 대상 없음'];});}
+function renderSummary(){const panel=$('summary');panel.replaceChildren();if(!previous||!session||session.mode!=='rejudge'){panel.textContent='재판정 세션에서 이전 최초 판정 JSON과 차원별 뒤집힘율을 비교합니다.';return;}const heading=document.createElement('h2');heading.textContent='차원별 뒤집힘율 (좌우 교환 보정)';panel.append(heading,table(['차원','불일치 / 비교 가능 판정'],reversalRows(previous,session)));}
+$('pairsInput').onchange=async e=>{try{pairs=validatePairs(JSON.parse(await e.target.files[0].text()));previous=null;$('rejudge').disabled=true;loaded();status('쌍 목록을 불러왔습니다.');}catch(err){status(err.message,true);}};
+$('bundlesInput').onchange=async e=>{try{const next=new Map(bundles);for(const file of e.target.files){const b=validateBundle(JSON.parse(await file.text()));next.set(b.letter,b);}bundles=next;loaded();status('번들을 불러왔습니다.');}catch(err){status(err.message,true);}};
+$('start').onclick=()=>{try{ready();start('initial',pairs.map(p=>({...p})));status('최초 판정을 시작합니다.');}catch(err){status(err.message,true);}};
+for(const b of document.querySelectorAll('[data-choice]'))b.onclick=()=>selected(b.dataset.choice);
+$('verdictForm').onsubmit=e=>{e.preventDefault();if(!session||dimension>5||cursor>=activePairs.length)return;const reason=$('reason').value.trim();if(!choice||!reason||/[\r\n]/.test(reason)){status('우세 선택과 한 줄 이유를 모두 입력하세요.',true);return;}session.verdicts.push({pair_id:activePairs[cursor].pair_id,dimension,choice,reason,confidence:Number($('confidence').value),at:new Date().toISOString()});cursor++;persist();render();};
+$('advance').onclick=()=>{if(!session||cursor!==activePairs.length||dimension>5)return;dimension++;cursor=0;persist();render();};
+function download(log){const blob=new Blob([JSON.stringify(log,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`verdicts-${log.session_id}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+$('export').onclick=()=>{if(session)download(session);};
+$('rejudge').onclick=()=>{try{ready();const base=session?(session.mode==='initial'&&dimension>5?session:null):previous;check(base&&base.mode==='initial'&&base.verdicts.length===pairs.length*5,'완료된 최초 판정이 필요합니다.');download(base);previous=JSON.parse(JSON.stringify(base));const selectedPairs=pairs.map(p=>({...p}));for(let i=selectedPairs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[selectedPairs[i],selectedPairs[j]]=[selectedPairs[j],selectedPairs[i]];}const ids=new Set(selectedPairs.slice(0,Math.max(1,Math.ceil(pairs.length*.3))).map(p=>p.pair_id));start('rejudge',pairs.filter(p=>ids.has(p.pair_id)).map(p=>({pair_id:p.pair_id,left:p.right,right:p.left})));status('최초 판정 JSON을 내보냈습니다. 선택된 쌍의 좌우를 바꿔 재판정을 시작합니다.');}catch(err){status(err.message,true);}};
+$('previousInput').onchange=async e=>{try{check(pairs.length,'쌍 목록을 먼저 불러오세요.');const log=validateLog(JSON.parse(await e.target.files[0].text()));check(log.mode==='initial','이전 최초 판정 JSON을 선택하세요.');previous=log;renderSummary();if(!session)$('rejudge').disabled=log.verdicts.length!==pairs.length*5;if(session)persist();status('이전 판정을 불러왔습니다. 같은 실험의 쌍 목록인지 확인하세요.');}catch(err){status(err.message,true);}};
+$('restore').onclick=()=>{try{ready();const saved=JSON.parse(localStorage.getItem(STORAGE));check(saved&&JSON.stringify(saved.pairs)===JSON.stringify(pairs),'저장된 세션이 없거나 쌍 목록이 다릅니다.');const log=validateLog(saved.session),ap=validatePairs(saved.activePairs);check(Number.isInteger(saved.dimension)&&saved.dimension>=1&&saved.dimension<=6&&Number.isInteger(saved.cursor)&&saved.cursor>=0&&saved.cursor<=ap.length,'저장된 진행 상태가 잘못되었습니다.');check(ap.every(p=>pairs.some(o=>o.pair_id===p.pair_id&&p.left===o[log.mode==='initial'?'left':'right']&&p.right===o[log.mode==='initial'?'right':'left'])),'저장된 쌍 방향이 잘못되었습니다.');if(log.mode==='initial')check(JSON.stringify(ap)===JSON.stringify(pairs),'최초 판정 쌍이 다릅니다.');else check(ap.length===Math.max(1,Math.ceil(pairs.length*.3)),'재판정 표본 수가 잘못되었습니다.');const count=saved.dimension>5?ap.length*5:(saved.dimension-1)*ap.length+saved.cursor;check(log.verdicts.length===count,'저장된 판정 수가 진행 상태와 다릅니다.');log.verdicts.forEach((v,i)=>check(v.dimension===Math.floor(i/ap.length)+1&&v.pair_id===ap[i%ap.length].pair_id,'저장된 판정 순서가 잘못되었습니다.'));const old=saved.previous?validateLog(saved.previous):null;session=log;activePairs=ap;dimension=saved.dimension;cursor=saved.cursor;previous=old;lockSetup();render();status('저장된 세션을 복구했습니다.');}catch(err){status(err.message||'세션을 복구할 수 없습니다.',true);}};
+document.addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;const typing=['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName);if(e.key==='Enter'&&e.target.tagName==='INPUT'&&e.target.type==='file')return;if(e.key==='Enter'&&session&&dimension<=5){if(e.target.tagName==='BUTTON')return;e.preventDefault();if(cursor===activePairs.length)$('advance').click();else $('verdictForm').requestSubmit();return;}if(typing||!session||dimension>5||cursor>=activePairs.length)return;const value={'ArrowLeft':'left','ArrowRight':'right','=':'tie'}[e.key];if(value){e.preventDefault();selected(value);}});
+</script>
+</html>

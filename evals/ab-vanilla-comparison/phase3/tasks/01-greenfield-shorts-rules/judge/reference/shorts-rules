@@ -1,0 +1,3 @@
+#!/bin/bash
+# 어느 현재 디렉터리에서도 참조 구현을 찾는다.
+exec python3 "$(dirname "$0")/main.py" "$@"

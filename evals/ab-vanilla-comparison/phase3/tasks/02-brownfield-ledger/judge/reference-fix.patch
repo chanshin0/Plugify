@@ -1,0 +1,81 @@
+--- a/ledger/pricing.py
++++ b/ledger/pricing.py
+@@ -1,6 +1,6 @@
+ """가격 계산과 주문 입력 검증."""
+ 
+-from decimal import Decimal
++from decimal import Decimal, ROUND_HALF_UP, localcontext
+ 
+ 
+ def _number(value, name):
+@@ -39,24 +39,22 @@
+ 
+ 
+ def subtotal(items):
+-    """품목의 수량과 단가로 소계를 구한다."""
+-    amount = Decimal(str(sum(item["qty"] * float(item["unit_price"]) for item in items)))
+-    return round(amount, 2)
++    """소계를 중간 반올림 없이 십진수로 합산한다."""
++    return sum((Decimal(str(item["unit_price"])) * item["qty"] for item in items), Decimal(0))
+ 
+ 
+ def total(order):
+-    """주문의 최종 총액을 구한다."""
++    """쿠폰, 세금을 차례대로 적용한 뒤 최종 금액만 HALF_UP한다."""
+     validate(order)
+-    # 조정 항목이 없는 주문은 라인 합계에서 바로 총액을 구한다.
+-    if not order.get("coupon") and not order.get("tax_rate_pct", 0):
+-        return round(sum(item["qty"] * float(item["unit_price"]) for item in order["items"]), 2)
+-    base = float(subtotal(order["items"]))
+-    amount = base * (1 + float(order.get("tax_rate_pct", 0)) / 100)
+-    coupon = order.get("coupon")
+-    if coupon:
+-        value = float(coupon["value"])
+-        if coupon["type"] == "percent":
+-            amount *= 1 - value / 100
+-        else:
+-            amount = 0.0 if value >= base else max(0.0, amount - value)
+-    return round(amount, 2)
++    with localcontext() as context:
++        context.prec = 60
++        amount = subtotal(order["items"])
++        coupon = order.get("coupon")
++        if coupon:
++            value = Decimal(str(coupon["value"]))
++            if coupon["type"] == "percent":
++                amount *= 1 - value / 100
++            else:
++                amount = max(Decimal(0), amount - value)
++        amount *= 1 + Decimal(str(order.get("tax_rate_pct", 0))) / 100
++        return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+--- /dev/null
++++ b/tests/test_policy_regression.py
+@@ -0,0 +1,28 @@
++"""가격 정책의 순서와 반올림 경계를 고정하는 회귀 테스트."""
++
++from decimal import Decimal
++import unittest
++from ledger import total
++
++
++class PolicyRegressionTests(unittest.TestCase):
++    def test_fixed_before_tax(self):
++        self.assertEqual(total({"items": [{"qty": 1, "unit_price": 100}],
++                                "coupon": {"type": "fixed", "value": 10},
++                                "tax_rate_pct": 8}), Decimal("97.20"))
++
++    def test_no_intermediate_rounding(self):
++        self.assertEqual(total({"items": [{"qty": 3, "unit_price": 1.005}]}), Decimal("3.02"))
++        self.assertEqual(total({"items": [{"qty": 1, "unit_price": 10.005}],
++                                "tax_rate_pct": 10}), Decimal("11.01"))
++
++    def test_half_up(self):
++        self.assertEqual(total({"items": [{"qty": 1, "unit_price": 2.675}]}), Decimal("2.68"))
++        self.assertEqual(total({"items": [{"qty": 1, "unit_price": 2.665}]}), Decimal("2.67"))
++
++    def test_clamp_and_validation(self):
++        self.assertEqual(total({"items": [{"qty": 1, "unit_price": 10}],
++                                "coupon": {"type": "fixed", "value": 20},
++                                "tax_rate_pct": 10}), Decimal("0.00"))
++        with self.assertRaises(ValueError):
++            total({"items": [{"qty": 0, "unit_price": 100}]})
