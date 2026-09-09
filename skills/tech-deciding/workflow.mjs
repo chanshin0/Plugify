@@ -250,13 +250,16 @@ if (proposedAdrPath) {
         required: ['finalExists', 'finalDigest', 'proposedExists', 'proposedDigest', 'otherDecisionDigest', 'canonicalDecisionDir', 'canonicalFinalPath', 'canonicalProposedPath', 'proposalStatus', 'proposalRunIds'] } }
   )
   const validDigest = value => /^[0-9a-f]{64}$/.test((value ?? '').trim())
+  // 없는 파일의 digest 를 한 프로브는 빈 문자열, 다른 프로브는 빈 입력 SHA-256 으로 돌려준 실측(2026-09-09) — 부재면 digest 문자열은 비교하지 않는다.
   const finalUnchanged = proof?.finalExists === baseline?.finalExists &&
-    (proof?.finalExists ? validDigest(proof?.finalDigest) && proof.finalDigest === baseline?.finalDigest : (proof?.finalDigest ?? '') === (baseline?.finalDigest ?? ''))
+    (proof?.finalExists ? validDigest(proof?.finalDigest) && proof.finalDigest === baseline?.finalDigest : true)
   // 같은 runId 재실행은 멱등이지만, 다른 실행의 stale .proposed 는 현재 run 표식이 없어 통과하지 못한다.
   const proposedWritten = proof?.proposedExists === true && validDigest(proof?.proposedDigest)
   const otherDecisionsUnchanged = validDigest(baseline?.otherDecisionDigest) && proof?.otherDecisionDigest === baseline.otherDecisionDigest
   const canonicalUnchanged = proof?.canonicalDecisionDir === baseline?.canonicalDecisionDir && proof?.canonicalFinalPath === baseline?.canonicalFinalPath && proof?.canonicalProposedPath === baseline?.canonicalProposedPath
-  const runIds = Array.isArray(proof?.proposalRunIds) ? proof.proposalRunIds.map(String) : []
+  // 프로브가 "**proposal_run_id:** <id>" 처럼 줄 원문(마크다운 장식 포함)을 돌려주기도 한다 — 라벨·장식을 벗기고 값만 비교.
+  const normRunId = v => String(v ?? '').replace(/[*`]/g, '').replace(/^.*proposal_run_id:\s*/i, '').trim()
+  const runIds = Array.isArray(proof?.proposalRunIds) ? proof.proposalRunIds.map(normRunId) : []
   const verified = finalUnchanged && proposedWritten && otherDecisionsUnchanged && canonicalUnchanged &&
     proof?.proposalStatus === '제안 — 사용자 승인 전' && runIds.length === 1 && runIds[0] === proposalRunId
   proposalEvidence = { verified, proposalRunId, baseline, proof }

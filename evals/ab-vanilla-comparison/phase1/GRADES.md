@@ -102,3 +102,23 @@
 | 판정 | | **합격 4/4** | **합격 4/4** |
 | 비용·시간 | | **$3.13 / 417s / 51 turns** (후보 3개 실제 설치·실측 — FTS5 trigram 2음절 0건, garu-ko 100초 색인 등) | 231.1k in(185.6k cached)+5.4k out / 158s |
 비고: 두 vanilla 팔 모두 같은 결론(MiniSearch + 한글 음절 바이그램). Claude vanilla 는 프롬프트에 없던 실측(3 후보 설치·벤치)을 스스로 수행해 6배 비용·시간을 썼고 그만큼 ADR 근거가 두껍다(10개 대안 표·뒤집을 조건 5개+전환 경로). Codex 는 문서 근거만으로 1/3 시간. ANSWER 는 "정답 스택"을 채점하지 않으므로 이 차이는 Q 축(사람 눈)으로 넘긴다.
+
+### tech-deciding case-01 — plugify Part B (2026-09-09 완료)
+| 항목 | plugify |
+|---|---|
+| B1 ADR 실재 | ok — 현행 설계는 승인 게이트라 `001-memo-search.md.proposed`(277 lines) 를 canonical 경로에 쓰고 `pending-human` 으로 멈춘다(정본 ADR 은 사용자 승인 후 메인이 승격). ANSWER 는 승인 게이트 도입 전 문구 — 갱신 필요 |
+| B2 오프타깃 0 | ok (plugify 레포·HOME·cwd 신규 파일 0, `.planning/runs/` 는 git 제외) |
+| B3 섹션 + URL≥3 | ok (섹션 5종, URL 18) |
+| B4 반환값 정합 | ok — adrPath/proposedAdrPath 절대경로·projectRoot==RUN_DIR·axes 4·synthesis 19.8k자·critique 9.0k자, terminalState `pending-human`, proposalEvidence.verified true |
+| B5 제약 반영 | ok — SQLite FTS5(better-sqlite3 prebuilt) + trigram; 오프라인·단일 프로세스·서버 없음. "네이티브 빌드 가능하면 회피"(soft) 를 prebuilt 로 충족한다고 명시 논증. vanilla 두 팔은 같은 제약을 hard 로 읽어 MiniSearch 선택 — 결정이 갈린 유일한 케이스 |
+| 판정 | **합격 5/5** (승인 게이트 설계 기준) |
+| 비용·시간 | 유효 실행 657k subagent tok / ≈30분 / 13 에이전트 (+ 429 로 날린 338k). 중간에 `proposal-failed` 오판 1회: 기준선 프로브는 없는 파일 digest 를 "" 로, 증거 프로브는 빈 입력 SHA 로 반환 + run_id 를 마크다운 굵게 포함 줄로 반환 → 결정적 대조 실패. 정규화 후 재개(캐시 재생) 통과 |
+비고: 결과 품질 — 4축 조사(토크나이저·엔진·랭킹·발췌) + 종합에서 조사 추천(MiniSearch)을 **의도적으로 뒤집고 근거를 명시**, 적대 검증 후 ADR 초안이 토크나이저 결정을 수정("2.2 토크나이저 (수정됨)"), "치명/중대 조사 갭" 절 포함. Claude vanilla 는 실측(설치·벤치)으로, Codex 는 문서 근거로 MiniSearch. 어느 쪽이 옳은지는 ANSWER 채점 대상 아님 → Q 축(사람 눈).
+
+### spec-building case-03 — plugify 실행 이력 (2026-09-09)
+| run | 결과 | 원인 | 비용 |
+|---|---|---|---|
+| 1 | escalated (preview-failed, deployed=?) | 픽스처 preview.sh 가 `DEPLOYED_SHA` 미출력(SKILL.md 지점 규격보다 오래됨) | 321k tok / 392s / 11 agents |
+| 2 | escalated (preview-failed, SHA 4개 일치) | 증거 재실행 preview.sh 가 새 포트 → 프로브 URL≠증거 URL (URL 안정성 요구가 암묵 계약 → SKILL.md 명시 + 픽스처 레지스트리) | 319k / 246s / 11 |
+| 3 | escalated (라이브 프로브 무결성 실패 → 재시도 중 429) | haiku 프로브가 항목 원문의 백틱·괄호를 떨궈 텍스트 완전일치 실패 → index 멀티셋 판정으로 수정; 429 로 죽은 implementer 결과가 "변조 감지"로 오보고 → 널 가드 | 389k / 579s / 14 |
+| 4 | (진행 중) | | |

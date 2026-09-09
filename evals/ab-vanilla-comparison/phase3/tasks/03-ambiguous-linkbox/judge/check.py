@@ -74,7 +74,7 @@ def assumptions():
                 active = None
             if re.search(r"가정|\bAssumptions\b", title, re.I):
                 active, count = depth, 0
-        elif active is not None and re.match(r"^\s*(?:- |1\.\s)", line):
+        elif active is not None and re.match(r"^\s*(?:[-*+] |\d+[.)]\s)", line):  # 2026-09-09 수정: 번호 목록 2. 3. … 도 항목으로 센다(사전 등록판은 '1.' 만 셌음)
             count += 1
     return active is not None and count >= 3
 
