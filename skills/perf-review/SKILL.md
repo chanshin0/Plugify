@@ -17,6 +17,7 @@ description: 프로젝트 성능을 전문화 에이전트 4종(렌더링·데�
 | `perf-judge` | opus | 적대 검증 + 종합 + 랭킹 | 오탐 제거가 파이프라인 가치의 핵심 — 거짓 양성 1개가 보고서 신뢰 전체를 깎는다. 최상위 추론 모델 |
 
 - **haiku 미채용 사유**: 성능 안티패턴 판별은 컨텍스트 의존(`'use client'` 자체는 죄가 아니다) — 패턴매칭 단독은 오탐이 폭주해 judge 비용이 더 든다.
+- **Claude 세션 워커 = Codex 우선**(AGENTS.md §설계 원칙): 분석가 3개·judge 는 `scripts/codex-worker.sh --agent <name> --cd <projectRoot> --prompt-file <run>/prompts/<name>.md --out <run>/outputs/<name>.last.md [--slot <run>/outputs/<name>.md]` 백그라운드 발사로 띄운다(run 이 projectRoot 밖이면 `--add-dir <run>`). judge 의 3분류 반환은 `--schema` 로 받아 `--out` 을 Read 한다. 아래 Agent tool 표현은 Codex 부재·2회 실패 폴백에만 해당.
 - 에이전트는 plugify `scripts/install.sh` 로 전역 등록되어 `agentType` 으로 호출한다. **등록 전/미재시작 세션 폴백**: `general-purpose` + 해당 `agents/<name>.md` 본문을 프롬프트에 인라인 + Agent `model` 파라미터로 동일 모델 지정.
 
 ## 플로우

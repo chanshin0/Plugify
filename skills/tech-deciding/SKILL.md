@@ -24,7 +24,7 @@ Workflow({ scriptPath: "<이 스킬 디렉토리 절대경로>/workflow.mjs",
 - 워크플로우는 question·projectRoot 를 해석·검증하고, 무효면 **조용한 폴백 없이 즉시 실패**한다(placeholder question 으로 비싼 조사 낭비 금지·엉뚱한 레포 실행 차단).
 - `adrPath` 상대경로는 `pwd -P`로 확인한 projectRoot 기준 canonical 절대경로로 정규화되며, 루트 밖으로 탈출하는 경로는 조사 전에 거부한다.
 - 진행: define(sonnet 난제 매핑) → researcher(sonnet) **축별 병렬** 조사 → 기록(haiku — 인스턴스 프롬프트·조사 원문을 `<타깃>/.planning/runs/<날짜>-tech-deciding/` 에 정착, 증거·비파괴) → synthesize(opus, 출처 URL 보존 의무) → critique(opus 적대검증) → ADR **제안**(`.md.proposed`, haiku Write, 출처 부족 시 run 조사 원문에서 회수) → 독립 read-only 증거로 proposed 실재·SHA-256·상태 문구·현재 `proposal_run_id` 결속·최종 ADR 불변·다른 decision 파일 불변을 대조 → 확인되면 `terminalState=pending-human`, 아니면 `proposal-failed`. 과거 실행의 stale `.proposed`는 현재 run 표식이 없어 승인 대상으로 승격되지 않는다.
-- 에이전트(`agents/researcher.md`)는 plugify 전역등록되어 `agentType: researcher` 로 호출된다(모델·규칙은 `.md` SSOT).
+- 에이전트(`agents/researcher.md`)는 plugify 전역등록되어 `agentType: researcher` 로 호출된다(모델·규칙은 `.md` SSOT). **워커 잔여**(2026-09-09): 이 스킬의 스폰은 Workflow 스크립트 내부 `agent()` 라 Claude 에이전트로 남는다(AGENTS.md 워커 규칙 잔여 ① — codex-runner 셔틀 이관 시 researcher 는 `codex-worker.sh --agent researcher --web` 로 감).
 - 산출: 선정안 + 적대 검증 + ADR 제안 파일. 최종 ADR은 사용자 승인 후에만 생성한다.
 
 ## 게이트 (메인 직접)

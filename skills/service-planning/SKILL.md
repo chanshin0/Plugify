@@ -81,7 +81,7 @@ P6(와이어프레임)·P7(데이터모델)은 deep 기본, standard에선 사�
 파이프라인에서 **가장 무거운 단일 쓰기** — 메인에서 직접 쓰지 않고 위임해 컨텍스트를 신선하게 유지한다.
 - 필요한 인터뷰가 해결된 뒤 **`plan-writer` 전용 에이전트를 스폰** (Agent `subagent_type: plan-writer`, 정의 `agents/plan-writer.md`). 한 번에 합성: ① 해결된 빈칸별 결정(흔한 처리=Hurff 5/토스트 등 결정성, 저위험은 `[가정]`)·대안/예외(Cockburn) ② v1 스코프(IN walking skeleton / OUT+이유) ③ `gisaekseo-template.md` 10섹션 `기획서.md`·`gaps.md`. **프롬프트엔 입력만**: 씨앗·백본맵·`resolved-gaps.md` 경로·패턴 근거·티어·산출 경로. 메인엔 요약만 회신.
 - persistent-context profile이면 package root·profile·현재 gate·evidence/decision 상태·workstream map도 입력한다. plan-writer는 우선 `기획서.md`·`gaps.md`를 합성하고 P8 package builder가 재진입 문맥을 정착할 수 있게 정본 경계를 명시한다.
-- **단일 에이전트 — 함대 금지.** fallback: `plan-writer` subagent_type 미등록 시 general-purpose로 스폰하되 `agents/plan-writer.md`를 읽혀 따르게.
+- **단일 에이전트 — 함대 금지.** Claude 세션에서는 `scripts/codex-worker.sh --agent plan-writer` 로 발사한다(AGENTS.md 워커 규칙 — completeness-critic·wireframe-builder·data-model-builder·context-package-builder 도 같은 방식). Agent tool 은 Codex 부재·2회 실패 폴백이며, subagent_type 미등록 시 general-purpose + `agents/plan-writer.md` 인라인.
 - plan-writer가 돌려준 §5 결정 + §7 v1 스코프 요약을 메인이 진행 업데이트로 제시한다. 새 `human-context`가 발견되지 않았다면 답을 기다리지 않고 completeness 검증으로 간다. 사용자가 redirect하면 영향 섹션만 갱신한다.
 - napkin·짧은 세션은 인-스레드 합성 허용(위임 생략 가능).
 

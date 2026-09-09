@@ -59,6 +59,7 @@ bash scripts/install.sh            # 적용
 bash scripts/install.sh --dry-run  # 무엇을 할지 미리보기
 ```
 
+- Claude 세션에서 격리 워커는 **Codex 우선** — `scripts/codex-worker.sh --cd <루트> --prompt-file <지시문> --out <최종메시지> [--slot <산출>] [--agent <역할>]` (정책·예외 = `AGENTS.md` §설계 원칙, 회귀 = `scripts/test-codex-worker.sh`).
 - 스킬뿐 아니라 **`skills/*/agents/*.md`(name: frontmatter 보유)도 `~/.claude/agents/` 로 등록**한다 — agentType 호출 스킬(tech-deciding·spec-building·service-planning)에 필수. 수동 `ln -s` 로 스킬만 걸면 agentType 이 미등록돼 워크플로우가 죽는다.
 - 실디렉토리/딴 곳 링크가 점유한 이름은 건드리지 않고 WARN.
 - **세션 재시작 후 실효**(특히 agentType 레지스트리는 세션 시작에 고정).

@@ -39,10 +39,12 @@ description: 서브에이전트 2개 이상을 띄우는 일회성 지시 작업
 
 ### P2 — 발사
 - 스폰 프롬프트는 포인터만: "지시문은 `<run>/prompts/<레인>.md` — Read 후 수행. 산출물은 `<run>/outputs/<레인>.md` 에 Write. 그 외 파일 수정 금지. 반환은 3줄 요약 + 산출물 경로만."
-- 모델 명시(통상 sonnet — 전역 서브에이전트 모델 정책, 최상위 모델 지정 금지). 병렬 스폰은 한 메시지에.
+- **워커 = Codex 우선**(전역 정책, AGENTS.md §설계 원칙): 레인마다 `bash <Plugify>/scripts/codex-worker.sh --cd <run> --prompt-file <run>/prompts/<레인>.md --out <run>/outputs/<레인>.last.md --slot <run>/outputs/<레인>.md` 를 Bash `run_in_background` 로 발사한다(레인 15~25분 — 도구 상한 초과). 기본 `gpt-6-astra`/`medium`, 종합·심사 레인은 `--model gpt-5.6-sol --effort xhigh`. 레인이 레포 파일을 고쳐야 하면 `--cd <레포>` + `--add-dir <run>`, 패키지 설치가 필요하면 `--network`. 병렬 발사는 한 메시지에.
+- 웹 조사 레인은 `--web`(실시간 웹 검색), 브라우저 조작 레인은 `--browser`(Aside MCP — 사용자의 로그인된 실제 브라우저, 승인 경계에서 멈춤), 구조화 반환이 필요한 레인은 `--schema <json>`. 실패는 스크립트가 다른 모델로 1회 자동 재시도한다.
+- Claude 서브에이전트(Agent tool, model 명시 — 통상 sonnet, 최상위 모델 금지)는 **Codex 부재·자동 재시도 포함 2회 실패** 때만 그 레인을 재발사하고, SYNTHESIS/보고에 "Codex 실패→Claude 대체" 를 남긴다. claude.ai 연결 서비스(Drive·Gmail 등)가 필요한 단계는 레인이 아니라 메인이 직접 한다.
 
 ### P3 — 수확
-- 슬롯 실재·비어있지 않음을 **메인이 직접 확인**(ls·wc — 에이전트 보고를 믿지 않는다). 빈 슬롯 = 그 레인 실패로 취급, 프롬프트 파일 수정 후 그 레인만 재발사.
+- 슬롯 실재·비어있지 않음을 **메인이 직접 확인**(ls·wc — 에이전트 보고를 믿지 않는다). Codex 레인은 `<레인>.last.md.trace` 마지막 줄 `CODEX_EXIT=0` 까지 대조(3=빈 슬롯, 124=타임아웃). 빈 슬롯 = 그 레인 실패로 취급, 프롬프트 파일 수정 후 그 레인만 재발사.
 - 종합이 필요하면 `templates/synthesizer.md` 로 종합자 1개를 스폰해 **경로만** 준다(BRIEF + outputs/). 산출 = `<run>/SYNTHESIS.md`.
 - 산출물이 외부인(승인자·심사자·수신자)에게 전달되는 것이면 `templates/audience-judge.md` 로 심사 레인을 추가한다 — **스폰 시 제작 맥락을 주지 않는다**(블라인드 — 맥락을 아는 심사자는 후하게 채점한다).
 - **raw 산출물 전문을 메인 컨텍스트로 나르지 않는다** — 메인은 요약·경로·종합만 다룬다(lean-agent-design).
@@ -55,5 +57,6 @@ description: 서브에이전트 2개 이상을 띄우는 일회성 지시 작업
 
 ## 금지
 - 골격 없이 2개 이상 발사 · 산출물 슬롯 밖 Write 지시 · raw 전문을 메인이 나르기
-- 서브에이전트에 최상위 모델(Fable) 지정 — 전역 정책
+- 서브에이전트에 최상위 모델(Fable) 지정 · Codex 워커 effort `ultra`(자동 위임) — 전역 정책
+- Codex 부재·2회 실패가 아닌데 Claude 서브에이전트로 발사 — 워커는 Codex 우선(웹 조사 레인도 `--web`)
 - 틀 결함의 run-로컬 땜질 · 요청 범위 밖 공유 틀 무단 수정
