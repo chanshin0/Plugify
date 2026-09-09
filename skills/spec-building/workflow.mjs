@@ -305,6 +305,11 @@ while (true) {
     `\n(역할·읽을 SSOT·자기검증·상태값 규칙은 너의 에이전트 정의에 있다 — 따르라.) 반환은 스키마(status·filesChanged·decisions·selfCheck·concerns·missing) 그대로.`,
     { agentType: 'implementer', phase: 'Implement', label: attempt > 1 ? `구현(재시도 ${attempt}/${MAX})` : '구현', schema: IMPL_SCHEMA, ...isolation, ...(lastAttempt ? { model: 'opus' } : {}) }
   )
+  if (!impl || typeof impl !== 'object') {
+    // implementer 가 결과 없이 끝남(요금 한도·API 오류) — 구현 판정이 아니라 인프라 실패. changeset 대조로 흘리면 "변조 감지"로 오보고된다.
+    recordEvent('Implement', 'implementation-returned', 'unavailable', 'implementer-unavailable', attempt, { actorType: 'implementer' })
+    throw new Error('implementer-unavailable: 구현 에이전트가 결과를 반환하지 않음(인프라 실패 — 구현/리뷰 판정 아님). resumeFromRunId 로 재개하라.')
+  }
   recordEvent('Implement', 'implementation-returned', impl?.status ?? 'unknown', '', attempt, { actorType: 'implementer' })
 
   // NEEDS_CONTEXT/BLOCKED: 리뷰로는 판정할 게 없다(구현 자체가 성립 안 함) — 리뷰 건너뛰고 missing 을 피드백으로 재투입.
@@ -612,7 +617,7 @@ while (true) {
     liveItems.map((it, i) => `  ${i + 1}. ${it}`).join('\n') + '\n' +
     `1) 레포 루트에 .env.local 이 있으면 셸에서 \`set -a; . ./.env.local; set +a\` 로 로드하라(시크릿 값은 출력·반환에 절대 노출 금지).\n` +
     `2) 각 항목의 {PREVIEW_URL} 을 위 프리뷰 URL 로 치환해 명령을 실행하고, 항목에 적힌 통과 신호와 실제 출력을 대조하라.\n` +
-    `3) results 에 항목마다 {item, pass, output} 을 담아라 — **${liveItems.length}개 전부**, output 은 실행 출력 원문(시크릿 마스킹).\n` +
+    `3) results 에 항목마다 {index, item, pass, output} 을 담아라 — index 는 위 목록 번호(1..${liveItems.length}, 항목마다 정확히 한 번), item 은 목록 원문 그대로 — **${liveItems.length}개 전부**, output 은 실행 출력 원문(시크릿 마스킹).\n` +
     `4) **통과 신호를 지어내지 마라** — 하나라도 불일치면 pass=false, failures 에 항목+실제 출력. **평가 불능 = 실패**: 명령이 대조 전에 죽거나, 출력을 파싱할 수 없거나, 매치 0건이면 그 항목은 pass=false다 — "서버가 로그를 남겼다"·"파일이 생겼다" 같은 부수효과로 pass 를 추론하지 마라.`,
     {
       phase: 'Live', label: attempt > 1 ? `라이브 프로브 ${attempt}` : '라이브 프로브', model: 'haiku',
@@ -621,7 +626,7 @@ while (true) {
         additionalProperties: false,
         properties: {
           pass:     { type: 'boolean', description: '라이브 게이트 항목 전부 통과 여부' },
-          results:  { type: 'array', items: { type: 'object', additionalProperties: false, properties: { item: { type: 'string' }, pass: { type: 'boolean' }, output: { type: 'string' } }, required: ['item', 'pass', 'output'] }, description: '항목별 실행 결과(전 항목 필수)' },
+          results:  { type: 'array', items: { type: 'object', additionalProperties: false, properties: { index: { type: 'integer' }, item: { type: 'string' }, pass: { type: 'boolean' }, output: { type: 'string' } }, required: ['index', 'item', 'pass', 'output'] }, description: '항목별 실행 결과(전 항목 필수)' },
           failures: { type: 'array', items: { type: 'string' }, description: '실패 항목 + 실제 출력(통과면 빈 배열)' },
           evidence: { type: 'string', description: '항목별 실행 명령 + 출력 원문 요약(시크릿 마스킹)' },
         },
@@ -630,9 +635,10 @@ while (true) {
     }
   )
   // 공허 통과 차단(결정적): 캡처된 항목 수만큼 결과가 있고 전부 pass 여야 통과.
-  const expectedLiveItems = [...liveItems].map(String).sort()
-  const observedLiveItems = Array.isArray(probe?.results) ? probe.results.map(r => String(r?.item ?? '')).sort() : []
-  const itemIdentityMatched = expectedLiveItems.length === observedLiveItems.length && expectedLiveItems.every((item, i) => item === observedLiveItems[i])
+  // 정체성은 index 멀티셋(1..N 각 1회)으로 판정 — 프로브 모델이 항목 원문의 백틱·괄호를 떨구는 일이 실측돼(2026-09-09 c03) 텍스트 완전일치는 정상 통과를 막았다.
+  const expectedLiveIdx = liveItems.map((_, i) => i + 1)
+  const observedLiveIdx = Array.isArray(probe?.results) ? probe.results.map(r => Number(r?.index)).sort((a, b) => a - b) : []
+  const itemIdentityMatched = expectedLiveIdx.length === observedLiveIdx.length && expectedLiveIdx.every((k, i) => k === observedLiveIdx[i])
   const probedAll = Array.isArray(probe?.results) && itemIdentityMatched && probe.results.every(r => r?.pass === true)
   if (probe?.pass && probedAll) {
     liveGate = { status: 'passed', branch: pp.branch, previewUrl: pp.previewUrl, results: probe.results, evidence: probe.evidence }
