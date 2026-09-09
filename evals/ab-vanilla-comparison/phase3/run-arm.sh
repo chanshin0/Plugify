@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Phase 3 러너 — 과제 1개를 팔 1개로 헤드리스 실행하고 스냅샷·메트릭·최종 메시지를 봉인한다.
-# 사용: bash run-arm.sh <plugify|claude-vanilla|codex-vanilla> <01|02|03> <run번호> [--followup]
+# 사용: bash run-arm.sh <plugify|plugify-explicit|claude-vanilla|codex-vanilla> <01|02|03> <run번호> [--followup]
 #   plugify        : 사용자의 평소 설정(~/.claude) 그대로 `claude -p` — 스킬·훅·전역 CLAUDE.md·Codex 워커 정책 포함
 #   claude-vanilla : 깨끗한 CLAUDE_CONFIG_DIR (phase1/prep-clean-envs.sh 가 만든 것, /tmp/ab-clean-envs.env)
 #   codex-vanilla  : 깨끗한 CODEX_HOME
@@ -15,7 +15,8 @@ BASE="$HOME/ab-phase3-runs/$TASK_KEY/$ARM/run$RUN"; WORK="$BASE/work"; OUT="$BAS
 if [ "$MODE" = "--followup" ]; then
   # 후속 라운드: 본 실행 스냅샷 위에서 새 세션. 프롬프트 = FOLLOWUP-SEALED.md 의 해당 과제 인용문 한 줄.
   [ -d "$WORK" ] || { echo "본 실행 스냅샷 없음: $WORK" >&2; exit 3; }
-  OUT="$BASE/followup"; mkdir -p "$OUT"
+  OUT="$BASE/followup"; [ -e "$OUT/work" ] && { echo "후속 라운드 이미 존재: $OUT/work" >&2; exit 3; }
+  mkdir -p "$OUT"; cp -R "$WORK" "$OUT/work"; WORK="$OUT/work"   # 본 실행 스냅샷(run<k>/work)은 사람 평가용으로 불변 — 사본에서 후속 과제
   PROMPT="$(awk -v k="## $TASK " '$0 ~ "^## "{on=($0 ~ "^"k)} on && /^> /{sub(/^> /,""); print}' "$HERE/FOLLOWUP-SEALED.md")"
   [ -n "$PROMPT" ] || { echo "후속 과제 문장을 못 찾음" >&2; exit 3; }
 else
@@ -40,9 +41,12 @@ echo "arm=$ARM task=$TASK_KEY run=$RUN mode=$MODE work=$WORK started=$(date -u +
 WALL_CAP="${WALL_CAP:-3600}"   # PREREG §3: 벽시계 60분 상한 — perl alarm 은 exec 후에도 살아남아 SIGALRM 으로 종료(exit 142)
 START=$(date +%s)
 case "$ARM" in
-  plugify)
+  plugify|plugify-explicit)
     # 평소 설정 그대로. 헤드리스라 승인 경계에서 멈추면 그 상태로 끝난다(A 축 데이터).
-    ( cd "$WORK" && perl -e 'alarm shift; exec @ARGV' "$WALL_CAP" claude -p "$PROMPT" --dangerously-skip-permissions --output-format json --max-turns 300 < /dev/null \
+    # plugify-explicit: 1회차 관찰에서 헤드리스 메인이 공정을 자발 호출하지 않아(Bash 만 사용), 초안 프로토콜의
+    # "/goal <스펙>" 처럼 공정을 명시 호출하는 팔을 둔다 — 프롬프트 = "/spec-building" + 스펙 전문 (PREREG §8.1).
+    P="$PROMPT"; [ "$ARM" = plugify-explicit ] && P="/spec-building $PROMPT"
+    ( cd "$WORK" && perl -e 'alarm shift; exec @ARGV' "$WALL_CAP" claude -p "$P" --dangerously-skip-permissions --output-format json --max-turns 300 < /dev/null \
         > "$OUT/result.json" 2> "$OUT/stderr.log" ) || echo "claude exit=$?" >> "$OUT/stderr.log"
     ;;
   claude-vanilla)
@@ -66,7 +70,7 @@ python3 - "$ARM" "$OUT" "$START" "$END" <<'PY'
 import json,sys,os
 arm,out,s,e=sys.argv[1],sys.argv[2],int(sys.argv[3]),int(sys.argv[4])
 m={'arm':arm,'wall_s':e-s}
-if arm in ('plugify','claude-vanilla'):
+if arm in ('plugify','plugify-explicit','claude-vanilla'):
     try: d=json.load(open(os.path.join(out,'result.json')))
     except Exception as ex: d={'result':'','is_error':True,'terminal_reason':'unparseable: '+str(ex)[:80]}
     open(os.path.join(out,'final.md'),'w').write(d.get('result') or '')
