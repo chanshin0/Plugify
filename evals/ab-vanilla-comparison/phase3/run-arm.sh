@@ -25,8 +25,9 @@ else
   cp "$TASK_DIR/TASK-SPEC.md" "$WORK/"
   [ -d "$TASK_DIR/data" ] && cp -R "$TASK_DIR/data" "$WORK/data"
   if [ -d "$TASK_DIR/fixture" ]; then
+    # INIT.sh 는 자기 디렉터리로 cd 하므로 레포 안의 fixture/ 를 git init 해 버린다 — 여기서는 인라인으로 초기화한다.
     cp -R "$TASK_DIR/fixture/." "$WORK/"; rm -f "$WORK/INIT.sh"
-    ( cd "$WORK" && bash "$TASK_DIR/fixture/INIT.sh" )
+    ( cd "$WORK" && git init -q -b main && git add -A && git -c user.email=eval@local -c user.name=eval commit -qm "초기 상태" )
   else
     ( cd "$WORK" && git init -q -b main && git -c user.email=eval@local -c user.name=eval commit -q --allow-empty -m "빈 레포" )
   fi
@@ -36,22 +37,23 @@ git -C "$WORK" rev-parse HEAD > "$OUT/head-before.txt"
 git -C "$WORK" status --porcelain > "$OUT/status-before.txt" || true
 echo "arm=$ARM task=$TASK_KEY run=$RUN mode=$MODE work=$WORK started=$(date -u +%FT%TZ)" | tee "$OUT/env.txt"
 
+WALL_CAP="${WALL_CAP:-3600}"   # PREREG §3: 벽시계 60분 상한 — perl alarm 은 exec 후에도 살아남아 SIGALRM 으로 종료(exit 142)
 START=$(date +%s)
 case "$ARM" in
   plugify)
     # 평소 설정 그대로. 헤드리스라 승인 경계에서 멈추면 그 상태로 끝난다(A 축 데이터).
-    ( cd "$WORK" && claude -p "$PROMPT" --dangerously-skip-permissions --output-format json --max-turns 300 < /dev/null \
+    ( cd "$WORK" && perl -e 'alarm shift; exec @ARGV' "$WALL_CAP" claude -p "$PROMPT" --dangerously-skip-permissions --output-format json --max-turns 300 < /dev/null \
         > "$OUT/result.json" 2> "$OUT/stderr.log" ) || echo "claude exit=$?" >> "$OUT/stderr.log"
     ;;
   claude-vanilla)
     : "${CLEAN_CLAUDE_CFG:?phase1/prep-clean-envs.sh 먼저}"
-    ( cd "$WORK" && CLAUDE_CONFIG_DIR="$CLEAN_CLAUDE_CFG" claude -p "$PROMPT" --dangerously-skip-permissions \
+    ( cd "$WORK" && CLAUDE_CONFIG_DIR="$CLEAN_CLAUDE_CFG" perl -e 'alarm shift; exec @ARGV' "$WALL_CAP" claude -p "$PROMPT" --dangerously-skip-permissions \
         --output-format json --model claude-fable-5-1 --max-turns 300 < /dev/null \
         > "$OUT/result.json" 2> "$OUT/stderr.log" ) || echo "claude exit=$?" >> "$OUT/stderr.log"
     ;;
   codex-vanilla)
     : "${CLEAN_CODEX_HOME:?phase1/prep-clean-envs.sh 먼저}"
-    ( cd "$WORK" && CODEX_HOME="$CLEAN_CODEX_HOME" codex exec --ephemeral --skip-git-repo-check -C "$WORK" \
+    ( cd "$WORK" && CODEX_HOME="$CLEAN_CODEX_HOME" perl -e 'alarm shift; exec @ARGV' "$WALL_CAP" codex exec --ephemeral --skip-git-repo-check -C "$WORK" \
         --dangerously-bypass-approvals-and-sandbox --json -o "$OUT/final.md" "$PROMPT" < /dev/null \
         > "$OUT/events.jsonl" 2> "$OUT/stderr.log" ) || echo "codex exit=$?" >> "$OUT/stderr.log"
     ;;
