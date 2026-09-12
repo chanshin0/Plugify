@@ -73,7 +73,7 @@ check "3f --schema → --output-schema"     "$(grep -q -- "--output-schema $T/sc
 check "3g --retry 명시 모델"              "$(grep -q 'retry=gpt-5.5' <<<"$o"; echo $?)"
 o="$(bash "$W" --cd "$T/run" --prompt 'x' --out "$T/run/outputs/c2.last.md" --no-retry --dry-run 2>&1)"
 check "3h --no-retry → retry=none"        "$(grep -q 'retry=none' <<<"$o"; echo $?)"
-check "3h2 기본은 aside MCP 주입 없음"      "$(! grep -q 'mcp_servers.aside' <<<"$o"; echo $?)"
+check "3h2 기본은 aside MCP command 주입 없음 + enabled=false" "$(! grep -q 'mcp_servers.aside.command' <<<"$o" && grep -q -F 'mcp_servers.aside.enabled=false' <<<"$o"; echo $?)"
 printf '#!/bin/sh\nexit 0\n' > "$T/bin/aside"; chmod +x "$T/bin/aside"
 o="$(ASIDE_BIN="$T/bin/aside" bash "$W" --cd "$T/run" --prompt 'x' --out "$T/run/outputs/c4.last.md" --browser --dry-run 2>&1)"
 check "3j --browser → aside MCP command 주입" "$(grep -q "mcp_servers.aside.command=\\\\\"$T/bin/aside\\\\\"" <<<"$o"; echo $?)"

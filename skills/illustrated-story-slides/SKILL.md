@@ -217,7 +217,7 @@ python3 "$ILLUSTRATED_STORY_SKILL_DIR/scripts/build_preview.py" \
 - 최소한 첫 장면, 전환점, 마지막 장면은 원본 해상도로 확인한다.
 - contact sheet만 보고 인물 손·얼굴·텍스트 오류를 통과시키지 않는다.
 - `$ILLUSTRATED_STORY_SKILL_DIR/scripts/validate_deck.py --stage render`가 0이어도 미학·사실성·존엄성 검수는 끝난 것이 아니다. [references/review-rubric.md](references/review-rubric.md)를 모두 대조한다.
-- `preview.html` 브라우저 검증이 필요하면 지원되는 in-app/browser automation 도구를 먼저 사용하고 [../visualize/SKILL.md](../visualize/SKILL.md)의 브라우저 안전 계약을 따른다. 사용자의 평상시 Chrome 프로세스·프로필을 종료·재사용·변경하지 않는다.
+- `preview.html` 브라우저 검증이 필요하면 지원되는 in-app/browser automation 도구(이 환경에서는 Aside 브라우저 — MCP `aside`/`repl`, 워커 레인은 `codex-worker.sh --browser`)를 먼저 사용하고 [../visualize/SKILL.md](../visualize/SKILL.md)의 브라우저 안전 계약을 따른다. 사용자의 평상시 Chrome 프로세스·프로필을 종료·재사용·변경하지 않는다.
 
 ### 8. 결과를 전달한다
 

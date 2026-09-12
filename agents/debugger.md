@@ -33,9 +33,9 @@ codex:
   |---|---|
   | 앱/서버 로그 | dev 서버 stdout·로그파일·구조화 로그 — 요청 경로·status·에러·경고가 종종 smoking gun |
   | 외부 서비스 | DB·auth·큐·캐시의 status/health/settings 엔드포인트, 관리 콘솔 |
-  | 네트워크 | 요청 경로·HTTP status·리다이렉트 체인·Set-Cookie·CORS (실 브라우저 devtools / 자동화 도구) |
+  | 네트워크 | 요청 경로·HTTP status·리다이렉트 체인·Set-Cookie·CORS (실 브라우저 = Aside 브라우저 MCP `aside`/`repl` — 사용자의 로그인 세션 포함, 별도 Chrome/Playwright 프로필 금지) |
   | 영속상태 | 쿠키·세션·로컬스토리지·DB 행 — **실제 값을 덤프**해서 본다(코드가 의도한 값 말고) |
-  | 재현 도구 | E2E·브라우저 자동화·시드·픽스처 |
+  | 재현 도구 | E2E·브라우저 자동화(Aside `repl` — 워커 레인이면 `codex-worker.sh --browser`)·시드·픽스처 |
   | 게이트 | build · typecheck · lint · test |
 
 ## 결정적 실험 레퍼토리 (범용 패턴)

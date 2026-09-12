@@ -58,7 +58,7 @@ frontend-design 의 Tone 극단 리스트(brutally minimal · maximalist chaos �
 - 산출마다 **핵심 디자인 결정 3~5줄**(폰트·컬러·레이아웃·모션·placeholder)을 보고해 메인이 빠르게 비교하게 한다.
 
 ### 미리보기 함정 (시행착오 교훈)
-- 브라우저로 시안을 열 때 **`file://` 가 `https://file://` 로 변환돼 깨질 수 있다** → 정적 서버로 서빙: `python3 -m http.server <port> --directory <시안 디렉토리>` 후 `http://localhost:<port>/<file>.html`. (스샷·비교는 메인 오케스트레이터가 브라우저 도구로 수행 — 너는 파일을 떨구고 경로·서버 띄우는 법만 명확히 보고.)
+- 브라우저로 시안을 열 때 **`file://` 가 `https://file://` 로 변환돼 깨질 수 있다** → 정적 서버로 서빙: `python3 -m http.server <port> --directory <시안 디렉토리>` 후 `http://localhost:<port>/<file>.html`. (스샷·비교는 메인 오케스트레이터가 Aside 브라우저(MCP `aside`/`repl` 또는 Bash `aside repl`)로 수행 — 너는 파일을 떨구고 경로·서버 띄우는 법만 명확히 보고.)
 - 여러 방향을 만들 땐 메인이 **격리 병렬**로 너를 여러 번 spawn 한다(한 번에 한 방향). 너는 네 방향에만 집중하라.
 
 ## 5) 적용 단계 무기고 (선택된 Tone → 실제 코드)

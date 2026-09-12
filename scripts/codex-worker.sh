@@ -21,6 +21,7 @@
 #   --web               실시간 웹 검색 허용 (codex 의 native web_search 도구 — 조사 레인)
 #   --browser           Aside 브라우저 MCP(`aside mcp`, 도구 repl)를 붙인다 — 사용자의 로그인된 실제 브라우저에서
 #                       콘솔·폼·확인 작업. 셸 `aside` CLI 는 샌드박스가 데몬·키체인을 막아 불통이라 MCP 경유만.
+#                       없으면 config.toml 의 상시 aside 등록을 `enabled=false` 로 꺼서 비브라우저 레인은 브라우저를 못 만진다.
 #                       지시문 앞에 브라우저 레인 규칙(승인 경계에서 멈춤·탭 정리)을 붙인다
 #   --schema <file>     최종 메시지를 이 JSON Schema 모양으로 강제 (--out 을 Read 해 구조화 반환으로 씀)
 #   --add-dir <dir>     추가 쓰기 허용 디렉터리 (반복 가능)
@@ -170,6 +171,10 @@ build_cmd() {
           -c 'mcp_servers.aside.args=["mcp"]'
           -c 'mcp_servers.aside.startup_timeout_sec=60'
           -c 'mcp_servers.aside.tools.repl.approval_mode="approve"')
+  else
+    # ~/.codex/config.toml 에 aside 가 상시 등록돼 있어도(2026-09-12) 브라우저 레인이 아니면 끈다 —
+    # BROWSER_RULES(승인 경계) 없이 사용자의 실제 브라우저를 만지는 레인을 막고, MCP 기동 지연도 없앤다.
+    CMD+=(-c 'mcp_servers.aside.enabled=false')
   fi
   [ -n "$SCHEMA" ]     && CMD+=(--output-schema "$SCHEMA")
   for d in "${ADD_DIRS[@]:-}"; do [ -n "$d" ] && CMD+=(--add-dir "$d"); done

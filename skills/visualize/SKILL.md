@@ -14,7 +14,7 @@ This Plugify adaptation is derived from Career Hacker Alex's MIT-licensed `visua
 - Produce a standalone `.html` file. Do not substitute an answer-inline visualization surface unless the user explicitly asks for inline rendering.
 - Write to the user-specified location. Otherwise use `~/Downloads/<descriptive-kebab-name>.html`.
 - Keep custom CSS and JavaScript in the file. Use pinned CDN libraries only when they materially improve the result.
-- Preview the file with a supported in-app/browser automation tool when available. Do not auto-launch or manipulate the user's everyday Chrome process or profile; if a supported preview is unavailable, finish and return the file link.
+- Preview the file with a supported in-app/browser automation tool when available — in this environment that is the Aside browser (MCP `aside`/`repl`, or a Codex worker launched with `codex-worker.sh --browser`). Do not auto-launch or manipulate the user's everyday Chrome process or profile; if a supported preview is unavailable, finish and return the file link.
 - Return a clickable absolute local path. In Codex, use a Markdown file link; in a client that supports `file://`, that form is also acceptable.
 - Use real source material from the conversation, provided files, connected sources, or cited URLs. Never invent placeholder metrics when actual data exists.
 
@@ -66,7 +66,7 @@ Treat browser verification as a user-visible safety boundary on macOS.
 ```
 
 - Never directly execute a Chrome or Chromium macOS GUI app binary inside the default sandbox. Do not run a sandbox probe merely to see whether it fails.
-- Use the runtime's supported browser automation, browser control, or `agent-browser` tool first.
+- Use the runtime's supported browser automation, browser control, or `agent-browser` tool first — here the Aside browser (MCP `aside`/`repl`; Codex worker: `codex-worker.sh --browser`).
 - If CLI headless Chrome is the only available path, request escalated/unsandboxed execution on the first attempt. Create a fresh temporary directory and pass it through `--user-data-dir`, together with `--no-first-run` and `--no-default-browser-check`.
 - Verify desktop and mobile/375px sequentially. Reuse one supported managed session when possible; otherwise run one isolated CLI browser process at a time. Never use `Promise.all` or any other parallel browser-process launch.
 - If a launch reports exit 134, `SIGABRT`, or a LaunchServices sandbox denial, stop all retries in that sandbox. Fall back to a supported browser tool or report the environment limitation.
