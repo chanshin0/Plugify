@@ -23,6 +23,7 @@ codex:
 
 ## 검증 (보고서 신뢰 금지 — 직접 재현)
 - `git diff`(또는 `git status -s` + 변경파일 Read)로 실제 변경을 확인한다. 변경이 이미 커밋돼 있으면 `git show`/`git diff <base>..HEAD` 로 본다.
+- **검증용 서버 종료는 네가 띄운 포트만**(`lsof -ti :<port> | xargs kill`). `pkill -f next-server` 같은 이름 기반 광역 종료 금지 — 같은 기계의 다른 task·사용자의 서버를 죽인다(2026-09-23 실증).
 - **리뷰 대상 레포의 git 이력·작업트리 변조 금지** — `reset`·`checkout`·`stash` 등 상태를 바꾸는 명령을 쓰지 마라(복원했더라도 금지: 라이브 레포에서 검증 도중 상태 변조는 사고 벡터다). 검증은 읽기 + 게이트 재실행으로만.
 - 점검: correctness 버그 · 기획/ADR 부합 · 누락(엣지/상태/에러) · 보안(시크릿 노출·injection·authz/권한) · 게이트가 **실제로** 통과하는지(직접 재실행).
 - DB/인프라 변경이면 가능한 범위에서 라이브 재현(마이그레이션 적용·정책·트리거 확인 등).
@@ -34,13 +35,14 @@ codex:
 codex 를 백그라운드로 먼저 띄우고 네 검증을 병행하라:
 1. **Bash 를 run_in_background 로** 실행 (정확히 이 형태):
    ```
-   cd <projectRoot> && codex exec --ephemeral --ignore-user-config --sandbox read-only -m gpt-5.6-sol -c model_reasoning_effort='xhigh' -o /tmp/cross-review-verdict.txt review --uncommitted < /dev/null > /tmp/cross-review-trace.txt 2>&1; echo "CODEX_EXIT=$?" >> /tmp/cross-review-trace.txt
+   cd <projectRoot> && CR="/tmp/cross-review-$(basename "$PWD")" && codex exec --ephemeral --ignore-user-config --sandbox read-only -m gpt-5.6-sol -c model_reasoning_effort='xhigh' -o "$CR-verdict.txt" review --uncommitted < /dev/null > "$CR-trace.txt" 2>&1; echo "CODEX_EXIT=$?" >> "$CR-trace.txt"
    ```
    - **`--uncommitted` 는 positional PROMPT 와 런타임 상호배제다** (`error: the argument '--uncommitted' cannot be used with '[PROMPT]'`, exit 2). stdin(`-`)도 PROMPT 로 취급돼 똑같이 충돌. 따라서 커스텀 적대 지시문은 **명령에 넣지 못한다** — `--uncommitted` 의 내장 review(staged+unstaged+untracked) 로 돌리고, **적대적 포커스(시크릿/injection/authz·누락 엣지·기획부합)는 아래 네(Claude) 자신의 판정으로 보완**한다.
-   - 최종 verdict 는 **`-o /tmp/cross-review-verdict.txt`(--output-last-message) 로 캡처**한다. 스트리밍 stdout(`> file`)은 파일탐색 trace 로 verdict 가 묻혀 부적합 → 쓰지 마라. (`--output-schema`/`--json` 은 review 서브커맨드가 구조화 verdict 를 안 내므로 불필요.)
+   - 파일 이름은 **작업 디렉터리 이름으로 구분**한다(`/tmp/cross-review-<basename>-verdict.txt`·`-trace.txt`, 예: 그래프 worktree `.planning/worktrees/T3` 이면 `/tmp/cross-review-T3-verdict.txt`) — 2026-09-23 실증: 병렬 wave 의 reviewer 둘이 고정 경로 `/tmp/cross-review-verdict.txt` 를 서로 덮어써 다른 task 의 verdict 를 읽었다. 고정 경로 사용 금지.
+   - 최종 verdict 는 **`-o "$CR-verdict.txt"`(--output-last-message) 로 캡처**한다. 스트리밍 stdout(`> file`)은 파일탐색 trace 로 verdict 가 묻혀 부적합 → 쓰지 마라. (`--output-schema`/`--json` 은 review 서브커맨드가 구조화 verdict 를 안 내므로 불필요.)
    - `--sandbox read-only`로 코드·Git·외부 상태 변경을 차단하고 `--ephemeral --ignore-user-config`로 세션·사용자 플러그인 부수효과를 줄인다. bypass 플래그는 금지한다. 읽기 밖 권한이 필요하다는 이유로 교차리뷰를 승격하지 말고 Codex 실패로 기록한 뒤 reviewer 단독 판정한다.
 2. codex 가 도는 동안 너의 라이브 검증을 수행한다.
-3. 검증 후 codex 백그라운드 완료를 기다려 `/tmp/cross-review-verdict.txt`(최종 findings) 를 Read 해 네 판정과 **종합**한다. trace 파일의 `CODEX_EXIT=` 도 확인 — **0 이 아니거나(미설치/실패) verdict 파일이 비었으면(타임아웃) codex 결과 없이 단독 진행**하고 그 사실을 summary 에 적는다 (codex 실패를 조용히 통과로 삼키지 마라).
+3. 검증 후 codex 백그라운드 완료를 기다려 `/tmp/cross-review-<basename>-verdict.txt`(최종 findings) 를 Read 해 네 판정과 **종합**한다. trace 파일의 `CODEX_EXIT=` 도 확인 — **0 이 아니거나(미설치/실패) verdict 파일이 비었으면(타임아웃) codex 결과 없이 단독 진행**하고 그 사실을 summary 에 적는다 (codex 실패를 조용히 통과로 삼키지 마라).
 → reviewer 총 시간 ≈ max(네 검증, codex)·순차 아님.
 
 ## 판정
