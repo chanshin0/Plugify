@@ -755,6 +755,16 @@ async function runTask(task, expectedHead) {
   }
 }
 
+// 2026-09-23 실증(godo-writing wf_ea0d4589): haiku 가 `git show --remerge-diff` 를 --format= 없이 실행해 commit 헤더(commit/Merge:/Author:/Date:
+// + 4칸 들여쓴 메시지 본문)가 remergeDiff 에 섞여 정상 merge 를 오탐(escalated). 헤더·메시지 줄만 걷어내고 diff 본문만 남겨 판정한다.
+function stripCommitHeader(raw) {
+  const text = String(raw ?? '')
+  if (!/^commit [0-9a-f]{7,40}\b/m.test(text)) return text.trim()
+  return text.split('\n')
+    .filter(l => !/^(commit [0-9a-f]{7,40}\b|Merge:|Author:|AuthorDate:|Commit:|CommitDate:|Date:)/.test(l) && !/^ {4}/.test(l))
+    .join('\n').trim()
+}
+
 for (let w = 0; w < graph.waves.length; w++) {
   if (escalation) break
   const waveIds = graph.waves[w]
@@ -928,7 +938,7 @@ for (let w = 0; w < graph.waves.length; w++) {
     `statusPorcelain=git status --porcelain 을 반환하고, 각 브랜치에 대해 git merge-base --is-ancestor <branch> ${baseBranch}; echo ANC=$? 를 실행하라:\n` +
     mergeOrder.map(id => `- ${id}: ${branchOf(id)}`).join('\n') + '\n' +
     `git rev-list --first-parent --reverse ${(mergeSnapshot?.beforeHead ?? '').trim()}..HEAD 로 merge commit을 순서대로 열거하고, 각 task 순서에 맞춰 ` +
-    `mergeCommits 배열에 {id(= task ID 문자열 그대로, 예: T6 — SHA·브랜치명 아님), mergeHead, parents(git show -s --format='%P' <mergeHead>), remergeDiff(git show --remerge-diff --format= <mergeHead> 원문)}를 담아라. checks[].id 도 task ID 그대로. ` +
+    `mergeCommits 배열에 {id(= task ID 문자열 그대로, 예: T6 — SHA·브랜치명 아님), mergeHead, parents(git show -s --format='%P' <mergeHead>), remergeDiff(git show --remerge-diff --format= <mergeHead> 원문 — 반드시 --format= 을 붙여 commit 헤더 없이 diff 본문만, 정상이면 빈 문자열)}를 담아라. checks[].id 도 task ID 그대로. ` +
     `checks 배열은 {id, ancExit} 원문. 지어내지 마라.`,
     { phase: 'Wave', label: `merge-proof:w${w + 1}`, model: 'haiku',
       schema: { type: 'object', additionalProperties: false,
@@ -962,8 +972,8 @@ for (let w = 0; w < graph.waves.length; w++) {
       // mergeOrder 와 길이가 같을 때 *위치*로 결속하고, id 는 경고만 남긴다 — 실증 값(parents 순서·remergeDiff·mergeHead)이 판정을 맡는다.
       if (rec?.id !== id) log(`⚠ merge-proof: mergeCommits[${i}].id=${JSON.stringify(rec?.id)} ≠ ${id} — 위치 결속으로 판정(전사 오류 추정)`)
       const valid = /^[0-9a-f]{7,40}$/.test(mergeHead) && mergeHead !== previousMergeHead && mergeHead !== expectedTaskHead &&
-        parents.length === 2 && parents[0] === previousMergeHead && parents[1] === expectedTaskHead && (rec?.remergeDiff ?? '').trim() === ''
-      if (!valid) mergeTreeFailures.push(`${id}: parent/order/remerge 불일치`)
+        parents.length === 2 && parents[0] === previousMergeHead && parents[1] === expectedTaskHead && stripCommitHeader(rec?.remergeDiff) === ''
+      if (!valid) mergeTreeFailures.push(`${id}: parent/order/remerge 불일치 (mergeHead=${mergeHead} parents=${parents.join(',')} remerge=${JSON.stringify(stripCommitHeader(rec?.remergeDiff).slice(0, 120))})`)
       previousMergeHead = mergeHead
     }
     if (previousMergeHead !== mergeAfterHead) mergeTreeFailures.push('마지막 merge commit != afterHead')
