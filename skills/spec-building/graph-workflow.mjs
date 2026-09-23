@@ -599,7 +599,7 @@ function riskDirectives(task) {
     ? `이 task 는 ${r === undefined ? '미분류(risk 생략 — 강한 쪽으로 편향)' : 'RISKY'} 다 — 엣지케이스·불변식·상태조율·검증 규칙을 특히 꼼꼼히 구현·자기검증하라.`
     : `이 task 는 ${r} 로 분류됐다 — 그래도 자기검증(게이트 재실행)은 생략하지 마라.`
   const codex = strong
-    ? 'Codex 교차검증: 수행 — RISKY/미분류(에이전트 정의 §외부 모델 교차검증대로 병렬 실행).'
+    ? `Codex 교차검증: 수행 — RISKY/미분류(에이전트 정의 §외부 모델 교차검증대로 병렬 실행). 파일은 반드시 /tmp/cross-review-${task.id}-verdict.txt 와 /tmp/cross-review-${task.id}-trace.txt 를 쓴다(-o 와 리다이렉트 모두) — 같은 wave 의 다른 task reviewer 와 병렬이라 고정 경로 /tmp/cross-review-verdict.txt 는 서로 덮어쓴다(2026-09-23 실증).`
     : 'Codex 교차검증: 생략 — MECHANICAL/NONE(reviewer 단독 판정, summary 에 생략 명시).'
   return { implNote, codex }
 }
