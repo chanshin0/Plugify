@@ -236,7 +236,12 @@ function findByTaskId(arr, id, branch) {
 }
 
 function normalizeFileSet(raw) {
-  return [...new Set((raw ?? '').split('\n').map(s => s.trim()).filter(Boolean))].sort()
+  // 2026-09-24 실증(godo-writing T4): haiku 가 committedFiles 를 줄바꿈 대신 공백으로 이어 한 줄로 반환 →
+  // 29 vs 1 로 sameFiles 오탐(digest 는 일치). 한 줄뿐인데 공백이 섞여 있으면 공백 분리로도 해석한다
+  // (경로에 공백이 있는 레포는 줄바꿈 형식이 다중 줄로 와서 이 분기를 타지 않는다).
+  const lines = (raw ?? '').split('\n').map(s => s.trim()).filter(Boolean)
+  const items = lines.length === 1 && /\s/.test(lines[0]) ? lines[0].split(/\s+/).filter(Boolean) : lines
+  return [...new Set(items)].sort()
 }
 
 function judgeIndependentCommit(snapshot, reported, proof, expectedBranch = null) {
@@ -740,7 +745,7 @@ async function runTask(task, expectedHead) {
   const commitProof = await agent(
     `그래프 task 커밋 사후 증거 — 수정·스테이징·커밋·amend 금지. ${cdWt}\n` +
     `기준 브랜치 ${branch}, HEAD ${(reviewedSnapshot?.beforeHead ?? '').trim()}. branch=git branch --show-current, afterHead=git rev-parse HEAD, headLog=git log -1 --format='%H %s', ` +
-    `revCount=git rev-list --count ${(reviewedSnapshot?.beforeHead ?? '').trim()}..HEAD, committedFiles=git diff --name-only ${(reviewedSnapshot?.beforeHead ?? '').trim()}..HEAD, ` +
+    `revCount=git rev-list --count ${(reviewedSnapshot?.beforeHead ?? '').trim()}..HEAD, committedFiles=git diff --name-only ${(reviewedSnapshot?.beforeHead ?? '').trim()}..HEAD 의 stdout 원문(한 줄에 파일 하나 — 줄바꿈을 공백으로 바꾸지 말 것), ` +
     `committedDigest=\`${COMMITTED_DIGEST_CMD}\` 의 stdout 원문(64자 hex — reviewedDigest 와 같은 줄 형식이므로 같은 파일·내용이면 값이 같다. 다른 방식으로 계산하지 말 것), statusPorcelain=git status --porcelain 원문을 반환하라. 지어내지 마라.`,
     { phase: 'Wave', label: `commit-proof:${task.id}`, model: 'haiku',
       schema: { type: 'object', additionalProperties: false,
