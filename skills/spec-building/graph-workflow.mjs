@@ -942,19 +942,20 @@ for (let w = 0; w < graph.waves.length; w++) {
     `firstParentCount=git rev-list --first-parent --count ${(mergeSnapshot?.beforeHead ?? '').trim()}..HEAD, ` +
     `statusPorcelain=git status --porcelain 을 반환하고, 각 브랜치에 대해 git merge-base --is-ancestor <branch> ${baseBranch}; echo ANC=$? 를 실행하라:\n` +
     mergeOrder.map(id => `- ${id}: ${branchOf(id)}`).join('\n') + '\n' +
-    `git rev-list --first-parent --reverse ${(mergeSnapshot?.beforeHead ?? '').trim()}..HEAD 로 merge commit을 순서대로 열거하고, 각 task 순서에 맞춰 ` +
+    `firstParentList=git rev-list --first-parent --reverse ${(mergeSnapshot?.beforeHead ?? '').trim()}..HEAD 의 stdout 원문(한 줄에 SHA 하나)을 그대로 반환하고, 그 목록 순서대로 각 task 에 맞춰 ` +
     `mergeCommits 배열에 {id(= task ID 문자열 그대로, 예: T6 — SHA·브랜치명 아님), mergeHead, parents(git show -s --format='%P' <mergeHead>), remergeDiff(git show --remerge-diff --format= <mergeHead> 원문 — 반드시 --format= 을 붙여 commit 헤더 없이 diff 본문만, 정상이면 빈 문자열)}를 담아라. checks[].id 도 task ID 그대로. ` +
     `checks 배열은 {id, ancExit} 원문. 지어내지 마라.`,
     { phase: 'Wave', label: `merge-proof:w${w + 1}`, model: 'haiku',
       schema: { type: 'object', additionalProperties: false,
         properties: {
           branch: { type: 'string' }, afterHead: { type: 'string' }, revCount: { type: 'string' }, firstParentCount: { type: 'string' }, statusPorcelain: { type: 'string' },
+          firstParentList: { type: 'string', description: 'git rev-list --first-parent --reverse <before>..HEAD stdout 원문' },
           checks: { type: 'array', items: { type: 'object', additionalProperties: false, properties: { id: { type: 'string' }, ancExit: { type: 'string' } }, required: ['id', 'ancExit'] } },
           mergeCommits: { type: 'array', items: { type: 'object', additionalProperties: false,
             properties: { id: { type: 'string' }, mergeHead: { type: 'string' }, parents: { type: 'string' }, remergeDiff: { type: 'string' } },
             required: ['id', 'mergeHead', 'parents', 'remergeDiff'] } },
         },
-        required: ['branch', 'afterHead', 'revCount', 'firstParentCount', 'statusPorcelain', 'checks', 'mergeCommits'] } }
+        required: ['branch', 'afterHead', 'revCount', 'firstParentCount', 'statusPorcelain', 'firstParentList', 'checks', 'mergeCommits'] } }
   )
   const mergeBeforeHead = (mergeSnapshot?.beforeHead ?? '').trim()
   const mergeAfterHead = (mergeProof?.afterHead ?? '').trim()
@@ -970,7 +971,12 @@ for (let w = 0; w < graph.waves.length; w++) {
     for (let i = 0; i < mergeOrder.length; i++) {
       const id = mergeOrder[i]
       const rec = mergeProof.mergeCommits[i]
-      const mergeHead = (rec?.mergeHead ?? '').trim()
+      // 2026-09-24 실증(godo-writing T6): haiku 가 mergeHead 에 merge SHA 대신 task 팁 SHA 를 옮겨 적어 오탐(parents·remerge 는 정상).
+      // 원문 firstParentList 의 i번째 SHA 를 정본으로 쓰고, 자기보고 mergeHead 는 불일치 시 경고만 남긴다.
+      const listedHeads = String(mergeProof?.firstParentList ?? '').split(/\s+/).map(x => x.trim()).filter(x => /^[0-9a-f]{7,40}$/.test(x))
+      const reportedHead = (rec?.mergeHead ?? '').trim()
+      const mergeHead = listedHeads[i] ?? reportedHead
+      if (listedHeads[i] && reportedHead && reportedHead !== listedHeads[i]) log(`⚠ merge-proof: mergeCommits[${i}].mergeHead=${reportedHead} ≠ firstParentList[${i}]=${listedHeads[i]} — 원문 목록으로 결속(전사 오류 추정)`)
       const parents = (rec?.parents ?? '').trim().split(/\s+/).filter(Boolean)
       const expectedTaskHead = (taskResults[id]?.commitProof?.afterHead ?? '').trim()
       // 2026-09-01 실증: haiku 가 rec.id 에 task ID 대신 merge SHA/브랜치명을 넣어 오탐(실제 merge 는 정상). mergeCommits 는
